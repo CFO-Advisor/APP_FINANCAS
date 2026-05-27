@@ -1,65 +1,154 @@
-import Image from "next/image";
+import Link from 'next/link'
+import {
+  TrendingUp,
+  PieChart,
+  FileDown,
+  Shield,
+  Smartphone,
+  BarChart3,
+} from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
-export default function Home() {
+const features = [
+  {
+    icon: TrendingUp,
+    title: 'Controle Total',
+    description:
+      'Registre receitas e despesas com facilidade e acompanhe seu saldo em tempo real.',
+  },
+  {
+    icon: PieChart,
+    title: 'Gráficos Visuais',
+    description:
+      'Visualize seus gastos por categoria com gráficos de pizza interativos.',
+  },
+  {
+    icon: FileDown,
+    title: 'Exportar CSV',
+    description:
+      'Exporte suas transações filtradas para Excel com um único clique.',
+  },
+  {
+    icon: Shield,
+    title: 'Segurança',
+    description:
+      'Seus dados são protegidos com autenticação segura e isolados por usuário.',
+  },
+  {
+    icon: Smartphone,
+    title: 'Responsivo',
+    description:
+      'Interface adaptada para desktop e mobile. Acesse de qualquer dispositivo.',
+  },
+  {
+    icon: BarChart3,
+    title: 'Dashboard',
+    description:
+      'Resumo mensal com total de receitas, despesas e saldo de forma clara.',
+  },
+]
+
+export default function LandingPage() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <div className="min-h-screen bg-background">
+      {/* Navbar */}
+      <header className="border-b">
+        <div className="container mx-auto flex h-16 items-center justify-between px-4">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600">
+              <TrendingUp className="h-4 w-4 text-white" />
+            </div>
+            <span className="text-lg font-bold">Finanças</span>
+          </div>
+          <nav className="flex items-center gap-3">
+            <Button variant="ghost" render={<Link href="/login" />}>Entrar</Button>
+            <Button render={<Link href="/register" />}>Criar conta grátis</Button>
+          </nav>
+        </div>
+      </header>
+
+      {/* Hero */}
+      <section className="container mx-auto px-4 py-24 text-center">
+        <span className="mb-4 inline-block rounded-full bg-blue-50 px-4 py-1.5 text-sm font-medium text-blue-600">
+          Controle financeiro simples
+        </span>
+        <h1 className="mx-auto mb-6 max-w-3xl text-5xl font-bold tracking-tight text-gray-900">
+          Suas finanças sob{' '}
+          <span className="text-blue-600">controle total</span>
+        </h1>
+        <p className="mx-auto mb-10 max-w-xl text-xl text-muted-foreground">
+          Registre receitas e despesas, visualize gráficos e exporte relatórios.
+          Simples, rápido e gratuito.
+        </p>
+        <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+          <Button size="lg" className="px-8" render={<Link href="/register" />}>
+            Começar agora — é grátis
+          </Button>
+          <Button size="lg" variant="outline" render={<Link href="/login" />}>
+            Já tenho conta
+          </Button>
+        </div>
+      </section>
+
+      {/* Stats */}
+      <section className="border-y bg-slate-50">
+        <div className="container mx-auto grid grid-cols-3 divide-x px-4 py-12">
+          {[
+            { value: '100%', label: 'Gratuito' },
+            { value: 'RLS', label: 'Dados isolados por usuário' },
+            { value: 'CSV', label: 'Exportação de dados' },
+          ].map((stat) => (
+            <div key={stat.label} className="px-6 text-center">
+              <div className="text-3xl font-bold text-blue-600">{stat.value}</div>
+              <div className="mt-1 text-sm text-muted-foreground">{stat.label}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Features */}
+      <section className="container mx-auto px-4 py-24">
+        <div className="mb-16 text-center">
+          <h2 className="text-3xl font-bold">Tudo que você precisa</h2>
+          <p className="mt-3 text-muted-foreground">
+            Funcionalidades pensadas para simplificar o controle financeiro pessoal.
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+          {features.map((feature) => (
+            <div
+              key={feature.title}
+              className="rounded-xl border bg-card p-6 shadow-sm transition-shadow hover:shadow-md"
+            >
+              <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50">
+                <feature.icon className="h-5 w-5 text-blue-600" />
+              </div>
+              <h3 className="mb-2 font-semibold">{feature.title}</h3>
+              <p className="text-sm text-muted-foreground">{feature.description}</p>
+            </div>
+          ))}
         </div>
-      </main>
+      </section>
+
+      {/* CTA */}
+      <section className="bg-blue-600 py-20 text-white">
+        <div className="container mx-auto px-4 text-center">
+          <h2 className="mb-4 text-3xl font-bold">
+            Comece a controlar suas finanças hoje
+          </h2>
+          <p className="mb-8 text-blue-100">
+            Crie sua conta gratuitamente e tenha controle total do seu dinheiro.
+          </p>
+          <Button size="lg" variant="secondary" render={<Link href="/register" />}>
+            Criar conta grátis
+          </Button>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t py-8 text-center text-sm text-muted-foreground">
+        <p>© {new Date().getFullYear()} Finanças Pessoais. Feito com Next.js e Supabase.</p>
+      </footer>
     </div>
-  );
+  )
 }
