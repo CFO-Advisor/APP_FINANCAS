@@ -146,7 +146,7 @@ export default function DashboardPage() {
         <Card className="shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">Transações Recentes</CardTitle>
-            <Button variant="ghost" size="sm" render={<Link href="/transactions" />} className="flex items-center gap-1 text-blue-600">
+            <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/transactions" />} className="flex items-center gap-1 text-blue-600">
               Ver todas <ArrowRight className="h-3 w-3" />
             </Button>
           </CardHeader>
@@ -162,7 +162,7 @@ export default function DashboardPage() {
                 <p className="text-sm text-muted-foreground">
                   Nenhuma transação neste período.
                 </p>
-                <Button size="sm" render={<Link href="/transactions" />}>
+                <Button size="sm" nativeButton={false} render={<Link href="/transactions" />}>
                   <Plus className="mr-1 h-4 w-4" />
                   Adicionar transação
                 </Button>

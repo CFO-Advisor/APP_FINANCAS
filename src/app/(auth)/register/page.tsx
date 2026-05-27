@@ -114,7 +114,7 @@ export default function RegisterPage() {
           </p>
         </CardContent>
         <CardFooter className="flex flex-col gap-2 pt-0">
-          <Button className="w-full" render={<Link href="/login" />}>
+          <Button className="w-full" nativeButton={false} render={<Link href="/login" />}>
             Ir para o login
           </Button>
           <Button

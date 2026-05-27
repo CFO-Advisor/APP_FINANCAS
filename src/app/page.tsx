@@ -63,8 +63,8 @@ export default function LandingPage() {
           </div>
           <nav className="flex items-center gap-2">
             <ThemeToggle />
-            <Button variant="ghost" render={<Link href="/login" />}>Entrar</Button>
-            <Button render={<Link href="/register" />}>Criar conta grátis</Button>
+            <Button variant="ghost" nativeButton={false} render={<Link href="/login" />}>Entrar</Button>
+            <Button nativeButton={false} render={<Link href="/register" />}>Criar conta grátis</Button>
           </nav>
         </div>
       </header>
@@ -83,10 +83,10 @@ export default function LandingPage() {
           Simples, rápido e gratuito.
         </p>
         <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-          <Button size="lg" className="px-8" render={<Link href="/register" />}>
+          <Button size="lg" className="px-8" nativeButton={false} render={<Link href="/register" />}>
             Começar agora — é grátis
           </Button>
-          <Button size="lg" variant="outline" render={<Link href="/login" />}>
+          <Button size="lg" variant="outline" nativeButton={false} render={<Link href="/login" />}>
             Já tenho conta
           </Button>
         </div>
@@ -141,7 +141,7 @@ export default function LandingPage() {
           <p className="mb-8 text-blue-100">
             Crie sua conta gratuitamente e tenha controle total do seu dinheiro.
           </p>
-          <Button size="lg" variant="secondary" render={<Link href="/register" />}>
+          <Button size="lg" variant="secondary" nativeButton={false} render={<Link href="/register" />}>
             Criar conta grátis
           </Button>
         </div>
