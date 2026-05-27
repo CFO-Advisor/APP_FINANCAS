@@ -8,6 +8,7 @@ import {
   BarChart3,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { ThemeToggle } from '@/components/theme-toggle'
 
 const features = [
   {
@@ -52,7 +53,7 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Navbar */}
-      <header className="border-b">
+      <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600">
@@ -60,7 +61,8 @@ export default function LandingPage() {
             </div>
             <span className="text-lg font-bold">Finanças</span>
           </div>
-          <nav className="flex items-center gap-3">
+          <nav className="flex items-center gap-2">
+            <ThemeToggle />
             <Button variant="ghost" render={<Link href="/login" />}>Entrar</Button>
             <Button render={<Link href="/register" />}>Criar conta grátis</Button>
           </nav>
@@ -69,12 +71,12 @@ export default function LandingPage() {
 
       {/* Hero */}
       <section className="container mx-auto px-4 py-24 text-center">
-        <span className="mb-4 inline-block rounded-full bg-blue-50 px-4 py-1.5 text-sm font-medium text-blue-600">
+        <span className="mb-4 inline-block rounded-full bg-blue-50 px-4 py-1.5 text-sm font-medium text-blue-600 dark:bg-blue-950 dark:text-blue-400">
           Controle financeiro simples
         </span>
-        <h1 className="mx-auto mb-6 max-w-3xl text-5xl font-bold tracking-tight text-gray-900">
+        <h1 className="mx-auto mb-6 max-w-3xl text-5xl font-bold tracking-tight text-foreground">
           Suas finanças sob{' '}
-          <span className="text-blue-600">controle total</span>
+          <span className="text-blue-600 dark:text-blue-400">controle total</span>
         </h1>
         <p className="mx-auto mb-10 max-w-xl text-xl text-muted-foreground">
           Registre receitas e despesas, visualize gráficos e exporte relatórios.
@@ -91,7 +93,7 @@ export default function LandingPage() {
       </section>
 
       {/* Stats */}
-      <section className="border-y bg-slate-50">
+      <section className="border-y bg-muted/50">
         <div className="container mx-auto grid grid-cols-3 divide-x px-4 py-12">
           {[
             { value: '100%', label: 'Gratuito' },
@@ -99,7 +101,7 @@ export default function LandingPage() {
             { value: 'CSV', label: 'Exportação de dados' },
           ].map((stat) => (
             <div key={stat.label} className="px-6 text-center">
-              <div className="text-3xl font-bold text-blue-600">{stat.value}</div>
+              <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">{stat.value}</div>
               <div className="mt-1 text-sm text-muted-foreground">{stat.label}</div>
             </div>
           ))}
@@ -120,8 +122,8 @@ export default function LandingPage() {
               key={feature.title}
               className="rounded-xl border bg-card p-6 shadow-sm transition-shadow hover:shadow-md"
             >
-              <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50">
-                <feature.icon className="h-5 w-5 text-blue-600" />
+              <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-950">
+                <feature.icon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               </div>
               <h3 className="mb-2 font-semibold">{feature.title}</h3>
               <p className="text-sm text-muted-foreground">{feature.description}</p>
@@ -131,7 +133,7 @@ export default function LandingPage() {
       </section>
 
       {/* CTA */}
-      <section className="bg-blue-600 py-20 text-white">
+      <section className="bg-blue-600 dark:bg-blue-800 py-20 text-white">
         <div className="container mx-auto px-4 text-center">
           <h2 className="mb-4 text-3xl font-bold">
             Comece a controlar suas finanças hoje

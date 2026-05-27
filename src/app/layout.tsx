@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Geist } from 'next/font/google'
 import { Toaster } from '@/components/ui/sonner'
+import { ThemeProvider } from '@/components/theme-provider'
 import './globals.css'
 
 const geist = Geist({
@@ -19,10 +20,12 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="pt-BR" className={`${geist.variable} h-full`}>
+    <html lang="pt-BR" className={`${geist.variable} h-full`} suppressHydrationWarning>
       <body className="min-h-full bg-background font-sans antialiased">
-        {children}
-        <Toaster richColors position="top-right" />
+        <ThemeProvider>
+          {children}
+          <Toaster richColors position="top-right" />
+        </ThemeProvider>
       </body>
     </html>
   )
