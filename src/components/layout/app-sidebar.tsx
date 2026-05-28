@@ -4,7 +4,6 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
-  TrendingUp,
   LayoutDashboard,
   ArrowLeftRight,
   Target,
@@ -19,6 +18,23 @@ import {
   X,
   ChevronLeft,
 } from 'lucide-react'
+
+function CfoIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+      {/* Head */}
+      <circle cx="12" cy="6.5" r="3" fill="white" />
+      {/* Body / suit */}
+      <path d="M5 21v-2a7 7 0 0 1 14 0v2" fill="rgba(255,255,255,0.82)" />
+      {/* Left lapel */}
+      <path d="M12 12.5 L8.5 16" stroke="rgba(108,99,255,0.65)" strokeWidth="1.6" strokeLinecap="round" />
+      {/* Right lapel */}
+      <path d="M12 12.5 L15.5 16" stroke="rgba(108,99,255,0.65)" strokeWidth="1.6" strokeLinecap="round" />
+      {/* Tie */}
+      <path d="M12 13.2 L11.4 17 L12 16.2 L12.6 17 Z" fill="rgba(108,99,255,0.55)" />
+    </svg>
+  )
+}
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -53,12 +69,12 @@ function NavContent({ pathname, collapsed, onNavClick, onSignOut }: NavContentPr
           collapsed ? 'flex-col justify-center gap-1' : 'gap-3'
         )}
       >
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" style={{ background: 'linear-gradient(135deg, #7c6eff, #a78bfa)' }}>
-          <TrendingUp className="h-5 w-5 text-white" />
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: 'linear-gradient(135deg, #7c6eff, #a78bfa)' }}>
+          <CfoIcon className="h-6 w-6" />
         </div>
         {!collapsed && (
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-bold leading-none">CFO Advisor</p>
+            <p className="truncate text-base font-black leading-tight tracking-tight">CFO Advisor</p>
             <p className="truncate text-xs text-muted-foreground">Finanças Pessoais</p>
           </div>
         )}
@@ -156,10 +172,10 @@ export function AppSidebar() {
       {/* ── Mobile top bar ───────────────────────────────── */}
       <header className="fixed inset-x-0 top-0 z-40 flex h-14 shrink-0 items-center justify-between border-b border-border bg-sidebar px-4 md:hidden">
         <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: 'linear-gradient(135deg, #7c6eff, #a78bfa)' }}>
-            <TrendingUp className="h-4 w-4 text-white" />
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl" style={{ background: 'linear-gradient(135deg, #7c6eff, #a78bfa)' }}>
+            <CfoIcon className="h-5 w-5" />
           </div>
-          <span className="text-sm font-bold">CFO Advisor</span>
+          <span className="text-base font-black tracking-tight">CFO Advisor</span>
         </Link>
         <div className="flex items-center gap-1">
           <ThemeToggle />
