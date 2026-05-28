@@ -47,8 +47,8 @@ function NavContent({ pathname, collapsed, onNavClick, onSignOut }: NavContentPr
           collapsed ? 'flex-col justify-center gap-1' : 'gap-3'
         )}
       >
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary">
-          <TrendingUp className="h-5 w-5 text-primary-foreground" />
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" style={{ background: 'linear-gradient(135deg, #7c6eff, #a78bfa)' }}>
+          <TrendingUp className="h-5 w-5 text-white" />
         </div>
         {!collapsed && (
           <div className="min-w-0 flex-1">
@@ -75,12 +75,13 @@ function NavContent({ pathname, collapsed, onNavClick, onSignOut }: NavContentPr
               onClick={onNavClick}
               title={collapsed ? label : undefined}
               className={cn(
-                'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all',
+                'relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150',
                 collapsed && 'justify-center px-2',
                 active
-                  ? 'bg-primary text-primary-foreground'
+                  ? 'text-white shadow-sm'
                   : 'text-muted-foreground hover:bg-accent hover:text-foreground'
               )}
+              style={active ? { background: 'linear-gradient(135deg, #7c6eff, #a78bfa)' } : undefined}
             >
               <Icon className="h-4 w-4 shrink-0" />
               {!collapsed && label}
@@ -149,8 +150,8 @@ export function AppSidebar() {
       {/* ── Mobile top bar ───────────────────────────────── */}
       <header className="fixed inset-x-0 top-0 z-40 flex h-14 shrink-0 items-center justify-between border-b border-border bg-sidebar px-4 md:hidden">
         <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-            <TrendingUp className="h-4 w-4 text-primary-foreground" />
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: 'linear-gradient(135deg, #7c6eff, #a78bfa)' }}>
+            <TrendingUp className="h-4 w-4 text-white" />
           </div>
           <span className="text-sm font-bold">Finanças</span>
         </Link>

@@ -49,74 +49,72 @@
 }
 
 :root {
-  /* Light theme */
-  --background: oklch(0.97 0.005 265);
-  --foreground: oklch(0.18 0.03 265);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.18 0.03 265);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.18 0.03 265);
-  --primary: oklch(0.52 0.22 265);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.93 0.015 265);
-  --secondary-foreground: oklch(0.18 0.03 265);
-  --muted: oklch(0.93 0.015 265);
-  --muted-foreground: oklch(0.52 0.025 265);
-  --accent: oklch(0.93 0.015 265);
-  --accent-foreground: oklch(0.18 0.03 265);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.88 0.015 265);
-  --input: oklch(0.88 0.015 265);
-  --ring: oklch(0.52 0.22 265);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.18 0.03 265);
-  --sidebar-primary: oklch(0.52 0.22 265);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.93 0.015 265);
-  --sidebar-accent-foreground: oklch(0.18 0.03 265);
-  --sidebar-border: oklch(0.88 0.015 265);
-  --sidebar-ring: oklch(0.52 0.22 265);
-}
-
-.dark {
-  /* Dark theme matching baseline dashboard palette */
-  --background: #090c18;
-  --foreground: #e2e8f0;
-  --card: #131729;
-  --card-foreground: #e2e8f0;
-  --popover: #131729;
-  --popover-foreground: #e2e8f0;
+  --background: #f4f6fb;
+  --foreground: #111827;
+  --card: #ffffff;
+  --card-foreground: #111827;
+  --popover: #ffffff;
+  --popover-foreground: #111827;
   --primary: #6c63ff;
   --primary-foreground: #ffffff;
-  --secondary: #1a1e33;
-  --secondary-foreground: #e2e8f0;
-  --muted: #1a1e33;
-  --muted-foreground: #8892a4;
-  --accent: #1a1e33;
-  --accent-foreground: #e2e8f0;
-  --destructive: #ff6584;
-  --border: #252b45;
-  --input: #252b45;
+  --secondary: #eef0f8;
+  --secondary-foreground: #374151;
+  --muted: #eef0f8;
+  --muted-foreground: #6b7280;
+  --accent: #eef0f8;
+  --accent-foreground: #374151;
+  --destructive: #ef4444;
+  --border: #e2e6f0;
+  --input: #e2e6f0;
   --ring: #6c63ff;
   --chart-1: #6c63ff;
   --chart-2: #43e97b;
   --chart-3: #ff6584;
   --chart-4: #f7971e;
   --chart-5: #38f9d7;
-  --sidebar: #0d1026;
-  --sidebar-foreground: #e2e8f0;
+  --radius: 0.75rem;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #111827;
   --sidebar-primary: #6c63ff;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #1a1e33;
-  --sidebar-accent-foreground: #e2e8f0;
-  --sidebar-border: #252b45;
+  --sidebar-accent: #eef0f8;
+  --sidebar-accent-foreground: #374151;
+  --sidebar-border: #e2e6f0;
   --sidebar-ring: #6c63ff;
+}
+
+.dark {
+  --background: #06080f;
+  --foreground: #e8edf5;
+  --card: #0d1021;
+  --card-foreground: #e8edf5;
+  --popover: #0d1021;
+  --popover-foreground: #e8edf5;
+  --primary: #7c6eff;
+  --primary-foreground: #ffffff;
+  --secondary: #131726;
+  --secondary-foreground: #e8edf5;
+  --muted: #131726;
+  --muted-foreground: #7a85a0;
+  --accent: #131726;
+  --accent-foreground: #e8edf5;
+  --destructive: #ff5577;
+  --border: #1c2240;
+  --input: #1c2240;
+  --ring: #7c6eff;
+  --chart-1: #7c6eff;
+  --chart-2: #43e97b;
+  --chart-3: #ff5577;
+  --chart-4: #f7971e;
+  --chart-5: #38f9d7;
+  --sidebar: #07091c;
+  --sidebar-foreground: #e8edf5;
+  --sidebar-primary: #7c6eff;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #131726;
+  --sidebar-accent-foreground: #e8edf5;
+  --sidebar-border: #1c2240;
+  --sidebar-ring: #7c6eff;
 }
 
 @layer base {
@@ -129,12 +127,35 @@
   html {
     @apply font-sans;
   }
+
+  /* Smooth scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-border;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/40;
+  }
 }
 
-/* Dark mode: lift cards above background with elevation shadow */
-.dark .bg-card,
-.dark [class~="bg-card"] {
+/* ── Dark mode card elevation ─────────────────────────── */
+.dark .bg-card {
   box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.05),
-    0 4px 16px rgba(0, 0, 0, 0.5);
+    0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 2px 8px rgba(0, 0, 0, 0.45),
+    0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+/* ── Light mode card elevation ───────────────────────── */
+:root .bg-card,
+.light .bg-card {
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.06),
+    0 4px 16px rgba(0, 0, 0, 0.05);
 }
