@@ -2,11 +2,8 @@
 
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import Link from 'next/link'
-import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
-import { ArrowRight, Plus } from 'lucide-react'
+import { ArrowRight, Landmark, TrendingUp as TrendingUpIcon, Package2, ScrollText, CreditCard as CreditCardIcon, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Select,
   SelectContent,
@@ -26,7 +23,7 @@ import { createClient } from '@/lib/supabase/client'
 import { CATEGORY_COLORS, MONTHS } from '@/lib/constants'
 import { formatCurrency } from '@/lib/csv-export'
 import { computeCardBalance } from '@/lib/credit-card-utils'
-import type { Transaction, DashboardSummary, CategoryTotal, Budget, BudgetVsActual, Bank, BankBalance, CreditCard, CreditCardBalance } from '@/lib/types'
+import type { Transaction, DashboardSummary, CategoryTotal, Budget, BudgetVsActual, Bank, BankBalance, CreditCard, CreditCardBalance, Debt, Asset } from '@/lib/types'
 
 const currentYear = new Date().getFullYear()
 const YEARS = Array.from({ length: 6 }, (_, i) => currentYear - i)
@@ -39,6 +36,8 @@ export default function DashboardPage() {
   const [bankBalances, setBankBalances] = useState<BankBalance[]>([])
   const [cardBalances, setCardBalances] = useState<CreditCardBalance[]>([])
   const [investmentGroupBalances, setInvestmentGroupBalances] = useState<InvestmentGroupBalance[]>([])
+  const [assetsData, setAssetsData] = useState<Pick<Asset, 'group_type' | 'value'>[]>([])
+  const [debtsData, setDebtsData] = useState<Pick<Debt, 'group_type' | 'total_amount' | 'monthly_amount' | 'installments_paid' | 'status'>[]>([])
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState<ViewMode>('monthly')
   const [month, setMonth] = useState(new Date().getMonth() + 1)
@@ -55,7 +54,7 @@ export default function DashboardPage() {
       ? `${year}-12-31`
       : `${year}-${String(month).padStart(2, '0')}-${new Date(year, month, 0).getDate()}`
 
-    const [txRes, budgetsRes, banksRes, allTxRes, cardsRes, allCardTxRes, allInvTxRes, invSettingsRes] = await Promise.all([
+    const [txRes, budgetsRes, banksRes, allTxRes, cardsRes, allCardTxRes, allInvTxRes, invSettingsRes, assetsRes, debtsRes] = await Promise.all([
       supabase
         .from('transactions')
         .select('*')
@@ -69,6 +68,8 @@ export default function DashboardPage() {
       supabase.from('transactions').select('*').not('credit_card_id', 'is', null),
       supabase.from('transactions').select('category, amount').eq('type', 'investment'),
       supabase.from('investment_settings').select('group_key, initial_balance'),
+      supabase.from('assets').select('group_type, value'),
+      supabase.from('debts').select('group_type, total_amount, monthly_amount, installments_paid, status').neq('status', 'paid'),
     ])
 
     if (!txRes.error && txRes.data) setTransactions(txRes.data as Transaction[])
@@ -115,6 +116,9 @@ export default function DashboardPage() {
           g.categories.reduce((s, cat) => s + (catTotals[cat] ?? 0), 0),
       }))
     )
+
+    if (!assetsRes.error && assetsRes.data) setAssetsData(assetsRes.data as Pick<Asset, 'group_type' | 'value'>[])
+    if (!debtsRes.error && debtsRes.data) setDebtsData(debtsRes.data as Pick<Debt, 'group_type' | 'total_amount' | 'monthly_amount' | 'installments_paid' | 'status'>[])
 
     setLoading(false)
   }, [month, year, viewMode])
@@ -165,7 +169,19 @@ export default function DashboardPage() {
     .map(([name, value]) => ({ name, value, color: CATEGORY_COLORS[name] ?? '#a78bfa' }))
     .sort((a, b) => b.value - a.value)
 
-  const recentTransactions = transactions.slice(0, 6)
+  // Balance sheet totals
+  const bankTotal       = bankBalances.reduce((s, b) => s + b.balance, 0)
+  const investmentTotal = investmentGroupBalances.reduce((s, g) => s + g.total, 0)
+  const goodsTotal      = assetsData.filter((a) => a.group_type === 'goods').reduce((s, a) => s + a.value, 0)
+  const rightsTotal     = assetsData.filter((a) => a.group_type === 'rights').reduce((s, a) => s + a.value, 0)
+  const totalAtivos     = bankTotal + investmentTotal + goodsTotal + rightsTotal
+
+  const cardTotal       = cardBalances.reduce((s, c) => s + Math.max(0, c.currentFaturaTotal), 0)
+  const loanRemaining   = debtsData.filter((d) => d.group_type === 'loans').reduce((s, d) => s + Math.max(0, d.total_amount - (d.installments_paid ?? 0) * d.monthly_amount), 0)
+  const billsMonthly    = debtsData.filter((d) => d.group_type === 'bills').reduce((s, d) => s + d.monthly_amount, 0)
+  const otherTotal      = debtsData.filter((d) => d.group_type === 'other').reduce((s, d) => s + (d.total_amount > 0 ? d.total_amount : d.monthly_amount), 0)
+  const totalPassivos   = cardTotal + loanRemaining + billsMonthly + otherTotal
+  const patrimonioLiquido = totalAtivos - totalPassivos
 
   const actualByCategory = useMemo(() => {
     const map: Record<string, { amount: number; type: 'expense' | 'income' }> = {}
@@ -331,57 +347,90 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Recent transactions — full width */}
+      {/* Balanço Patrimonial — full width */}
       {loading ? (
-        <div className="h-64 animate-pulse rounded-lg border bg-card shadow-sm" />
+        <div className="h-56 animate-pulse rounded-xl border bg-card shadow-sm" />
       ) : (
-        <Card className="shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base">
-              {viewMode === 'yearly' ? `Últimas transações de ${year}` : 'Transações Recentes'}
-            </CardTitle>
-            <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/transactions" />} className="flex items-center gap-1 text-blue-600">
-              Ver todas <ArrowRight className="h-3 w-3" />
-            </Button>
-          </CardHeader>
-          <CardContent>
-            {recentTransactions.length === 0 ? (
-              <div className="flex flex-col items-center gap-3 py-8 text-center">
-                <p className="text-sm text-muted-foreground">
-                  Nenhuma transação neste período.
+        <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-border px-5 py-4">
+            <div>
+              <p className="font-semibold">Balanço Patrimonial</p>
+              <p className="text-xs text-muted-foreground">Visão consolidada do patrimônio</p>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="text-right">
+                <p className="text-xs text-muted-foreground">Patrimônio Líquido</p>
+                <p
+                  className="text-lg font-bold tabular-nums"
+                  style={{ color: patrimonioLiquido >= 0 ? '#43e97b' : '#ff6584' }}
+                >
+                  {formatCurrency(patrimonioLiquido)}
                 </p>
-                <Button size="sm" nativeButton={false} render={<Link href="/transactions" />}>
-                  <Plus className="mr-1 h-4 w-4" />
-                  Adicionar transação
-                </Button>
               </div>
-            ) : (
-              <div className="grid gap-x-6 sm:grid-cols-2">
-                {recentTransactions.map((t) => (
-                  <div
-                    key={t.id}
-                    className="flex items-center justify-between rounded-md px-2 py-2.5 hover:bg-muted/40"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">{t.description}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {t.category} •{' '}
-                        {format(new Date(t.date + 'T00:00:00'), 'dd MMM', { locale: ptBR })}
-                      </p>
-                    </div>
-                    <span
-                      className="ml-3 shrink-0 text-sm font-semibold"
-                      style={{ color: t.type === 'income' ? '#43e97b' : t.type === 'investment' ? '#a78bfa' : '#ff6584' }}
-                    >
-                      {t.type === 'income' ? '+' : '-'}
-                      {formatCurrency(t.amount)}
+              <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/balance" />} className="flex items-center gap-1 text-primary">
+                Ver detalhes <ArrowRight className="h-3 w-3" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Two columns */}
+          <div className="grid divide-y divide-border sm:grid-cols-2 sm:divide-x sm:divide-y-0">
+            {/* Ativos */}
+            <div className="px-5 py-4">
+              <p className="mb-3 text-[0.65rem] font-bold uppercase tracking-widest" style={{ color: '#43e97b' }}>
+                Ativos
+              </p>
+              <div className="space-y-2.5">
+                {([
+                  { label: 'Bancos',          value: bankTotal,       color: '#43e97b', Icon: Landmark       },
+                  { label: 'Investimentos',   value: investmentTotal, color: '#a78bfa', Icon: TrendingUpIcon  },
+                  { label: 'Bens',            value: goodsTotal,      color: '#fbbf24', Icon: Package2        },
+                  { label: 'Direitos',        value: rightsTotal,     color: '#38f9d7', Icon: ScrollText      },
+                ] as const).map(({ label, value, color, Icon }) => (
+                  <div key={label} className="flex items-center gap-2">
+                    <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md" style={{ background: color + '20', color }}>
+                      <Icon className="h-3 w-3" />
                     </span>
+                    <span className="flex-1 text-sm text-muted-foreground">{label}</span>
+                    <span className="tabular-nums text-sm font-medium" style={{ color }}>{formatCurrency(value)}</span>
                   </div>
                 ))}
               </div>
-            )}
-          </CardContent>
-        </Card>
+              <div className="mt-3 flex justify-between border-t border-border pt-2.5">
+                <span className="text-[0.65rem] font-bold uppercase tracking-widest text-muted-foreground">Total</span>
+                <span className="text-sm font-bold tabular-nums" style={{ color: '#43e97b' }}>{formatCurrency(totalAtivos)}</span>
+              </div>
+            </div>
+
+            {/* Passivos */}
+            <div className="px-5 py-4">
+              <p className="mb-3 text-[0.65rem] font-bold uppercase tracking-widest" style={{ color: '#ff6584' }}>
+                Passivos
+              </p>
+              <div className="space-y-2.5">
+                {([
+                  { label: 'Cartões',         value: cardTotal,      color: '#ff6584', Icon: CreditCardIcon },
+                  { label: 'Empréstimos',     value: loanRemaining,  color: '#f7971e', Icon: Landmark       },
+                  { label: 'Contas a Pagar',  value: billsMonthly,   color: '#38f9d7', Icon: ScrollText     },
+                  { label: 'Obrigações',      value: otherTotal,     color: '#a78bfa', Icon: AlertCircle    },
+                ] as const).map(({ label, value, color, Icon }) => (
+                  <div key={label} className="flex items-center gap-2">
+                    <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md" style={{ background: color + '20', color }}>
+                      <Icon className="h-3 w-3" />
+                    </span>
+                    <span className="flex-1 text-sm text-muted-foreground">{label}</span>
+                    <span className="tabular-nums text-sm font-medium" style={{ color }}>{formatCurrency(value)}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-3 flex justify-between border-t border-border pt-2.5">
+                <span className="text-[0.65rem] font-bold uppercase tracking-widest text-muted-foreground">Total</span>
+                <span className="text-sm font-bold tabular-nums" style={{ color: '#ff6584' }}>{formatCurrency(totalPassivos)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
