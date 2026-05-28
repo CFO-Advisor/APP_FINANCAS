@@ -19,6 +19,7 @@ import {
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { ThemeToggle } from '@/components/theme-toggle'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -39,22 +40,23 @@ interface NavContentProps {
 function NavContent({ pathname, collapsed, onNavClick, onSignOut }: NavContentProps) {
   return (
     <div className="flex h-full flex-col">
-      {/* Logo */}
+      {/* Logo + Theme toggle */}
       <div
         className={cn(
           'flex h-16 shrink-0 items-center border-b border-border px-4',
-          collapsed ? 'justify-center' : 'gap-3'
+          collapsed ? 'flex-col justify-center gap-1' : 'gap-3'
         )}
       >
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary">
           <TrendingUp className="h-5 w-5 text-primary-foreground" />
         </div>
         {!collapsed && (
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-bold leading-none">Finanças</p>
             <p className="truncate text-xs text-muted-foreground">Pessoais</p>
           </div>
         )}
+        <ThemeToggle />
       </div>
 
       {/* Navigation */}
@@ -152,12 +154,15 @@ export function AppSidebar() {
           </div>
           <span className="text-sm font-bold">Finanças</span>
         </Link>
-        <button
-          onClick={() => setMobileOpen(true)}
-          className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground"
-        >
-          <Menu className="h-5 w-5" />
-        </button>
+        <div className="flex items-center gap-1">
+          <ThemeToggle />
+          <button
+            onClick={() => setMobileOpen(true)}
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+        </div>
       </header>
 
       {/* ── Mobile drawer overlay ─────────────────────────── */}
