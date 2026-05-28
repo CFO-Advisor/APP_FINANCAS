@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { TrendingUp, LayoutDashboard, ArrowLeftRight, LogOut, Menu, X } from 'lucide-react'
+import { TrendingUp, LayoutDashboard, ArrowLeftRight, Target, LogOut, Menu, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils'
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/transactions', label: 'Transações', icon: ArrowLeftRight },
+  { href: '/budget', label: 'Orçamento', icon: Target },
 ]
 
 export function AppNavbar() {
@@ -27,7 +28,7 @@ export function AppNavbar() {
   }
 
   return (
-    <header className="sticky top-0 z-50 border-b bg-white shadow-sm">
+    <header className="sticky top-0 z-50 border-b border-border bg-card shadow-sm">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         {/* Logo */}
         <Link href="/dashboard" className="flex items-center gap-2">
@@ -47,7 +48,7 @@ export function AppNavbar() {
                 'flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors',
                 pathname === href
                   ? 'bg-blue-50 text-blue-600'
-                  : 'text-muted-foreground hover:bg-slate-100 hover:text-foreground'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
               )}
             >
               <Icon className="h-4 w-4" />
@@ -82,7 +83,7 @@ export function AppNavbar() {
 
       {/* Mobile menu */}
       {mobileOpen && (
-        <div className="border-t bg-white px-4 pb-4 md:hidden">
+        <div className="border-t border-border bg-card px-4 pb-4 md:hidden">
           <nav className="flex flex-col gap-1 pt-2">
             {navItems.map(({ href, label, icon: Icon }) => (
               <Link
@@ -93,7 +94,7 @@ export function AppNavbar() {
                   'flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium transition-colors',
                   pathname === href
                     ? 'bg-blue-50 text-blue-600'
-                    : 'text-muted-foreground hover:bg-slate-100'
+                    : 'text-muted-foreground hover:bg-muted'
                 )}
               >
                 <Icon className="h-4 w-4" />
@@ -102,7 +103,7 @@ export function AppNavbar() {
             ))}
             <button
               onClick={handleSignOut}
-              className="flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-slate-100"
+              className="flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted"
             >
               <LogOut className="h-4 w-4" />
               Sair

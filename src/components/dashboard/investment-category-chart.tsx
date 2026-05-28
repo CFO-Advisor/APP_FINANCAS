@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatCurrency } from '@/lib/csv-export'
 import type { CategoryTotal } from '@/lib/types'
 
-interface CategoryChartProps {
+interface InvestmentCategoryChartProps {
   data: CategoryTotal[]
 }
 
@@ -29,18 +29,18 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Toolti
   return null
 }
 
-export function CategoryChart({ data }: CategoryChartProps) {
+export function InvestmentCategoryChart({ data }: InvestmentCategoryChartProps) {
   if (data.length === 0) {
     return (
       <Card className="shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-            <span className="inline-block h-2 w-2 rounded-full bg-[#ff6584]" />
-            Gastos por Categoria
+            <span className="inline-block h-2 w-2 rounded-full bg-[#a78bfa]" />
+            Investimentos por Categoria
           </CardTitle>
         </CardHeader>
         <CardContent className="flex h-48 items-center justify-center">
-          <p className="text-sm text-muted-foreground">Nenhuma despesa registrada neste período.</p>
+          <p className="text-sm text-muted-foreground">Nenhum investimento registrado neste período.</p>
         </CardContent>
       </Card>
     )
@@ -50,8 +50,8 @@ export function CategoryChart({ data }: CategoryChartProps) {
     <Card className="shadow-sm">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-          <span className="inline-block h-2 w-2 rounded-full bg-[#ff6584]" />
-          Gastos por Categoria
+          <span className="inline-block h-2 w-2 rounded-full bg-[#a78bfa]" />
+          Investimentos por Categoria
         </CardTitle>
       </CardHeader>
       <CardContent>

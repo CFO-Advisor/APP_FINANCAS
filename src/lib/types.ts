@@ -1,15 +1,6 @@
-export type TransactionType = 'income' | 'expense'
+export type TransactionType = 'income' | 'expense' | 'investment' | 'credit_card_payment'
 
-export type Category =
-  | 'Alimentação'
-  | 'Transporte'
-  | 'Moradia'
-  | 'Lazer'
-  | 'Saúde'
-  | 'Educação'
-  | 'Salário'
-  | 'Freelance'
-  | 'Outros'
+export type Category = string
 
 export interface Transaction {
   id: string
@@ -19,6 +10,8 @@ export interface Transaction {
   date: string
   type: TransactionType
   category: Category
+  bank_id: string | null
+  credit_card_id: string | null
   created_at: string
 }
 
@@ -33,6 +26,7 @@ export interface TransactionFormData {
 export interface DashboardSummary {
   totalIncome: number
   totalExpense: number
+  totalInvestment: number
   balance: number
 }
 
@@ -40,4 +34,72 @@ export interface CategoryTotal {
   name: string
   value: number
   color: string
+}
+
+export interface Budget {
+  id: string
+  user_id: string
+  month: number
+  year: number
+  category: string
+  type: TransactionType
+  amount: number
+  created_at: string
+}
+
+export interface BudgetFormData {
+  category: string
+  type: TransactionType
+  amount: number
+}
+
+export type BankType = 'checking' | 'savings' | 'investment' | 'wallet' | 'credit'
+
+export interface Bank {
+  id: string
+  user_id: string
+  name: string
+  type: BankType
+  initial_balance: number
+  color: string
+  agency: string | null
+  account_number: string | null
+  created_at: string
+}
+
+export interface BankBalance extends Bank {
+  totalIncome: number
+  totalExpense: number
+  balance: number
+}
+
+export interface BudgetVsActual {
+  category: string
+  type: TransactionType
+  budgeted: number
+  actual: number
+  remaining: number
+  percentage: number
+}
+
+export type CardBrand = 'visa' | 'mastercard' | 'elo' | 'amex' | 'hipercard' | 'outros'
+
+export interface CreditCard {
+  id: string
+  user_id: string
+  name: string
+  brand: CardBrand
+  color: string
+  credit_limit: number
+  closing_day: number
+  due_day: number
+  created_at: string
+}
+
+export interface CreditCardBalance extends CreditCard {
+  currentFaturaTotal: number
+  availableCredit: number
+  utilizationPct: number
+  nextDueDate: string
+  nextClosingDate: string
 }

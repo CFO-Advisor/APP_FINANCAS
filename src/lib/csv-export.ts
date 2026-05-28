@@ -9,7 +9,7 @@ export function exportToCSV(transactions: Transaction[], filename?: string) {
     format(new Date(t.date + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR }),
     t.description,
     t.category,
-    t.type === 'income' ? 'Receita' : 'Despesa',
+    t.type === 'income' ? 'Receita' : t.type === 'investment' ? 'Investimento' : 'Despesa',
     t.amount.toFixed(2).replace('.', ','),
   ])
 

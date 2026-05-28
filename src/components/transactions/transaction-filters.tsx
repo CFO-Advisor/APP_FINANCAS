@@ -18,6 +18,7 @@ interface TransactionFiltersProps {
   category: string
   type: string
   search: string
+  categories?: string[]
   onMonthChange: (v: number) => void
   onYearChange: (v: number) => void
   onCategoryChange: (v: string) => void
@@ -35,6 +36,7 @@ export function TransactionFilters({
   category,
   type,
   search,
+  categories = CATEGORIES,
   onMonthChange,
   onYearChange,
   onCategoryChange,
@@ -43,14 +45,15 @@ export function TransactionFilters({
   onReset,
 }: TransactionFiltersProps) {
   const hasActiveFilters = category !== 'all' || type !== 'all' || search !== ''
+  const selectedMonthLabel = MONTHS.find((m) => m.value === month)?.label ?? ''
 
   return (
     <div className="space-y-3">
       {/* Month/Year row */}
       <div className="flex flex-wrap gap-2">
         <Select value={String(month)} onValueChange={(v) => { if (v !== null) onMonthChange(Number(v)) }}>
-          <SelectTrigger className="w-36 bg-white">
-            <SelectValue />
+          <SelectTrigger className="w-36 bg-card">
+            <span className="flex flex-1 text-left text-sm">{selectedMonthLabel}</span>
           </SelectTrigger>
           <SelectContent>
             {MONTHS.map((m) => (
@@ -62,8 +65,8 @@ export function TransactionFilters({
         </Select>
 
         <Select value={String(year)} onValueChange={(v) => { if (v !== null) onYearChange(Number(v)) }}>
-          <SelectTrigger className="w-24 bg-white">
-            <SelectValue />
+          <SelectTrigger className="w-24 bg-card">
+            <span className="flex flex-1 text-left text-sm">{year}</span>
           </SelectTrigger>
           <SelectContent>
             {YEARS.map((y) => (
@@ -83,17 +86,17 @@ export function TransactionFilters({
             placeholder="Buscar por descrição..."
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="bg-white pl-9"
+            className="bg-card pl-9"
           />
         </div>
 
         <Select value={category} onValueChange={(v) => { if (v !== null) onCategoryChange(v) }}>
-          <SelectTrigger className="w-40 bg-white">
+          <SelectTrigger className="w-40 bg-card">
             <SelectValue placeholder="Categoria" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas categorias</SelectItem>
-            {CATEGORIES.map((cat) => (
+            {categories.map((cat) => (
               <SelectItem key={cat} value={cat}>
                 {cat}
               </SelectItem>
@@ -102,13 +105,15 @@ export function TransactionFilters({
         </Select>
 
         <Select value={type} onValueChange={(v) => { if (v !== null) onTypeChange(v) }}>
-          <SelectTrigger className="w-32 bg-white">
+          <SelectTrigger className="w-36 bg-card">
             <SelectValue placeholder="Tipo" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos</SelectItem>
             <SelectItem value="income">Receitas</SelectItem>
             <SelectItem value="expense">Despesas</SelectItem>
+            <SelectItem value="investment">Investimentos</SelectItem>
+            <SelectItem value="credit_card_payment">Pg. Fatura</SelectItem>
           </SelectContent>
         </Select>
 

@@ -25,15 +25,21 @@ import {
 import { CATEGORY_COLORS } from '@/lib/constants'
 import { formatCurrency } from '@/lib/csv-export'
 import { createClient } from '@/lib/supabase/client'
-import type { Transaction } from '@/lib/types'
+import { toError } from '@/lib/utils'
+import { BankIcon } from '@/components/banks/bank-icon'
+import type { Transaction, Bank, CreditCard } from '@/lib/types'
 
 interface TransactionTableProps {
   transactions: Transaction[]
   onEdit: (transaction: Transaction) => void
   onDeleted: () => void
+  banks?: Bank[]
+  creditCards?: CreditCard[]
 }
 
-export function TransactionTable({ transactions, onEdit, onDeleted }: TransactionTableProps) {
+export function TransactionTable({ transactions, onEdit, onDeleted, banks = [], creditCards = [] }: TransactionTableProps) {
+  const bankMap = new Map(banks.map((b) => [b.id, b]))
+  const cardMap = new Map(creditCards.map((c) => [c.id, c]))
   const [deleteTarget, setDeleteTarget] = useState<Transaction | null>(null)
   const [deleting, setDeleting] = useState(false)
 
@@ -48,6 +54,7 @@ export function TransactionTable({ transactions, onEdit, onDeleted }: Transactio
       .eq('id', deleteTarget.id)
 
     if (error) {
+      console.error(toError(error))
       toast.error('Erro ao excluir transação.')
     } else {
       toast.success('Transação excluída.')
@@ -71,13 +78,14 @@ export function TransactionTable({ transactions, onEdit, onDeleted }: Transactio
 
   return (
     <>
-      <div className="overflow-auto rounded-lg border bg-white shadow-sm">
+      <div className="overflow-auto rounded-lg border bg-card shadow-sm">
         <Table>
           <TableHeader>
-            <TableRow className="bg-slate-50">
+            <TableRow className="bg-muted/40">
               <TableHead>Data</TableHead>
               <TableHead>Descrição</TableHead>
               <TableHead className="hidden sm:table-cell">Categoria</TableHead>
+              <TableHead className="hidden lg:table-cell">Banco</TableHead>
               <TableHead className="hidden md:table-cell">Tipo</TableHead>
               <TableHead className="text-right">Valor</TableHead>
               <TableHead className="w-20 text-center">Ações</TableHead>
@@ -85,7 +93,7 @@ export function TransactionTable({ transactions, onEdit, onDeleted }: Transactio
           </TableHeader>
           <TableBody>
             {transactions.map((t) => (
-              <TableRow key={t.id} className="hover:bg-slate-50/50">
+              <TableRow key={t.id} className="hover:bg-muted/40/50">
                 <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                   {format(new Date(t.date + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR })}
                 </TableCell>
@@ -106,23 +114,44 @@ export function TransactionTable({ transactions, onEdit, onDeleted }: Transactio
                     {t.category}
                   </span>
                 </TableCell>
+                <TableCell className="hidden lg:table-cell">
+                  {t.credit_card_id && cardMap.has(t.credit_card_id) ? (
+                    <span className="flex items-center gap-1.5">
+                      <span className="inline-flex h-5 w-5 items-center justify-center rounded text-[9px] font-bold text-white" style={{ backgroundColor: cardMap.get(t.credit_card_id)!.color }}>C</span>
+                      <span className="text-xs">{cardMap.get(t.credit_card_id)!.name}</span>
+                    </span>
+                  ) : t.bank_id && bankMap.has(t.bank_id) ? (
+                    <span className="flex items-center gap-1.5">
+                      <BankIcon name={bankMap.get(t.bank_id)!.name} color={bankMap.get(t.bank_id)!.color} size="xs" />
+                      <span className="text-xs">{bankMap.get(t.bank_id)!.name}</span>
+                    </span>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">—</span>
+                  )}
+                </TableCell>
                 <TableCell className="hidden md:table-cell">
                   <Badge
-                    variant={t.type === 'income' ? 'default' : 'secondary'}
-                    className={
+                    variant="secondary"
+                    style={
                       t.type === 'income'
-                        ? 'bg-green-100 text-green-700 hover:bg-green-100'
-                        : 'bg-red-100 text-red-700 hover:bg-red-100'
+                        ? { backgroundColor: '#43e97b20', color: '#43e97b' }
+                        : t.type === 'investment'
+                        ? { backgroundColor: '#a78bfa20', color: '#a78bfa' }
+                        : t.type === 'credit_card_payment'
+                        ? { backgroundColor: '#6c63ff20', color: '#6c63ff' }
+                        : { backgroundColor: '#ff658420', color: '#ff6584' }
                     }
                   >
-                    {t.type === 'income' ? 'Receita' : 'Despesa'}
+                    {t.type === 'income' ? 'Receita'
+                      : t.type === 'investment' ? 'Investimento'
+                      : t.type === 'credit_card_payment' ? 'Pg. Fatura'
+                      : 'Despesa'}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">
                   <span
-                    className={`font-semibold tabular-nums ${
-                      t.type === 'income' ? 'text-green-600' : 'text-red-600'
-                    }`}
+                    className="font-semibold tabular-nums"
+                    style={{ color: t.type === 'income' ? '#43e97b' : t.type === 'investment' ? '#a78bfa' : t.type === 'credit_card_payment' ? '#6c63ff' : '#ff6584' }}
                   >
                     {t.type === 'income' ? '+' : '-'}
                     {formatCurrency(t.amount)}

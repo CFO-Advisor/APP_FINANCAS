@@ -1,9 +1,8 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
-import { Loader2, CheckCircle2 } from 'lucide-react'
+import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -16,13 +15,54 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { createClient } from '@/lib/supabase/client'
+import Link from 'next/link'
+
+type Status = 'loading' | 'ready' | 'done' | 'invalid'
 
 export default function ResetPasswordPage() {
-  const router = useRouter()
-  const [loading, setLoading] = useState(false)
-  const [done, setDone] = useState(false)
+  const [status, setStatus] = useState<Status>('loading')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    const supabase = createClient()
+    let resolved = false
+
+    function resolve(next: Status) {
+      if (!resolved) {
+        resolved = true
+        setStatus(next)
+      }
+    }
+
+    // PKCE flow: Supabase redireciona com ?code=xxx na URL
+    const code = new URLSearchParams(window.location.search).get('code')
+    if (code) {
+      supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
+        resolve(error ? 'invalid' : 'ready')
+      })
+      return
+    }
+
+    // Implicit flow: Supabase redireciona com #access_token=...&type=recovery no hash
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
+        resolve('ready')
+      }
+    })
+
+    // Fallback: se em 2s nenhum evento chegou, verifica sessão existente
+    const timer = setTimeout(async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      resolve(session ? 'ready' : 'invalid')
+    }, 2000)
+
+    return () => {
+      subscription.unsubscribe()
+      clearTimeout(timer)
+    }
+  }, [])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -37,33 +77,70 @@ export default function ResetPasswordPage() {
       return
     }
 
-    setLoading(true)
+    setSaving(true)
 
     try {
       const supabase = createClient()
       const { error } = await supabase.auth.updateUser({ password })
 
       if (error) {
-        toast.error('Não foi possível redefinir a senha. O link pode ter expirado.')
+        toast.error('Não foi possível redefinir a senha. Solicite um novo link.')
         return
       }
 
-      setDone(true)
-      setTimeout(() => router.push('/dashboard'), 2500)
+      setStatus('done')
+      setTimeout(() => { window.location.href = '/dashboard' }, 2500)
     } catch {
       toast.error('Ocorreu um erro. Tente novamente.')
     } finally {
-      setLoading(false)
+      setSaving(false)
     }
   }
 
-  // ── Tela de sucesso ──────────────────────────────────────────
-  if (done) {
+  // ── Verificando link ─────────────────────────────────────────
+  if (status === 'loading') {
     return (
       <Card className="w-full max-w-md shadow-md text-center">
         <CardHeader>
-          <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900">
-            <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" />
+          <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-blue-100">
+            <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
+          </div>
+          <CardTitle className="text-2xl">Verificando link...</CardTitle>
+          <CardDescription>Aguarde um momento.</CardDescription>
+        </CardHeader>
+      </Card>
+    )
+  }
+
+  // ── Link inválido ou expirado ────────────────────────────────
+  if (status === 'invalid') {
+    return (
+      <Card className="w-full max-w-md shadow-md text-center">
+        <CardHeader>
+          <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
+            <AlertCircle className="h-8 w-8 text-red-600" />
+          </div>
+          <CardTitle className="text-2xl">Link inválido</CardTitle>
+          <CardDescription>
+            Este link expirou ou já foi utilizado. Solicite um novo link de recuperação.
+          </CardDescription>
+        </CardHeader>
+        <CardFooter className="justify-center">
+          <Button nativeButton={false} render={<Link href="/forgot-password" />}>
+            Solicitar novo link
+          </Button>
+        </CardFooter>
+      </Card>
+    )
+  }
+
+  // ── Senha redefinida com sucesso ─────────────────────────────
+  if (status === 'done') {
+    return (
+      <Card className="w-full max-w-md shadow-md text-center">
+        <CardHeader>
+          <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
+            <CheckCircle2 className="h-8 w-8 text-green-600" />
           </div>
           <CardTitle className="text-2xl">Senha redefinida!</CardTitle>
           <CardDescription>
@@ -112,8 +189,8 @@ export default function ResetPasswordPage() {
           </div>
         </CardContent>
         <CardFooter className="pt-2">
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          <Button type="submit" className="w-full" disabled={saving}>
+            {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Salvar nova senha
           </Button>
         </CardFooter>

@@ -26,19 +26,19 @@ export async function proxy(request: NextRequest) {
   )
 
   const {
-    data: { user },
-  } = await supabase.auth.getUser()
+    data: { session },
+  } = await supabase.auth.getSession()
 
   const { pathname } = request.nextUrl
 
   const protectedPaths = ['/dashboard', '/transactions']
   const isProtected = protectedPaths.some((p) => pathname.startsWith(p))
 
-  if (!user && isProtected) {
+  if (!session && isProtected) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  if (user && (pathname === '/login' || pathname === '/register')) {
+  if (session && (pathname === '/login' || pathname === '/register')) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
