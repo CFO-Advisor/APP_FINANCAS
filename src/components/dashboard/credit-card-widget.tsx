@@ -34,7 +34,7 @@ export function CreditCardWidget({ cards }: CreditCardWidgetProps) {
     )
   }
 
-  const totalDebt = cards.reduce((s, c) => s + c.currentFaturaTotal, 0)
+  const totalDebt = cards.reduce((s, c) => s + c.outstandingBalance, 0)
 
   return (
     <Card className="shadow-sm">
@@ -71,7 +71,7 @@ export function CreditCardWidget({ cards }: CreditCardWidgetProps) {
                   <div className="flex items-center justify-between">
                     <p className="truncate text-sm font-medium">{card.name}</p>
                     <span className="ml-2 shrink-0 text-sm font-semibold" style={{ color: '#ff6584' }}>
-                      {formatCurrency(card.currentFaturaTotal)}
+                      {formatCurrency(card.outstandingBalance)}
                     </span>
                   </div>
                   <div className="mt-1 flex items-center gap-2">

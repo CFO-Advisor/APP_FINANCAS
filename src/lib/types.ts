@@ -132,6 +132,7 @@ export interface CreditCard {
 
 export interface CreditCardBalance extends CreditCard {
   currentFaturaTotal: number
+  outstandingBalance: number
   availableCredit: number
   utilizationPct: number
   nextDueDate: string

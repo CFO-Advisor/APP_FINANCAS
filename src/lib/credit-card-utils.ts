@@ -47,22 +47,30 @@ export function isInBillingCycle(txDate: string, closingDay: number, referenceDa
 
 export function computeCardBalance(card: CreditCard, transactions: Transaction[]): CreditCardBalance {
   const { start, end } = getBillingCycle(card.closing_day)
-  const currentFaturaTransactions = transactions.filter((t) => {
-    if (t.credit_card_id !== card.id) return false
-    if (t.type === 'credit_card_payment') return false
-    const d = new Date(t.date + 'T00:00:00')
-    return d >= start && d <= end
-  })
+  const cardTxs = transactions.filter((t) => t.credit_card_id === card.id)
 
-  const currentFaturaTotal = currentFaturaTransactions.reduce((s, t) => s + t.amount, 0)
-  const availableCredit = Math.max(0, card.credit_limit - currentFaturaTotal)
-  const utilizationPct = card.credit_limit > 0 ? (currentFaturaTotal / card.credit_limit) * 100 : 0
+  // Current billing cycle expenses only (what is accumulating in this statement)
+  const currentFaturaTotal = cardTxs
+    .filter((t) => t.type === 'expense' && (() => {
+      const d = new Date(t.date + 'T00:00:00')
+      return d >= start && d <= end
+    })())
+    .reduce((s, t) => s + t.amount, 0)
+
+  // True outstanding balance = all-time expenses minus all payments made
+  const totalExpenses = cardTxs.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
+  const totalPayments = cardTxs.filter((t) => t.type === 'credit_card_payment').reduce((s, t) => s + t.amount, 0)
+  const outstandingBalance = Math.max(0, totalExpenses - totalPayments)
+
+  const availableCredit = Math.max(0, card.credit_limit - outstandingBalance)
+  const utilizationPct = card.credit_limit > 0 ? (outstandingBalance / card.credit_limit) * 100 : 0
   const nextDueDate = getNextDueDate(card.due_day, card.closing_day)
   const nextClosingDate = end.toISOString().split('T')[0]
 
   return {
     ...card,
     currentFaturaTotal,
+    outstandingBalance,
     availableCredit,
     utilizationPct,
     nextDueDate,

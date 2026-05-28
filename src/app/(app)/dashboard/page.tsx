@@ -176,7 +176,7 @@ export default function DashboardPage() {
   const rightsTotal     = assetsData.filter((a) => a.group_type === 'rights').reduce((s, a) => s + a.value, 0)
   const totalAtivos     = bankTotal + investmentTotal + goodsTotal + rightsTotal
 
-  const cardTotal       = cardBalances.reduce((s, c) => s + Math.max(0, c.currentFaturaTotal), 0)
+  const cardTotal       = cardBalances.reduce((s, c) => s + c.outstandingBalance, 0)
   const loanRemaining   = debtsData.filter((d) => d.group_type === 'loans').reduce((s, d) => s + Math.max(0, d.total_amount - (d.installments_paid ?? 0) * d.monthly_amount), 0)
   const billsMonthly    = debtsData.filter((d) => d.group_type === 'bills').reduce((s, d) => s + d.monthly_amount, 0)
   const otherTotal      = debtsData.filter((d) => d.group_type === 'other').reduce((s, d) => s + (d.total_amount > 0 ? d.total_amount : d.monthly_amount), 0)

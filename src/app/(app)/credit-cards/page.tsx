@@ -92,7 +92,7 @@ export default function CreditCardsPage() {
     setDeleteTarget(null)
   }
 
-  const totalDebt = cards.reduce((s, c) => s + c.currentFaturaTotal, 0)
+  const totalDebt = cards.reduce((s, c) => s + c.outstandingBalance, 0)
   const totalLimit = cards.reduce((s, c) => s + c.credit_limit, 0)
   const totalAvailable = cards.reduce((s, c) => s + c.availableCredit, 0)
   const totalUtilization = totalLimit > 0 ? (totalDebt / totalLimit) * 100 : 0
@@ -218,7 +218,8 @@ export default function CreditCardsPage() {
           <div className="space-y-4">
             {cards.map((card) => {
               const isExpanded = expandedCardId === card.id
-              const cardTransactions = allTransactions.filter((t) => t.credit_card_id === card.id)
+              // exclude payments from billing cycle display — they're not card expenses
+              const cardTransactions = allTransactions.filter((t) => t.credit_card_id === card.id && t.type !== 'credit_card_payment')
               const billingCycles = groupTransactionsByBillingCycle(cardTransactions, card.closing_day)
               const dueDate = new Date(card.nextDueDate + 'T00:00:00')
               const today = new Date(); today.setHours(0, 0, 0, 0)
@@ -267,8 +268,8 @@ export default function CreditCardsPage() {
                     {/* Balance section */}
                     <div className="mt-4 grid grid-cols-3 gap-3 border-t border-border pt-4 text-center">
                       <div>
-                        <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground">Fatura</p>
-                        <p className="text-lg font-bold" style={{ color: '#ff6584' }}>{formatCurrency(card.currentFaturaTotal)}</p>
+                        <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground">Saldo Devedor</p>
+                        <p className="text-lg font-bold" style={{ color: '#ff6584' }}>{formatCurrency(card.outstandingBalance)}</p>
                         <p className="text-[0.65rem] text-muted-foreground">
                           Vence {format(dueDate, "dd/MM", { locale: ptBR })}
                           {isDueSoon && !isOverdue && <span style={{ color: '#f7971e' }}> · {daysUntilDue}d</span>}

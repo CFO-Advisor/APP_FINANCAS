@@ -51,7 +51,7 @@ export function CreditCardBalanceChart({ cards }: CreditCardBalanceChartProps) {
 
   const data: ChartRow[] = cards.map((c) => ({
     name: c.name,
-    used: c.currentFaturaTotal,
+    used: c.outstandingBalance,
     available: c.availableCredit,
     limit: c.credit_limit,
     color: c.color,
