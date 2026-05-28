@@ -227,8 +227,64 @@ export const CARD_BRAND_COLORS: Record<CardBrand, string> = {
   outros: '#6366F1',
 }
 
-import { Banknote, FileText, AlertCircle, type LucideIcon } from 'lucide-react'
-import type { DebtGroupType } from './types'
+import { Banknote, FileText, AlertCircle, Package2, ScrollText, type LucideIcon } from 'lucide-react'
+import type { AssetGroupType, DebtGroupType } from './types'
+
+export interface AssetGroupDef {
+  key: AssetGroupType
+  label: string
+  shortLabel: string
+  color: string
+  icon: LucideIcon
+  categories: string[]
+}
+
+export const ASSET_GROUP_DEFS: AssetGroupDef[] = [
+  {
+    key: 'goods',
+    label: 'Bens',
+    shortLabel: 'Bens',
+    color: '#fbbf24',
+    icon: Package2,
+    categories: [
+      'Imóvel Residencial',
+      'Imóvel para Aluguel',
+      'Imóvel Comercial',
+      'Terreno',
+      'Carro',
+      'Moto',
+      'Veículo Comercial',
+      'Embarcação',
+      'Joias e Relógios',
+      'Obras de Arte',
+      'Equipamentos Profissionais',
+      'Eletrônicos',
+      'Móveis e Utensílios',
+      'Outros Bens',
+    ],
+  },
+  {
+    key: 'rights',
+    label: 'Direitos',
+    shortLabel: 'Direitos',
+    color: '#38f9d7',
+    icon: ScrollText,
+    categories: [
+      'Empréstimos a Receber',
+      'Aluguel a Receber',
+      'Dividendos a Receber',
+      'Vendas a Prazo',
+      'Quotas de Empresa',
+      'Ações Não Listadas',
+      'Previdência Privada',
+      'FGTS',
+      'Patentes e Royalties',
+      'Depósito em Garantia',
+      'Créditos Tributários',
+      'Outros Direitos',
+    ],
+  },
+]
 
 export interface DebtGroupDef {
   key: DebtGroupType
