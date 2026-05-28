@@ -22,16 +22,58 @@ import {
 function CfoIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+      {/* Suit body — main silhouette */}
+      <path
+        d="M2 23v-4c0-3.4 2.1-6.2 5-7.4l2.5-.8L12 12.5l2.5-1.7 2.5.8c2.9 1.2 5 4 5 7.4v4H2Z"
+        fill="rgba(255,255,255,0.83)"
+      />
+      {/* Left lapel shadow panel */}
+      <path
+        d="M12 12.5 L8.5 19.5 H2 V19 C2 17.5 3 15.8 5 14.7 L9.5 11.8 Z"
+        fill="rgba(155,140,220,0.35)"
+      />
+      {/* Right lapel shadow panel */}
+      <path
+        d="M12 12.5 L15.5 19.5 H22 V19 C22 17.5 21 15.8 19 14.7 L14.5 11.8 Z"
+        fill="rgba(155,140,220,0.35)"
+      />
+      {/* Left lapel edge */}
+      <path d="M12 12.5 L8 19" stroke="rgba(255,255,255,0.55)" strokeWidth="0.75" strokeLinecap="round"/>
+      {/* Right lapel edge */}
+      <path d="M12 12.5 L16 19" stroke="rgba(255,255,255,0.55)" strokeWidth="0.75" strokeLinecap="round"/>
+      {/* Shirt collar V */}
+      <path
+        d="M10.3 11 L12 12.5 L13.7 11"
+        fill="none"
+        stroke="rgba(255,255,255,0.92)"
+        strokeWidth="1.1"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      {/* Tie knot */}
+      <path d="M10.8 11.3 L12 12.5 L13.2 11.3 Z" fill="rgba(205,190,255,0.9)"/>
+      {/* Tie blade */}
+      <path d="M11.3 12.5 L10.7 19.5 L12 18.4 L13.3 19.5 L12.7 12.5 Z" fill="rgba(195,178,255,0.82)"/>
+      {/* Pocket square */}
+      <path
+        d="M7 17.2 V19.3 H9.2"
+        stroke="rgba(255,255,255,0.52)"
+        strokeWidth="0.7"
+        fill="none"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      {/* Jacket button */}
+      <circle cx="12" cy="21" r="0.55" fill="rgba(155,140,220,0.75)"/>
+      {/* Neck */}
+      <rect x="10.8" y="9.1" width="2.4" height="2.3" rx="0.5" fill="rgba(255,255,255,0.92)"/>
       {/* Head */}
-      <circle cx="12" cy="6.5" r="3" fill="white" />
-      {/* Body / suit */}
-      <path d="M5 21v-2a7 7 0 0 1 14 0v2" fill="rgba(255,255,255,0.82)" />
-      {/* Left lapel */}
-      <path d="M12 12.5 L8.5 16" stroke="rgba(108,99,255,0.65)" strokeWidth="1.6" strokeLinecap="round" />
-      {/* Right lapel */}
-      <path d="M12 12.5 L15.5 16" stroke="rgba(108,99,255,0.65)" strokeWidth="1.6" strokeLinecap="round" />
-      {/* Tie */}
-      <path d="M12 13.2 L11.4 17 L12 16.2 L12.6 17 Z" fill="rgba(108,99,255,0.55)" />
+      <circle cx="12" cy="6.2" r="3.4" fill="white"/>
+      {/* Hair */}
+      <path
+        d="M8.7 5.4 C8.7 3 10.2 2 12 2 C13.8 2 15.3 3 15.3 5.4 C15.1 4.1 13.9 3.3 12 3.3 C10.1 3.3 8.9 4.1 8.7 5.4 Z"
+        fill="rgba(200,185,255,0.62)"
+      />
     </svg>
   )
 }

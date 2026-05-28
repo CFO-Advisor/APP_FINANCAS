@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback, useMemo } from 'react'
-import { Plus, Pencil, Trash2, Loader2, ChevronDown, ChevronUp, X } from 'lucide-react'
+import { Plus, Pencil, Trash2, Loader2, ChevronDown, ChevronUp, X, FileDown } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { toast } from 'sonner'
@@ -20,6 +20,7 @@ import { BankFormDialog } from '@/components/banks/bank-form-dialog'
 import { createClient } from '@/lib/supabase/client'
 import { BANK_TYPE_LABELS } from '@/lib/constants'
 import { formatCurrency } from '@/lib/csv-export'
+import { exportBankStatementToExcel } from '@/lib/excel-export'
 import type { Bank, BankBalance, Transaction } from '@/lib/types'
 
 // ── Extended transaction type for extrato ─────────────
@@ -344,6 +345,21 @@ function BankCard({ bank, allTx, expanded, filter, onToggle, onEdit, onDelete, o
                 </Button>
               )}
             </div>
+
+            {/* Export button */}
+            {extrato.length > 0 && (
+              <div className="mb-3 flex justify-end">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 gap-1.5 text-xs"
+                  onClick={() => exportBankStatementToExcel(bank.name, extrato)}
+                >
+                  <FileDown className="h-3.5 w-3.5" />
+                  Exportar Excel
+                </Button>
+              </div>
+            )}
 
             {/* Column headers */}
             <div className="mb-1 grid grid-cols-[1fr_auto_auto] gap-x-3 px-2 text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground">
