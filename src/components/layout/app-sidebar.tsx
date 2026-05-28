@@ -52,8 +52,8 @@ function NavContent({ pathname, collapsed, onNavClick, onSignOut }: NavContentPr
         </div>
         {!collapsed && (
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-bold leading-none">Finanças</p>
-            <p className="truncate text-xs text-muted-foreground">Pessoais</p>
+            <p className="truncate text-sm font-bold leading-none">CFO Advisor</p>
+            <p className="truncate text-xs text-muted-foreground">Finanças Pessoais</p>
           </div>
         )}
         <ThemeToggle />
@@ -153,7 +153,7 @@ export function AppSidebar() {
           <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: 'linear-gradient(135deg, #7c6eff, #a78bfa)' }}>
             <TrendingUp className="h-4 w-4 text-white" />
           </div>
-          <span className="text-sm font-bold">Finanças</span>
+          <span className="text-sm font-bold">CFO Advisor</span>
         </Link>
         <div className="flex items-center gap-1">
           <ThemeToggle />
