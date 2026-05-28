@@ -20,6 +20,7 @@ import {
 import { createClient } from '@/lib/supabase/client'
 import { DEBT_GROUP_DEFS } from '@/lib/constants'
 import { cn } from '@/lib/utils'
+import { toError } from '@/lib/utils'
 import type { Debt, DebtGroupType, DebtStatus } from '@/lib/types'
 
 interface DebtFormDialogProps {
@@ -91,31 +92,37 @@ export function DebtFormDialog({ open, onOpenChange, debt, onSuccess }: DebtForm
 
     setSaving(true)
     const supabase = createClient()
-    const payload = {
+
+    const basePayload = {
       group_type:         form.group_type,
       category:           form.category,
       description:        form.description.trim(),
-      total_amount:       Number(form.total_amount)       || 0,
-      monthly_amount:     Number(form.monthly_amount)     || 0,
+      total_amount:       Number(form.total_amount)   || 0,
+      monthly_amount:     Number(form.monthly_amount) || 0,
       installments_total: form.installments_total ? Number(form.installments_total) : null,
       installments_paid:  form.installments_paid  ? Number(form.installments_paid)  : null,
-      due_day:            form.due_day   ? Number(form.due_day)   : null,
+      due_day:            form.due_day    ? Number(form.due_day)    : null,
       start_date:         form.start_date || null,
       status:             form.status,
       notes:              form.notes.trim() || null,
     }
 
-    const { error } = debt
-      ? await supabase.from('debts').update(payload).eq('id', debt.id)
-      : await supabase.from('debts').insert(payload)
-
-    if (error) {
-      toast.error('Erro ao salvar.')
-      console.error(error)
-    } else {
+    try {
+      if (debt) {
+        const { error } = await supabase.from('debts').update(basePayload).eq('id', debt.id)
+        if (error) throw error
+      } else {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) throw new Error('Usuário não autenticado.')
+        const { error } = await supabase.from('debts').insert({ ...basePayload, user_id: user.id })
+        if (error) throw error
+      }
       toast.success(debt ? 'Dívida atualizada.' : 'Dívida adicionada.')
       onSuccess()
       onOpenChange(false)
+    } catch (err) {
+      console.error(toError(err))
+      toast.error('Erro ao salvar. Verifique os dados e tente novamente.')
     }
     setSaving(false)
   }
