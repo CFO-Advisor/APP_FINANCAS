@@ -1,3 +1,4 @@
+import * as XLSX from 'xlsx'
 import type { TransactionType } from '@/lib/types'
 
 export interface ParsedTransaction {
@@ -187,6 +188,37 @@ export function mapCSVRows(
       category: defaultCategory,
     }
   })
+}
+
+// ── XLSX parsing ────────────────────────────────────────────────────────────
+
+export function parseXLSXContent(buffer: ArrayBuffer): { headers: string[]; rows: Record<string, string>[] } {
+  const wb = XLSX.read(buffer, { type: 'array', cellDates: false })
+  const ws = wb.Sheets[wb.SheetNames[0]]
+  if (!ws) return { headers: [], rows: [] }
+
+  // raw:false converts everything to strings; dateNF formats date cells as dd/mm/yyyy
+  const data = XLSX.utils.sheet_to_json<string[]>(ws, {
+    header: 1,
+    raw: false,
+    defval: '',
+    dateNF: 'DD/MM/YYYY',
+  })
+
+  if (data.length === 0) return { headers: [], rows: [] }
+
+  const headers = (data[0] as string[]).map((h) => String(h ?? '').trim()).filter(Boolean)
+  const rows: Record<string, string>[] = []
+
+  for (let i = 1; i < data.length; i++) {
+    const rowArr = data[i] as string[]
+    if (!rowArr || rowArr.every((v) => !v)) continue
+    const row: Record<string, string> = {}
+    headers.forEach((h, idx) => { row[h] = String(rowArr[idx] ?? '').trim() })
+    rows.push(row)
+  }
+
+  return { headers, rows }
 }
 
 // ── OFX parsing ─────────────────────────────────────────────────────────────

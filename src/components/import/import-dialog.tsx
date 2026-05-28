@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback } from 'react'
 import { toast } from 'sonner'
 import {
-  Upload, FileText, CheckCircle2, AlertCircle, Loader2, X, ChevronRight, ChevronLeft,
+  Upload, FileText, CheckCircle2, AlertCircle, Loader2, X, ChevronRight, ChevronLeft, FileDown,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -24,12 +24,14 @@ import {
 import { createClient } from '@/lib/supabase/client'
 import {
   parseCSVContent,
+  parseXLSXContent,
   guessFieldMap,
   mapCSVRows,
   parseOFXContent,
   type ParsedTransaction,
   type CSVFieldMap,
 } from '@/lib/import/parsers'
+import { downloadImportTemplate } from '@/lib/excel-export'
 import type { Bank, CreditCard } from '@/lib/types'
 
 type Step = 'upload' | 'configure' | 'preview' | 'done'
@@ -82,13 +84,26 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
 
   async function processFile(f: File) {
     const ext = f.name.split('.').pop()?.toLowerCase()
-    const content = await f.text()
 
     if (ext === 'ofx') {
+      const content = await f.text()
       const parsed = parseOFXContent(content)
       setFile({ name: f.name, format: 'ofx', csvHeaders: [], csvRows: [], parsed })
       setStep('preview')
+    } else if (ext === 'xlsx' || ext === 'xls') {
+      const buffer = await f.arrayBuffer()
+      const { headers, rows } = parseXLSXContent(buffer)
+      const guessed = guessFieldMap(headers)
+      setFieldMap({
+        date: guessed.date ?? '',
+        description: guessed.description ?? '',
+        amount: guessed.amount ?? '',
+        type: guessed.type ?? '',
+      })
+      setFile({ name: f.name, format: 'csv', csvHeaders: headers, csvRows: rows, parsed: [] })
+      setStep('configure')
     } else {
+      const content = await f.text()
       const { headers, rows } = parseCSVContent(content)
       const guessed = guessFieldMap(headers)
       setFieldMap({
@@ -176,8 +191,27 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
         {/* Step: Upload */}
         {step === 'upload' && (
           <div className="space-y-4">
+            {/* Template download banner */}
+            <div className="flex items-center justify-between rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
+              <div>
+                <p className="text-sm font-medium">Precisa de um template?</p>
+                <p className="text-xs text-muted-foreground">
+                  Baixe nossa planilha Excel pré-formatada com exemplos e instruções.
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="shrink-0 gap-1.5 text-xs"
+                onClick={downloadImportTemplate}
+              >
+                <FileDown className="h-3.5 w-3.5" />
+                Baixar Template
+              </Button>
+            </div>
+
             <p className="text-sm text-muted-foreground">
-              Suporta arquivos <strong>CSV</strong>, <strong>TXT</strong> e <strong>OFX</strong>.
+              Suporta <strong>Excel (.xlsx)</strong>, <strong>CSV</strong>, <strong>TXT</strong> e <strong>OFX</strong>.
             </p>
             <div
               className={`flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed p-10 transition-colors cursor-pointer ${
@@ -191,13 +225,13 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
               <Upload className="h-10 w-10 text-muted-foreground" />
               <div className="text-center">
                 <p className="font-medium">Clique ou arraste o arquivo aqui</p>
-                <p className="mt-1 text-xs text-muted-foreground">CSV, TXT, OFX — até 10 MB</p>
+                <p className="mt-1 text-xs text-muted-foreground">XLSX, CSV, TXT, OFX — até 10 MB</p>
               </div>
             </div>
             <input
               ref={inputRef}
               type="file"
-              accept=".csv,.txt,.ofx"
+              accept=".xlsx,.xls,.csv,.txt,.ofx"
               className="hidden"
               onChange={handleFileInput}
             />
