@@ -218,8 +218,7 @@ export default function CreditCardsPage() {
           <div className="space-y-4">
             {cards.map((card) => {
               const isExpanded = expandedCardId === card.id
-              // exclude payments from billing cycle display — they're not card expenses
-              const cardTransactions = allTransactions.filter((t) => t.credit_card_id === card.id && t.type !== 'credit_card_payment')
+              const cardTransactions = allTransactions.filter((t) => t.credit_card_id === card.id)
               const billingCycles = groupTransactionsByBillingCycle(cardTransactions, card.closing_day)
               const dueDate = new Date(card.nextDueDate + 'T00:00:00')
               const today = new Date(); today.setHours(0, 0, 0, 0)
@@ -309,37 +308,73 @@ export default function CreditCardsPage() {
                       {isExpanded ? 'Ocultar lançamentos' : `Ver lançamentos (${cardTransactions.length})`}
                     </button>
 
-                    {/* Fatura breakdown */}
+                    {/* Extrato de lançamentos */}
                     {isExpanded && (
-                      <div className="mt-3 space-y-4 border-t border-border pt-3">
+                      <div className="mt-3 space-y-5 border-t border-border pt-3">
                         {billingCycles.length === 0 ? (
                           <p className="py-4 text-center text-sm text-muted-foreground">Nenhum lançamento encontrado.</p>
                         ) : (
-                          billingCycles.map((cycle) => (
-                            <div key={cycle.end.toISOString()}>
-                              <div className="mb-2 flex items-center justify-between">
-                                <p className="text-xs font-semibold text-muted-foreground">{cycle.label}</p>
-                                <p className="text-xs font-semibold" style={{ color: '#ff6584' }}>
-                                  {formatCurrency(cycle.transactions.reduce((s, t) => s + t.amount, 0))}
-                                </p>
-                              </div>
-                              <div className="space-y-1">
-                                {cycle.transactions.map((t) => (
-                                  <div key={t.id} className="flex items-center justify-between rounded-md px-2 py-1.5 hover:bg-muted/40">
-                                    <div className="min-w-0">
-                                      <p className="truncate text-sm">{t.description}</p>
-                                      <p className="text-xs text-muted-foreground">
-                                        {t.category} · {format(new Date(t.date + 'T00:00:00'), 'dd/MM/yyyy')}
-                                      </p>
-                                    </div>
-                                    <span className="ml-3 shrink-0 text-sm font-semibold" style={{ color: '#ff6584' }}>
-                                      -{formatCurrency(t.amount)}
+                          billingCycles.map((cycle) => {
+                            const cycleExpenses  = cycle.transactions.filter((t) => t.type === 'expense')
+                            const cyclePayments  = cycle.transactions.filter((t) => t.type === 'credit_card_payment')
+                            const expensesTotal  = cycleExpenses.reduce((s, t) => s + t.amount, 0)
+                            const paymentsTotal  = cyclePayments.reduce((s, t) => s + t.amount, 0)
+                            const netTotal       = expensesTotal - paymentsTotal
+
+                            return (
+                              <div key={cycle.end.toISOString()}>
+                                {/* Cycle header */}
+                                <div className="mb-1.5 flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2">
+                                  <p className="text-xs font-semibold text-muted-foreground">{cycle.label}</p>
+                                  <div className="flex items-center gap-3 text-xs">
+                                    <span style={{ color: '#ff6584' }}>−{formatCurrency(expensesTotal)}</span>
+                                    {paymentsTotal > 0 && (
+                                      <span style={{ color: '#43e97b' }}>+{formatCurrency(paymentsTotal)}</span>
+                                    )}
+                                    <span className="font-bold tabular-nums" style={{ color: netTotal > 0 ? '#ff6584' : '#43e97b' }}>
+                                      = {formatCurrency(Math.abs(netTotal))}
                                     </span>
                                   </div>
-                                ))}
+                                </div>
+
+                                {/* Transaction rows */}
+                                <div className="space-y-0.5">
+                                  {cycle.transactions.map((t) => {
+                                    const isPayment = t.type === 'credit_card_payment'
+                                    return (
+                                      <div
+                                        key={t.id}
+                                        className="flex items-center justify-between rounded-md px-2 py-2 transition-colors hover:bg-muted/40"
+                                        style={isPayment ? { background: 'rgba(67,233,123,0.05)' } : undefined}
+                                      >
+                                        <div className="min-w-0 flex-1">
+                                          <div className="flex items-center gap-1.5">
+                                            {isPayment && (
+                                              <span className="shrink-0 rounded-full px-1.5 py-0.5 text-[0.6rem] font-bold uppercase tracking-wide" style={{ background: '#43e97b20', color: '#43e97b' }}>
+                                                Pgto
+                                              </span>
+                                            )}
+                                            <p className="truncate text-sm">{t.description}</p>
+                                          </div>
+                                          <p className="mt-0.5 text-xs text-muted-foreground">
+                                            {isPayment ? 'Pagamento de Fatura' : t.category}
+                                            {' · '}
+                                            {format(new Date(t.date + 'T00:00:00'), 'dd/MM/yyyy')}
+                                          </p>
+                                        </div>
+                                        <span
+                                          className="ml-3 shrink-0 text-sm font-semibold tabular-nums"
+                                          style={{ color: isPayment ? '#43e97b' : '#ff6584' }}
+                                        >
+                                          {isPayment ? '+' : '−'}{formatCurrency(t.amount)}
+                                        </span>
+                                      </div>
+                                    )
+                                  })}
+                                </div>
                               </div>
-                            </div>
-                          ))
+                            )
+                          })
                         )}
                       </div>
                     )}
