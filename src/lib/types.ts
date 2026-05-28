@@ -84,6 +84,26 @@ export interface BudgetVsActual {
 
 export type CardBrand = 'visa' | 'mastercard' | 'elo' | 'amex' | 'hipercard' | 'outros'
 
+export type DebtGroupType = 'loans' | 'bills' | 'other'
+export type DebtStatus = 'active' | 'paid' | 'overdue'
+
+export interface Debt {
+  id: string
+  user_id: string
+  group_type: DebtGroupType
+  category: string
+  description: string
+  total_amount: number
+  monthly_amount: number
+  installments_total: number | null
+  installments_paid: number | null
+  due_day: number | null
+  start_date: string | null
+  status: DebtStatus
+  notes: string | null
+  created_at: string
+}
+
 export interface CreditCard {
   id: string
   user_id: string

@@ -227,6 +227,77 @@ export const CARD_BRAND_COLORS: Record<CardBrand, string> = {
   outros: '#6366F1',
 }
 
+import { Banknote, FileText, AlertCircle, type LucideIcon } from 'lucide-react'
+import type { DebtGroupType } from './types'
+
+export interface DebtGroupDef {
+  key: DebtGroupType
+  label: string
+  shortLabel: string
+  color: string
+  icon: LucideIcon
+  categories: string[]
+}
+
+export const DEBT_GROUP_DEFS: DebtGroupDef[] = [
+  {
+    key: 'loans',
+    label: 'Empréstimos & Financiamentos',
+    shortLabel: 'Empréstimos',
+    color: '#f7971e',
+    icon: Banknote,
+    categories: [
+      'Financiamento Imobiliário',
+      'Financiamento de Veículo',
+      'Empréstimo Pessoal',
+      'Crédito Consignado',
+      'Empréstimo Estudantil',
+      'Refinanciamento',
+      'Outros Empréstimos',
+    ],
+  },
+  {
+    key: 'bills',
+    label: 'Contas a Pagar',
+    shortLabel: 'Contas',
+    color: '#38f9d7',
+    icon: FileText,
+    categories: [
+      'Aluguel',
+      'Condomínio',
+      'Energia Elétrica',
+      'Água e Esgoto',
+      'Internet',
+      'Telefone / Celular',
+      'Gás',
+      'Plano de Saúde',
+      'Escola / Faculdade',
+      'IPTU',
+      'IPVA',
+      'Seguro',
+      'Mensalidade',
+      'Outras Contas',
+    ],
+  },
+  {
+    key: 'other',
+    label: 'Outras Obrigações',
+    shortLabel: 'Outras',
+    color: '#a78bfa',
+    icon: AlertCircle,
+    categories: [
+      'Pensão Alimentícia',
+      'Imposto de Renda',
+      'Multas e Débitos',
+      'Dívida com Familiares',
+      'Dívida com Terceiros',
+      'Obrigações Trabalhistas',
+      'Contribuições',
+      'Outras Obrigações',
+    ],
+  },
+]
+
 export const MONTHS = [
   { value: 1, label: 'Janeiro' },
   { value: 2, label: 'Fevereiro' },

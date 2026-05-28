@@ -11,6 +11,7 @@ import {
   Landmark,
   CreditCard,
   BarChart2,
+  AlertCircle,
   LogOut,
   Menu,
   X,
@@ -26,6 +27,7 @@ const navItems = [
   { href: '/transactions', label: 'Transações', icon: ArrowLeftRight },
   { href: '/budget', label: 'Orçamento', icon: Target },
   { href: '/investments', label: 'Investimentos', icon: BarChart2 },
+  { href: '/debts', label: 'Dívidas e Contas', icon: AlertCircle },
   { href: '/banks', label: 'Bancos', icon: Landmark },
   { href: '/credit-cards', label: 'Cartões', icon: CreditCard },
 ]
