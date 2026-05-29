@@ -82,6 +82,7 @@ export default function BudgetPage() {
   const actualByCategory = useMemo(() => {
     const map: Record<string, { amount: number; type: 'expense' | 'income' }> = {}
     for (const t of transactions) {
+      if (t.status === 'pending') continue  // pending card charges not in budget actuals
       if (t.type === 'investment' || t.type === 'credit_card_payment') continue
       if (!map[t.category]) map[t.category] = { amount: 0, type: t.type }
       map[t.category].amount += t.amount

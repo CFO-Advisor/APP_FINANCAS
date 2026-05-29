@@ -204,6 +204,9 @@ export function TransactionFormDialog({
         : (resolvedCardId ? null : resolvedBankId)
       const finalCategory = form.type === 'credit_card_payment' ? 'Pagamento de Fatura' : form.category
 
+      // Card expenses are pending until the fatura is paid
+      const txStatus = (form.type === 'expense' && resolvedCardId) ? 'pending' : 'settled'
+
       if (transaction) {
         const { error } = await supabase
           .from('transactions')
@@ -215,6 +218,7 @@ export function TransactionFormDialog({
             category: finalCategory,
             bank_id: finalBankId,
             credit_card_id: resolvedCardId,
+            status: txStatus,
           })
           .eq('id', transaction.id)
 
@@ -233,10 +237,36 @@ export function TransactionFormDialog({
           category: finalCategory,
           bank_id: finalBankId,
           credit_card_id: resolvedCardId,
+          status: txStatus,
         })
 
         if (error) throw error
-        toast.success('Transação adicionada!')
+
+        // When paying a fatura, settle ALL pending charges for that card
+        if (form.type === 'credit_card_payment' && resolvedCardId) {
+          const { data: pending } = await supabase
+            .from('transactions')
+            .select('id')
+            .eq('credit_card_id', resolvedCardId)
+            .eq('status', 'pending')
+
+          if (pending && pending.length > 0) {
+            await supabase
+              .from('transactions')
+              .update({ status: 'settled' })
+              .in('id', pending.map((p) => p.id))
+
+            const cardName = creditCards.find((c) => c.id === resolvedCardId)?.name ?? 'cartão'
+            toast.success(
+              `${pending.length} lançamento${pending.length !== 1 ? 's' : ''} do ${cardName} registrado${pending.length !== 1 ? 's' : ''} nas categorias!`,
+              { duration: 5000 }
+            )
+          } else {
+            toast.success('Pagamento de fatura registrado!')
+          }
+        } else {
+          toast.success('Transação adicionada!')
+        }
       }
 
       onSuccess()

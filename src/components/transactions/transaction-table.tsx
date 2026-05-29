@@ -98,10 +98,15 @@ export function TransactionTable({ transactions, onEdit, onDeleted, banks = [], 
                   {format(new Date(t.date + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR })}
                 </TableCell>
                 <TableCell>
-                  <span className="font-medium">{t.description}</span>
-                  <span className="ml-2 text-xs text-muted-foreground sm:hidden">
-                    {t.category}
-                  </span>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="font-medium">{t.description}</span>
+                    {t.status === 'pending' && (
+                      <span className="inline-flex items-center rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[0.6rem] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400">
+                        Pendente
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-xs text-muted-foreground sm:hidden">{t.category}</span>
                 </TableCell>
                 <TableCell className="hidden sm:table-cell">
                   <span

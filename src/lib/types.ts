@@ -2,6 +2,8 @@ export type TransactionType = 'income' | 'expense' | 'investment' | 'credit_card
 
 export type Category = string
 
+export type TransactionStatus = 'pending' | 'settled'
+
 export interface Transaction {
   id: string
   user_id: string
@@ -12,6 +14,7 @@ export interface Transaction {
   category: Category
   bank_id: string | null
   credit_card_id: string | null
+  status: TransactionStatus
   created_at: string
 }
 

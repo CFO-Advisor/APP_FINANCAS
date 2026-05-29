@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Plus, Pencil, Trash2, Loader2, ChevronDown, ChevronUp, Upload, CreditCard as CreditCardLucide, Wallet, ShieldCheck, TrendingUp } from 'lucide-react'
+import { Plus, Pencil, Trash2, Loader2, ChevronDown, ChevronUp, Upload, CreditCard as CreditCardLucide, Wallet, ShieldCheck, TrendingUp, ShoppingCart, Clock } from 'lucide-react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -17,6 +17,7 @@ import {
 import { CreditCardIcon } from '@/components/credit-cards/credit-card-icon'
 import { CreditCardFormDialog } from '@/components/credit-cards/credit-card-form-dialog'
 import { CreditCardBalanceChart } from '@/components/credit-cards/credit-card-balance-chart'
+import { CardChargeFormDialog } from '@/components/credit-cards/card-charge-form-dialog'
 import { ImportDialog } from '@/components/import/import-dialog'
 import { createClient } from '@/lib/supabase/client'
 import { CARD_BRAND_LABELS } from '@/lib/constants'
@@ -61,6 +62,7 @@ export default function CreditCardsPage() {
   const [deleteTarget, setDeleteTarget] = useState<CreditCard | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null)
+  const [chargeCardTarget, setChargeCardTarget] = useState<CreditCard | null>(null)
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -219,7 +221,9 @@ export default function CreditCardsPage() {
             {cards.map((card) => {
               const isExpanded = expandedCardId === card.id
               const cardTransactions = allTransactions.filter((t) => t.credit_card_id === card.id)
-              const billingCycles = groupTransactionsByBillingCycle(cardTransactions, card.closing_day)
+              const pendingCharges = cardTransactions.filter((t) => t.status === 'pending' && t.type === 'expense')
+              const settledTransactions = cardTransactions.filter((t) => t.status !== 'pending' || t.type !== 'expense')
+              const billingCycles = groupTransactionsByBillingCycle(settledTransactions, card.closing_day)
               const dueDate = new Date(card.nextDueDate + 'T00:00:00')
               const today = new Date(); today.setHours(0, 0, 0, 0)
               const daysUntilDue = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
@@ -245,6 +249,16 @@ export default function CreditCardsPage() {
                         </div>
                       </div>
                       <div className="flex gap-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 gap-1 text-xs"
+                          onClick={() => setChargeCardTarget(card)}
+                          title="Lançar despesa neste cartão"
+                        >
+                          <ShoppingCart className="h-3 w-3" />
+                          Lançar
+                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -305,15 +319,60 @@ export default function CreditCardsPage() {
                       onClick={() => setExpandedCardId(isExpanded ? null : card.id)}
                     >
                       {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                      {isExpanded ? 'Ocultar lançamentos' : `Ver lançamentos (${cardTransactions.length})`}
+                      {isExpanded ? 'Ocultar extrato' : (
+                        <>
+                          Ver extrato
+                          {pendingCharges.length > 0 && (
+                            <span className="ml-1 inline-flex items-center gap-0.5 rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[0.6rem] font-bold text-amber-600 dark:text-amber-400">
+                              <Clock className="h-2.5 w-2.5" />
+                              {pendingCharges.length} pendente{pendingCharges.length !== 1 ? 's' : ''}
+                            </span>
+                          )}
+                        </>
+                      )}
                     </button>
 
                     {/* Extrato de lançamentos */}
                     {isExpanded && (
                       <div className="mt-3 space-y-5 border-t border-border pt-3">
-                        {billingCycles.length === 0 ? (
+
+                        {/* ── Pendentes (não pagos) ── */}
+                        {pendingCharges.length > 0 && (
+                          <div>
+                            <div className="mb-1.5 flex items-center gap-2 rounded-lg bg-amber-500/10 px-3 py-2">
+                              <Clock className="h-3.5 w-3.5 text-amber-500" />
+                              <p className="text-xs font-semibold text-amber-600 dark:text-amber-400">
+                                Aguardando pagamento da fatura ({pendingCharges.length} lançamento{pendingCharges.length !== 1 ? 's' : ''})
+                              </p>
+                              <span className="ml-auto text-xs font-bold text-amber-600 dark:text-amber-400">
+                                {formatCurrency(pendingCharges.reduce((s, t) => s + t.amount, 0))}
+                              </span>
+                            </div>
+                            <div className="space-y-0.5">
+                              {pendingCharges.map((t) => (
+                                <div key={t.id} className="flex items-center justify-between rounded-md px-2 py-2 hover:bg-muted/40">
+                                  <div className="min-w-0">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[0.6rem] font-bold text-amber-600 dark:text-amber-400">Pendente</span>
+                                      <p className="truncate text-sm">{t.description}</p>
+                                    </div>
+                                    <p className="mt-0.5 text-xs text-muted-foreground">
+                                      {t.category} · {format(new Date(t.date + 'T00:00:00'), 'dd/MM/yyyy')}
+                                    </p>
+                                  </div>
+                                  <span className="ml-3 shrink-0 text-sm font-semibold tabular-nums" style={{ color: '#ff6584' }}>
+                                    −{formatCurrency(t.amount)}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* ── Histórico (liquidados) ── */}
+                        {billingCycles.length === 0 && pendingCharges.length === 0 ? (
                           <p className="py-4 text-center text-sm text-muted-foreground">Nenhum lançamento encontrado.</p>
-                        ) : (
+                        ) : billingCycles.length > 0 && (
                           billingCycles.map((cycle) => {
                             const cycleExpenses  = cycle.transactions.filter((t) => t.type === 'expense')
                             const cyclePayments  = cycle.transactions.filter((t) => t.type === 'credit_card_payment')
@@ -384,6 +443,16 @@ export default function CreditCardsPage() {
             })}
           </div>
         </>
+      )}
+
+      {/* Card charge form dialog */}
+      {chargeCardTarget && (
+        <CardChargeFormDialog
+          open={!!chargeCardTarget}
+          onOpenChange={(open) => { if (!open) setChargeCardTarget(null) }}
+          card={chargeCardTarget}
+          onSuccess={fetchData}
+        />
       )}
 
       {/* Form dialog */}
