@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
+// Link is still used for the logo and mobile header logo
 import {
   LayoutDashboard,
   ArrowLeftRight,
@@ -99,9 +100,10 @@ interface NavContentProps {
   collapsed: boolean
   onNavClick?: () => void
   onSignOut: () => void
+  onNavigate: (href: string) => void
 }
 
-function NavContent({ pathname, collapsed, onNavClick, onSignOut }: NavContentProps) {
+function NavContent({ pathname, collapsed, onNavClick, onSignOut, onNavigate }: NavContentProps) {
   return (
     <div className="flex h-full flex-col">
       {/* Logo + Theme toggle */}
@@ -133,13 +135,13 @@ function NavContent({ pathname, collapsed, onNavClick, onSignOut }: NavContentPr
         {navItems.map(({ href, label, icon: Icon }) => {
           const active = pathname === href
           return (
-            <Link
+            <button
               key={href}
-              href={href}
-              onClick={onNavClick}
+              type="button"
               title={collapsed ? label : undefined}
+              onClick={() => { onNavigate(href); onNavClick?.() }}
               className={cn(
-                'relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150',
+                'relative flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150',
                 collapsed && 'justify-center px-2',
                 active
                   ? 'text-white shadow-sm'
@@ -149,7 +151,7 @@ function NavContent({ pathname, collapsed, onNavClick, onSignOut }: NavContentPr
             >
               <Icon className="h-4 w-4 shrink-0" />
               {!collapsed && label}
-            </Link>
+            </button>
           )
         })}
       </nav>
@@ -185,6 +187,10 @@ export function AppSidebar() {
     router.push('/login')
   }
 
+  function handleNavigate(href: string) {
+    router.push(href)
+  }
+
   return (
     <>
       {/* ── Desktop sidebar (flex child, not fixed) ───────── */}
@@ -198,6 +204,7 @@ export function AppSidebar() {
           pathname={pathname}
           collapsed={collapsed}
           onSignOut={handleSignOut}
+          onNavigate={handleNavigate}
         />
 
         {/* Collapse toggle button */}
@@ -256,6 +263,7 @@ export function AppSidebar() {
           collapsed={false}
           onNavClick={() => setMobileOpen(false)}
           onSignOut={handleSignOut}
+          onNavigate={handleNavigate}
         />
       </aside>
     </>
