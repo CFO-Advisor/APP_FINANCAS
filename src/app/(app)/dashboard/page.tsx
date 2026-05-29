@@ -125,10 +125,7 @@ export default function DashboardPage() {
 
   useEffect(() => { fetchData() }, [fetchData])
 
-  // Only settled transactions count in summaries and charts
-  const settledTx = transactions.filter((t) => t.status === 'settled')
-
-  const summary: DashboardSummary = settledTx.reduce(
+  const summary: DashboardSummary = transactions.reduce(
     (acc, t) => {
       if (t.type === 'income') acc.totalIncome += t.amount
       else if (t.type === 'expense') acc.totalExpense += t.amount
@@ -140,7 +137,7 @@ export default function DashboardPage() {
   )
 
   const categoryTotals: CategoryTotal[] = Object.entries(
-    settledTx
+    transactions
       .filter((t) => t.type === 'expense')
       .reduce<Record<string, number>>((acc, t) => {
         acc[t.category] = (acc[t.category] || 0) + t.amount
@@ -151,7 +148,7 @@ export default function DashboardPage() {
     .sort((a, b) => b.value - a.value)
 
   const incomeCategoryTotals = Object.entries(
-    settledTx
+    transactions
       .filter((t) => t.type === 'income')
       .reduce<Record<string, number>>((acc, t) => {
         acc[t.category] = (acc[t.category] || 0) + t.amount
@@ -162,7 +159,7 @@ export default function DashboardPage() {
     .sort((a, b) => b.value - a.value)
 
   const investmentCategoryTotals: CategoryTotal[] = Object.entries(
-    settledTx
+    transactions
       .filter((t) => t.type === 'investment')
       .reduce<Record<string, number>>((acc, t) => {
         acc[t.category] = (acc[t.category] || 0) + t.amount
@@ -188,7 +185,7 @@ export default function DashboardPage() {
 
   const actualByCategory = useMemo(() => {
     const map: Record<string, { amount: number; type: 'expense' | 'income' }> = {}
-    for (const t of settledTx) {
+    for (const t of transactions) {
       if (t.type === 'investment' || t.type === 'credit_card_payment') continue
       if (!map[t.category]) map[t.category] = { amount: 0, type: t.type }
       map[t.category].amount += t.amount

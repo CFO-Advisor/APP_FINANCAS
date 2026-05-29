@@ -49,20 +49,18 @@ export function computeCardBalance(card: CreditCard, transactions: Transaction[]
   const { start, end } = getBillingCycle(card.closing_day)
   const cardTxs = transactions.filter((t) => t.credit_card_id === card.id)
 
-  // Current billing cycle PENDING expenses (charges not yet paid)
+  // Current billing cycle expenses only (what is accumulating in this statement)
   const currentFaturaTotal = cardTxs
-    .filter((t) => {
-      if (t.type !== 'expense') return false
-      if (t.status === 'settled') return false  // already paid in a previous fatura
+    .filter((t) => t.type === 'expense' && (() => {
       const d = new Date(t.date + 'T00:00:00')
       return d >= start && d <= end
-    })
+    })())
     .reduce((s, t) => s + t.amount, 0)
 
-  // Outstanding balance = ALL pending card charges (unpaid across all cycles)
-  const outstandingBalance = cardTxs
-    .filter((t) => t.type === 'expense' && t.status === 'pending')
-    .reduce((s, t) => s + t.amount, 0)
+  // True outstanding balance = all-time expenses minus all payments made
+  const totalExpenses = cardTxs.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
+  const totalPayments = cardTxs.filter((t) => t.type === 'credit_card_payment').reduce((s, t) => s + t.amount, 0)
+  const outstandingBalance = Math.max(0, totalExpenses - totalPayments)
 
   const availableCredit = Math.max(0, card.credit_limit - outstandingBalance)
   const utilizationPct = card.credit_limit > 0 ? (outstandingBalance / card.credit_limit) * 100 : 0
