@@ -219,7 +219,7 @@ export function AppSidebar() {
       </aside>
 
       {/* ── Mobile top bar ───────────────────────────────── */}
-      <header className="fixed inset-x-0 top-0 z-40 flex h-14 shrink-0 items-center justify-between border-b border-border bg-sidebar px-4 md:hidden">
+      <header className="fixed inset-x-0 top-0 z-40 flex h-14 shrink-0 items-center justify-between border-b border-border bg-sidebar/95 backdrop-blur-sm px-4 md:hidden">
         <Link href="/dashboard" className="flex items-center gap-2">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl" style={{ background: 'linear-gradient(135deg, #7c6eff, #a78bfa)' }}>
             <CfoIcon className="h-5 w-5" />
@@ -230,7 +230,8 @@ export function AppSidebar() {
           <ThemeToggle />
           <button
             onClick={() => setMobileOpen(true)}
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground"
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground active:bg-accent"
+            title="Abrir menu"
           >
             <Menu className="h-5 w-5" />
           </button>
@@ -240,7 +241,7 @@ export function AppSidebar() {
       {/* ── Mobile drawer overlay ─────────────────────────── */}
       {mobileOpen && (
         <div
-          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm md:hidden"
+          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm transition-opacity duration-200 md:hidden"
           onClick={() => setMobileOpen(false)}
         />
       )}
@@ -248,13 +249,14 @@ export function AppSidebar() {
       {/* ── Mobile drawer ─────────────────────────────────── */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 w-72 border-r border-border bg-sidebar transition-transform duration-200 md:hidden',
+          'fixed inset-y-0 left-0 z-50 w-72 border-r border-border bg-sidebar shadow-lg transition-transform duration-300 ease-in-out md:hidden',
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
         <button
           onClick={() => setMobileOpen(false)}
-          className="absolute right-3 top-3.5 flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+          className="absolute right-3 top-3.5 flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          title="Fechar menu"
         >
           <X className="h-5 w-5" />
         </button>
