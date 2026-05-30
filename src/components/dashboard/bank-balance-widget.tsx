@@ -41,14 +41,14 @@ export function BankBalanceWidget({ banks }: BankBalanceWidgetProps) {
       <Card className="shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between pb-3">
           <CardTitle className="text-base">Saldo por Banco</CardTitle>
-          <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/banks" />} className="flex items-center gap-1 text-blue-600">
+          <Button variant="ghost" size="sm" className="flex items-center gap-1 text-blue-600">
             Gerenciar <ArrowRight className="h-3 w-3" />
           </Button>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center gap-3 py-6 text-center">
             <p className="text-sm text-muted-foreground">Nenhum banco cadastrado.</p>
-            <Button size="sm" nativeButton={false} render={<Link href="/banks" />}>
+            <Button size="sm">
               <Plus className="mr-1 h-4 w-4" />
               Adicionar banco
             </Button>
@@ -69,7 +69,7 @@ export function BankBalanceWidget({ banks }: BankBalanceWidgetProps) {
     <Card className="shadow-sm">
       <CardHeader className="flex flex-row items-center justify-between pb-1">
         <CardTitle className="text-base">Saldo por Banco</CardTitle>
-        <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/banks" />} className="flex items-center gap-1 text-blue-600">
+        <Button variant="ghost" size="sm" className="flex items-center gap-1 text-blue-600">
           Ver todos <ArrowRight className="h-3 w-3" />
         </Button>
       </CardHeader>

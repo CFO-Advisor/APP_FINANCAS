@@ -25,7 +25,7 @@ export function CreditCardWidget({ cards }: CreditCardWidgetProps) {
         <CardContent>
           <div className="flex flex-col items-center gap-3 py-6 text-center">
             <p className="text-sm text-muted-foreground">Nenhum cartão cadastrado.</p>
-            <Button size="sm" variant="outline" nativeButton={false} render={<Link href="/credit-cards" />}>
+            <Button size="sm" variant="outline">
               Cadastrar cartão
             </Button>
           </div>
@@ -43,7 +43,7 @@ export function CreditCardWidget({ cards }: CreditCardWidgetProps) {
           <CreditCard className="h-4 w-4 text-muted-foreground" />
           Cartões de Crédito
         </CardTitle>
-        <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/credit-cards" />} className="text-xs" style={{ color: '#a78bfa' }}>
+        <Button variant="ghost" size="sm" className="text-xs" style={{ color: '#a78bfa' }}>
           Ver todos →
         </Button>
       </CardHeader>

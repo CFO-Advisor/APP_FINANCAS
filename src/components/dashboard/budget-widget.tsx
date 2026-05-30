@@ -78,8 +78,7 @@ export function BudgetWidget({ expenseItems, incomeItems }: BudgetWidgetProps) {
         <Button
           variant="ghost"
           size="sm"
-          nativeButton={false}
-          render={<Link href="/budget" />}
+         
           className="flex items-center gap-1 text-blue-600"
         >
           Ver detalhes <ArrowRight className="h-3 w-3" />
@@ -89,7 +88,7 @@ export function BudgetWidget({ expenseItems, incomeItems }: BudgetWidgetProps) {
         {!hasData ? (
           <div className="flex flex-col items-center gap-3 py-6 text-center">
             <p className="text-sm text-muted-foreground">Nenhum orçamento definido para este mês.</p>
-            <Button size="sm" nativeButton={false} render={<Link href="/budget" />}>
+            <Button size="sm">
               Definir orçamento
             </Button>
           </div>

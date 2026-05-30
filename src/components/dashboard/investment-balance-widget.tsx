@@ -49,14 +49,14 @@ export function InvestmentBalanceWidget({ groups }: InvestmentBalanceWidgetProps
       <Card className="shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between pb-3">
           <CardTitle className="text-base">Saldo por Investimento</CardTitle>
-          <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/investments" />} className="flex items-center gap-1" style={{ color: '#a78bfa' }}>
+          <Button variant="ghost" size="sm" className="flex items-center gap-1" style={{ color: '#a78bfa' }}>
             Ver <ArrowRight className="h-3 w-3" />
           </Button>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center gap-3 py-6 text-center">
             <p className="text-sm text-muted-foreground">Nenhum investimento registrado.</p>
-            <Button size="sm" nativeButton={false} render={<Link href="/investments" />}>
+            <Button size="sm">
               Ver investimentos
             </Button>
           </div>
@@ -69,7 +69,7 @@ export function InvestmentBalanceWidget({ groups }: InvestmentBalanceWidgetProps
     <Card className="shadow-sm">
       <CardHeader className="flex flex-row items-center justify-between pb-1">
         <CardTitle className="text-base">Saldo por Investimento</CardTitle>
-        <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/investments" />} className="flex items-center gap-1" style={{ color: '#a78bfa' }}>
+        <Button variant="ghost" size="sm" className="flex items-center gap-1" style={{ color: '#a78bfa' }}>
           Ver todos <ArrowRight className="h-3 w-3" />
         </Button>
       </CardHeader>

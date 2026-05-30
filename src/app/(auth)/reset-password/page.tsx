@@ -126,7 +126,7 @@ export default function ResetPasswordPage() {
           </CardDescription>
         </CardHeader>
         <CardFooter className="justify-center">
-          <Button nativeButton={false} render={<Link href="/forgot-password" />}>
+          <Button>
             Solicitar novo link
           </Button>
         </CardFooter>
