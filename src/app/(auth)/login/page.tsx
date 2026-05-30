@@ -67,7 +67,7 @@ export default function LoginPage() {
               <Label htmlFor="password">Senha</Label>
               <Link
                 href="/forgot-password"
-                className="text-xs hover:underline" style={{ color: '#a78bfa' }}
+                className="text-xs text-emerald-500 hover:text-emerald-400 hover:underline"
               >
                 Esqueceu a senha?
               </Link>
@@ -90,7 +90,7 @@ export default function LoginPage() {
           </Button>
           <p className="text-center text-sm text-muted-foreground">
             Não tem conta?{' '}
-            <Link href="/register" className="font-medium hover:underline" style={{ color: '#6c63ff' }}>
+            <Link href="/register" className="font-medium text-emerald-500 hover:text-emerald-400 hover:underline">
               Criar conta grátis
             </Link>
           </p>

@@ -118,7 +118,7 @@ function NavContent({ pathname, collapsed, isMobile = false, onCloseDrawer, onNa
         )}
       >
         <div className="flex items-center gap-3" style={collapsed ? { flexDirection: 'column' } : {}}>
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: 'linear-gradient(135deg, #7c6eff, #a78bfa)' }}>
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600">
             <CfoIcon className="h-6 w-6" />
           </div>
           {!collapsed && (
@@ -163,7 +163,7 @@ function NavContent({ pathname, collapsed, isMobile = false, onCloseDrawer, onNa
                   ? 'text-white shadow-sm'
                   : 'text-muted-foreground hover:bg-accent hover:text-foreground'
               )}
-              style={active ? { background: 'linear-gradient(135deg, #7c6eff, #a78bfa)' } : undefined}
+              style={active ? { background: 'linear-gradient(135deg, #10b981, #059669)' } : undefined}
             >
               <Icon className="h-4 w-4 shrink-0" />
               {!collapsed && label}
@@ -238,7 +238,7 @@ export function AppSidebar() {
       {/* ── Mobile top bar ───────────────────────────────── */}
       <header className="fixed inset-x-0 top-0 z-40 flex h-14 shrink-0 items-center justify-between border-b border-border bg-sidebar/95 backdrop-blur-sm px-4 md:hidden">
         <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl" style={{ background: 'linear-gradient(135deg, #7c6eff, #a78bfa)' }}>
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600">
             <CfoIcon className="h-5 w-5" />
           </div>
           <span className="text-base font-black tracking-tight">CFO Advisor</span>

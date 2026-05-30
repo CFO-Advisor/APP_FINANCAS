@@ -9,10 +9,10 @@ export default function AuthLayout({
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-12">
       <Link href="/" className="mb-8 flex items-center gap-2">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg" style={{ background: '#6c63ff' }}>
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600">
           <TrendingUp className="h-5 w-5 text-white" />
         </div>
-        <span className="text-xl font-bold">Finanças</span>
+        <span className="text-xl font-bold text-white">Finanças</span>
       </Link>
       {children}
     </div>

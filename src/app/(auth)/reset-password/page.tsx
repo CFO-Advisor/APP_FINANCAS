@@ -102,8 +102,8 @@ export default function ResetPasswordPage() {
     return (
       <Card className="w-full max-w-md shadow-md text-center">
         <CardHeader>
-          <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-blue-100">
-            <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
+          <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-900/30">
+            <Loader2 className="h-8 w-8 text-emerald-500 animate-spin" />
           </div>
           <CardTitle className="text-2xl">Verificando link...</CardTitle>
           <CardDescription>Aguarde um momento.</CardDescription>
@@ -139,8 +139,8 @@ export default function ResetPasswordPage() {
     return (
       <Card className="w-full max-w-md shadow-md text-center">
         <CardHeader>
-          <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-            <CheckCircle2 className="h-8 w-8 text-green-600" />
+          <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-900/30">
+            <CheckCircle2 className="h-8 w-8 text-emerald-500" />
           </div>
           <CardTitle className="text-2xl">Senha redefinida!</CardTitle>
           <CardDescription>

@@ -20,7 +20,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="pt-BR" className={`${geist.variable} h-full`} suppressHydrationWarning>
+    <html lang="pt-BR" className={`${geist.variable} h-full dark`} suppressHydrationWarning>
       <body className="min-h-full bg-background font-sans antialiased">
         <ThemeProvider>
           {children}

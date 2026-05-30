@@ -52,8 +52,8 @@ export default function ForgotPasswordPage() {
     return (
       <Card className="w-full max-w-md shadow-md text-center">
         <CardHeader className="pb-2">
-          <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900">
-            <MailCheck className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+          <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-900/30">
+            <MailCheck className="h-8 w-8 text-emerald-500" />
           </div>
           <CardTitle className="text-2xl">E-mail enviado!</CardTitle>
           <CardDescription className="text-base">
@@ -64,7 +64,7 @@ export default function ForgotPasswordPage() {
           <p className="rounded-lg bg-muted px-4 py-2 text-sm font-medium break-all">
             {email}
           </p>
-          <div className="rounded-lg border border-blue-100 bg-blue-50 p-4 text-left text-sm text-blue-800 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-200">
+          <div className="rounded-lg border border-emerald-900 bg-emerald-950/40 p-4 text-left text-sm text-emerald-200">
             <p className="font-medium mb-1">Próximos passos:</p>
             <ol className="list-decimal list-inside space-y-1">
               <li>Abra o e-mail de <strong>Finanças Pessoais</strong></li>

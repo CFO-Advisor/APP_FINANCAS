@@ -100,7 +100,7 @@ export default function RegisterPage() {
           <p className="rounded-lg bg-muted px-4 py-2 text-sm font-medium break-all">
             {email}
           </p>
-          <div className="rounded-lg border border-blue-100 bg-blue-50 p-4 text-left text-sm text-blue-800 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-200">
+          <div className="rounded-lg border border-emerald-900 bg-emerald-950/40 p-4 text-left text-sm text-emerald-200 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200">
             <p className="font-medium mb-1">O que fazer agora:</p>
             <ol className="list-decimal list-inside space-y-1 text-sm">
               <li>Abra sua caixa de entrada do e-mail</li>
@@ -212,7 +212,7 @@ export default function RegisterPage() {
           </Button>
           <p className="text-center text-sm text-muted-foreground">
             Já tem conta?{' '}
-            <Link href="/login" className="font-medium text-blue-600 hover:underline dark:text-blue-400">
+            <Link href="/login" className="font-medium text-emerald-500 hover:text-emerald-400 hover:underline">
               Entrar
             </Link>
           </p>
