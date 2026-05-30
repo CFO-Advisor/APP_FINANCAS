@@ -134,9 +134,9 @@ function NavContent({ pathname, collapsed, isMobile = false, onCloseDrawer, onNa
           >
             <X className="h-5 w-5" />
           </button>
-        ) : (
+        ) : !collapsed ? (
           <ThemeToggle />
-        )}
+        ) : null}
       </div>
 
       {/* Navigation */}
