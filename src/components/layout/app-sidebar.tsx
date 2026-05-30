@@ -251,24 +251,32 @@ export function AppSidebar() {
       {/* ── Mobile drawer ─────────────────────────────────── */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 w-72 border-r border-border bg-sidebar shadow-lg transition-transform duration-300 ease-in-out md:hidden',
+          'fixed inset-y-0 left-0 z-50 flex flex-col w-72 border-r border-border bg-sidebar shadow-lg transition-transform duration-300 ease-in-out md:hidden',
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
-        <button
-          onClick={() => setMobileOpen(false)}
-          className="absolute right-4 top-5 flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-          title="Fechar menu"
-        >
-          <X className="h-5 w-5" />
-        </button>
-        <NavContent
-          pathname={pathname}
-          collapsed={false}
-          onNavClick={() => setMobileOpen(false)}
-          onSignOut={handleSignOut}
-          onNavigate={handleNavigate}
-        />
+        {/* Drawer header with close button */}
+        <div className="flex shrink-0 items-center justify-between border-b border-border p-3">
+          <div />
+          <button
+            onClick={() => setMobileOpen(false)}
+            className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            title="Fechar menu"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        {/* Drawer content */}
+        <div className="flex-1 overflow-hidden">
+          <NavContent
+            pathname={pathname}
+            collapsed={false}
+            isMobile={true}
+            onNavClick={() => setMobileOpen(false)}
+            onSignOut={handleSignOut}
+            onNavigate={handleNavigate}
+          />
+        </div>
       </aside>
     </>
   )
