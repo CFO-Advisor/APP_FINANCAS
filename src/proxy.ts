@@ -25,14 +25,22 @@ export async function proxy(request: NextRequest) {
     }
   )
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-
   const { pathname } = request.nextUrl
-
   const protectedPaths = ['/dashboard', '/transactions']
   const isProtected = protectedPaths.some((p) => pathname.startsWith(p))
+  const isPublicPath = pathname === '/' || pathname.startsWith('/(auth)')
+
+  let session = null
+  if (!isPublicPath) {
+    try {
+      const {
+        data: { session: authSession },
+      } = await supabase.auth.getSession()
+      session = authSession
+    } catch {
+      // Session not available or expired
+    }
+  }
 
   if (!session && isProtected) {
     return NextResponse.redirect(new URL('/login', request.url))
