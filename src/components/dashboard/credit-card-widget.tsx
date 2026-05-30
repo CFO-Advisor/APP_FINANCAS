@@ -43,9 +43,11 @@ export function CreditCardWidget({ cards }: CreditCardWidgetProps) {
           <CreditCard className="h-4 w-4 text-muted-foreground" />
           Cartões de Crédito
         </CardTitle>
-        <Button variant="ghost" size="sm" className="text-xs" style={{ color: '#a78bfa' }}>
-          Ver todos →
-        </Button>
+        <Link href="/credit-cards">
+          <Button variant="ghost" size="sm" className="text-xs" style={{ color: '#a78bfa' }}>
+            Ver todos →
+          </Button>
+        </Link>
       </CardHeader>
       <CardContent className="space-y-3">
         {/* Total debt */}

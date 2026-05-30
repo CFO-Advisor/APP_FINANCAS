@@ -75,14 +75,15 @@ export function BudgetWidget({ expenseItems, incomeItems }: BudgetWidgetProps) {
     <Card className="shadow-sm">
       <CardHeader className="flex flex-row items-center justify-between pb-3">
         <CardTitle className="text-base">Orçamento do Mês</CardTitle>
-        <Button
-          variant="ghost"
-          size="sm"
-         
-          className="flex items-center gap-1 text-blue-600"
-        >
-          Ver detalhes <ArrowRight className="h-3 w-3" />
-        </Button>
+        <Link href="/budget">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="flex items-center gap-1 text-blue-600"
+          >
+            Ver detalhes <ArrowRight className="h-3 w-3" />
+          </Button>
+        </Link>
       </CardHeader>
       <CardContent>
         {!hasData ? (

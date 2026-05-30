@@ -41,9 +41,11 @@ export function BankBalanceWidget({ banks }: BankBalanceWidgetProps) {
       <Card className="shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between pb-3">
           <CardTitle className="text-base">Saldo por Banco</CardTitle>
-          <Button variant="ghost" size="sm" className="flex items-center gap-1 text-blue-600">
-            Gerenciar <ArrowRight className="h-3 w-3" />
-          </Button>
+          <Link href="/banks">
+            <Button variant="ghost" size="sm" className="flex items-center gap-1 text-blue-600">
+              Gerenciar <ArrowRight className="h-3 w-3" />
+            </Button>
+          </Link>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center gap-3 py-6 text-center">
@@ -69,9 +71,11 @@ export function BankBalanceWidget({ banks }: BankBalanceWidgetProps) {
     <Card className="shadow-sm">
       <CardHeader className="flex flex-row items-center justify-between pb-1">
         <CardTitle className="text-base">Saldo por Banco</CardTitle>
-        <Button variant="ghost" size="sm" className="flex items-center gap-1 text-blue-600">
-          Ver todos <ArrowRight className="h-3 w-3" />
-        </Button>
+        <Link href="/banks">
+          <Button variant="ghost" size="sm" className="flex items-center gap-1 text-blue-600">
+            Ver todos <ArrowRight className="h-3 w-3" />
+          </Button>
+        </Link>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Total + donut */}
