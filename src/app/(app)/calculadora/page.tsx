@@ -715,7 +715,7 @@ function Cambio() {
 
             <div>
               <Label htmlFor="moeda-select">Moeda</Label>
-              <Select value={moeda} onValueChange={setMoeda}>
+              <Select value={moeda} onValueChange={(value) => value && setMoeda(value)}>
                 <SelectTrigger id="moeda-select">
                   <span className="flex flex-1 text-left text-sm">
                     {CURRENCIES.find((c) => c.code === moeda)?.label || 'Selecionar'}
