@@ -217,7 +217,7 @@ export function AppSidebar() {
         <NavContent
           pathname={pathname}
           collapsed={collapsed}
-          isMobile={true}
+          isMobile={false}
           onSignOut={handleSignOut}
           onNavigate={handleNavigate}
         />
