@@ -18,6 +18,7 @@ import {
   Menu,
   X,
   ChevronLeft,
+  Calculator,
 } from 'lucide-react'
 
 function CfoIcon({ className }: { className?: string }) {
@@ -93,6 +94,7 @@ const navItems = [
   { href: '/balance', label: 'Balanço',             icon: Scale       },
   { href: '/banks',   label: 'Bancos',              icon: Landmark    },
   { href: '/credit-cards', label: 'Cartões', icon: CreditCard },
+  { href: '/calculadora', label: 'Calculadora', icon: Calculator },
 ]
 
 interface NavContentProps {

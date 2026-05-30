@@ -286,7 +286,7 @@ export default function DashboardPage() {
       {loading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-28 animate-pulse rounded-lg bg-card border shadow-sm" />
+            <div key={i} className="h-28 animate-pulse rounded-lg bg-card border border-border" />
           ))}
         </div>
       ) : (
@@ -297,9 +297,9 @@ export default function DashboardPage() {
       <div className="grid gap-6 lg:grid-cols-3">
         {loading ? (
           <>
-            <div className="h-80 animate-pulse rounded-lg border bg-card shadow-sm" />
-            <div className="h-80 animate-pulse rounded-lg border bg-card shadow-sm" />
-            <div className="h-80 animate-pulse rounded-lg border bg-card shadow-sm" />
+            <div className="h-80 animate-pulse rounded-lg border border-border bg-card" />
+            <div className="h-80 animate-pulse rounded-lg border border-border bg-card" />
+            <div className="h-80 animate-pulse rounded-lg border border-border bg-card" />
           </>
         ) : (
           <>
@@ -315,10 +315,10 @@ export default function DashboardPage() {
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {loading ? (
             <>
-              <div className="h-64 animate-pulse rounded-lg border bg-card shadow-sm" />
-              <div className="h-64 animate-pulse rounded-lg border bg-card shadow-sm" />
-              <div className="h-64 animate-pulse rounded-lg border bg-card shadow-sm" />
-              <div className="h-64 animate-pulse rounded-lg border bg-card shadow-sm" />
+              <div className="h-64 animate-pulse rounded-lg border border-border bg-card" />
+              <div className="h-64 animate-pulse rounded-lg border border-border bg-card" />
+              <div className="h-64 animate-pulse rounded-lg border border-border bg-card" />
+              <div className="h-64 animate-pulse rounded-lg border border-border bg-card" />
             </>
           ) : (
             <>
@@ -333,9 +333,9 @@ export default function DashboardPage() {
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {loading ? (
             <>
-              <div className="h-64 animate-pulse rounded-lg border bg-card shadow-sm" />
-              <div className="h-64 animate-pulse rounded-lg border bg-card shadow-sm" />
-              <div className="h-64 animate-pulse rounded-lg border bg-card shadow-sm" />
+              <div className="h-64 animate-pulse rounded-lg border border-border bg-card" />
+              <div className="h-64 animate-pulse rounded-lg border border-border bg-card" />
+              <div className="h-64 animate-pulse rounded-lg border border-border bg-card" />
             </>
           ) : (
             <>
@@ -349,9 +349,9 @@ export default function DashboardPage() {
 
       {/* Balanço Patrimonial — full width */}
       {loading ? (
-        <div className="h-56 animate-pulse rounded-xl border bg-card shadow-sm" />
+        <div className="h-56 animate-pulse rounded-xl border border-border bg-card" />
       ) : (
-        <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+        <div className="overflow-hidden rounded-xl border border-border bg-card">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-border px-5 py-4">
             <div>
