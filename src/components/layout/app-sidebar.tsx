@@ -98,12 +98,13 @@ const navItems = [
 interface NavContentProps {
   pathname: string
   collapsed: boolean
+  isMobile?: boolean
   onNavClick?: () => void
   onSignOut: () => void
   onNavigate: (href: string) => void
 }
 
-function NavContent({ pathname, collapsed, onNavClick, onSignOut, onNavigate }: NavContentProps) {
+function NavContent({ pathname, collapsed, isMobile = false, onNavClick, onSignOut, onNavigate }: NavContentProps) {
   return (
     <div className="flex h-full flex-col">
       {/* Logo + Theme toggle */}
@@ -122,7 +123,7 @@ function NavContent({ pathname, collapsed, onNavClick, onSignOut, onNavigate }: 
             <p className="truncate text-xs text-muted-foreground">Finanças Pessoais</p>
           </div>
         )}
-        <ThemeToggle />
+        {!isMobile && <ThemeToggle />}
       </div>
 
       {/* Navigation */}
@@ -203,6 +204,7 @@ export function AppSidebar() {
         <NavContent
           pathname={pathname}
           collapsed={collapsed}
+          isMobile={true}
           onSignOut={handleSignOut}
           onNavigate={handleNavigate}
         />
