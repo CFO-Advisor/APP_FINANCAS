@@ -99,31 +99,44 @@ interface NavContentProps {
   pathname: string
   collapsed: boolean
   isMobile?: boolean
+  onCloseDrawer?: () => void
   onNavClick?: () => void
   onSignOut: () => void
   onNavigate: (href: string) => void
 }
 
-function NavContent({ pathname, collapsed, isMobile = false, onNavClick, onSignOut, onNavigate }: NavContentProps) {
+function NavContent({ pathname, collapsed, isMobile = false, onCloseDrawer, onNavClick, onSignOut, onNavigate }: NavContentProps) {
   return (
     <div className="flex h-full flex-col">
-      {/* Logo + Theme toggle */}
+      {/* Logo + Theme toggle / Close button */}
       <div
         className={cn(
-          'flex h-16 shrink-0 items-center border-b border-border px-4',
+          'flex h-16 shrink-0 items-center justify-between border-b border-border px-4',
           collapsed ? 'flex-col justify-center gap-1' : 'gap-3'
         )}
       >
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: 'linear-gradient(135deg, #7c6eff, #a78bfa)' }}>
-          <CfoIcon className="h-6 w-6" />
-        </div>
-        {!collapsed && (
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-base font-black leading-tight tracking-tight">CFO Advisor</p>
-            <p className="truncate text-xs text-muted-foreground">Finanças Pessoais</p>
+        <div className="flex items-center gap-3" style={collapsed ? { flexDirection: 'column' } : {}}>
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: 'linear-gradient(135deg, #7c6eff, #a78bfa)' }}>
+            <CfoIcon className="h-6 w-6" />
           </div>
+          {!collapsed && (
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-base font-black leading-tight tracking-tight">CFO Advisor</p>
+              <p className="truncate text-xs text-muted-foreground">Finanças Pessoais</p>
+            </div>
+          )}
+        </div>
+        {isMobile ? (
+          <button
+            onClick={onCloseDrawer}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            title="Fechar menu"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        ) : (
+          <ThemeToggle />
         )}
-        {!isMobile && <ThemeToggle />}
       </div>
 
       {/* Navigation */}
@@ -251,32 +264,19 @@ export function AppSidebar() {
       {/* ── Mobile drawer ─────────────────────────────────── */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 flex flex-col w-72 border-r border-border bg-sidebar shadow-lg transition-transform duration-300 ease-in-out md:hidden',
+          'fixed inset-y-0 left-0 z-50 w-72 border-r border-border bg-sidebar shadow-lg transition-transform duration-300 ease-in-out md:hidden',
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
-        {/* Drawer header with close button */}
-        <div className="flex shrink-0 items-center justify-between border-b border-border p-3">
-          <div />
-          <button
-            onClick={() => setMobileOpen(false)}
-            className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-            title="Fechar menu"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-        {/* Drawer content */}
-        <div className="flex-1 overflow-hidden">
-          <NavContent
-            pathname={pathname}
-            collapsed={false}
-            isMobile={true}
-            onNavClick={() => setMobileOpen(false)}
-            onSignOut={handleSignOut}
-            onNavigate={handleNavigate}
-          />
-        </div>
+        <NavContent
+          pathname={pathname}
+          collapsed={false}
+          isMobile={true}
+          onCloseDrawer={() => setMobileOpen(false)}
+          onNavClick={() => setMobileOpen(false)}
+          onSignOut={handleSignOut}
+          onNavigate={handleNavigate}
+        />
       </aside>
     </>
   )
