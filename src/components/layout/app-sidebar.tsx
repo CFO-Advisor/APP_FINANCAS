@@ -257,7 +257,7 @@ export function AppSidebar() {
       >
         <button
           onClick={() => setMobileOpen(false)}
-          className="absolute right-3 top-3.5 flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          className="absolute right-4 top-5 flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           title="Fechar menu"
         >
           <X className="h-5 w-5" />
