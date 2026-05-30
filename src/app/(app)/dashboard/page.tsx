@@ -368,9 +368,11 @@ export default function DashboardPage() {
                   {formatCurrency(patrimonioLiquido)}
                 </p>
               </div>
-              <Button variant="ghost" size="sm" className="flex items-center gap-1 text-primary">
-                Ver detalhes <ArrowRight className="h-3 w-3" />
-              </Button>
+              <Link href="/balance">
+                <Button variant="ghost" size="sm" className="flex items-center gap-1 text-primary">
+                  Ver detalhes <ArrowRight className="h-3 w-3" />
+                </Button>
+              </Link>
             </div>
           </div>
 
