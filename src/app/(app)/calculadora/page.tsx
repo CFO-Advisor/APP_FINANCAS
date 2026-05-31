@@ -715,7 +715,7 @@ function Cambio() {
 
             <div>
               <Label htmlFor="moeda-select">Moeda</Label>
-              <Select value={moeda} onValueChange={(value) => value && setMoeda(value)}>
+              <Select value={moeda} onValueChange={(value) => { if (value !== null) setMoeda(value) }}>
                 <SelectTrigger id="moeda-select">
                   <span className="flex flex-1 text-left text-sm">
                     {CURRENCIES.find((c) => c.code === moeda)?.label || 'Selecionar'}
@@ -864,7 +864,7 @@ function Financiamento() {
             </div>
             <div>
               <Label htmlFor="sistema-fin">Sistema de Amortização</Label>
-              <Select value={sistema} onValueChange={(v) => setSistema(v as AmortizationSystem)}>
+              <Select value={sistema} onValueChange={(v) => { if (v !== null) setSistema(v as AmortizationSystem) }}>
                 <SelectTrigger id="sistema-fin">
                   <span className="flex flex-1 text-left text-sm">
                     {sistema === 'sac' ? 'SAC' : sistema === 'price' ? 'PRICE' : sistema === 'sam' ? 'SAM' : 'Americano'}
