@@ -26,12 +26,22 @@ export async function proxy(request: NextRequest) {
   )
 
   const { pathname } = request.nextUrl
-  const protectedPaths = ['/dashboard', '/transactions']
-  const isProtected = protectedPaths.some((p) => pathname.startsWith(p))
-  const isPublicPath = pathname === '/' || pathname.startsWith('/(auth)')
+
+  // Deny-by-default: only these paths (and the OAuth callback) are reachable
+  // without a session. Every other route — including any added later — is
+  // protected automatically instead of requiring an ever-growing allowlist.
+  const publicPaths = new Set([
+    '/',
+    '/login',
+    '/register',
+    '/forgot-password',
+    '/reset-password',
+  ])
+  const isPublicPath =
+    publicPaths.has(pathname) || pathname.startsWith('/auth/callback')
 
   let session = null
-  if (!isPublicPath) {
+  if (pathname !== '/') {
     try {
       const {
         data: { session: authSession },
@@ -42,7 +52,7 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  if (!session && isProtected) {
+  if (!session && !isPublicPath) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
