@@ -2,12 +2,22 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { type EmailOtpType } from '@supabase/supabase-js'
 
+// Only same-origin, single-leading-slash paths are allowed. Blocks the
+// classic "@evil.com" and "//evil.com" open-redirect tricks that a raw
+// `${origin}${next}` concatenation is vulnerable to.
+function safeNextPath(next: string | null): string {
+  if (!next || !next.startsWith('/') || next.startsWith('//') || next.includes('@') || next.includes('\\')) {
+    return '/dashboard'
+  }
+  return next
+}
+
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
   const token_hash = searchParams.get('token_hash')
   const type = searchParams.get('type') as EmailOtpType | null
-  const next = searchParams.get('next') ?? '/dashboard'
+  const next = safeNextPath(searchParams.get('next'))
 
   const supabase = await createClient()
 
