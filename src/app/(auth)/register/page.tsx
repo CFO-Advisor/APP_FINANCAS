@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -18,6 +19,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Loader2, MailCheck, ArrowLeft, RefreshCw } from 'lucide-react'
 
 export default function RegisterPage() {
+  const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [resending, setResending] = useState(false)
   const [registered, setRegistered] = useState(false)
@@ -43,7 +45,7 @@ export default function RegisterPage() {
 
     try {
       const supabase = createClient()
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: { data: { full_name: name } },
@@ -55,6 +57,14 @@ export default function RegisterPage() {
             ? 'Este e-mail já está cadastrado.'
             : error.message
         )
+        return
+      }
+
+      // Se já veio com sessão (e-mail confirmado automaticamente), vai direto pro dashboard
+      if (data.session) {
+        toast.success('Conta criada! Bem-vindo!')
+        router.push('/dashboard')
+        router.refresh()
         return
       }
 
@@ -114,7 +124,7 @@ export default function RegisterPage() {
           </p>
         </CardContent>
         <CardFooter className="flex flex-col gap-2 pt-0">
-          <Button className="w-full">
+          <Button className="w-full" onClick={() => router.push('/login')}>
             Ir para o login
           </Button>
           <Button
