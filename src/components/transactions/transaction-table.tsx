@@ -22,7 +22,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { CATEGORY_COLORS } from '@/lib/constants'
 import { formatCurrency } from '@/lib/csv-export'
 import { createClient } from '@/lib/supabase/client'
 import { toError } from '@/lib/utils'
@@ -104,13 +103,7 @@ export function TransactionTable({ transactions, onEdit, onDeleted, banks = [], 
                   </span>
                 </TableCell>
                 <TableCell className="hidden sm:table-cell">
-                  <span
-                    className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium"
-                    style={{
-                      backgroundColor: (CATEGORY_COLORS[t.category] ?? '#94A3B8') + '20',
-                      color: CATEGORY_COLORS[t.category] ?? '#64748B',
-                    }}
-                  >
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
                     {t.category}
                   </span>
                 </TableCell>
@@ -130,18 +123,7 @@ export function TransactionTable({ transactions, onEdit, onDeleted, banks = [], 
                   )}
                 </TableCell>
                 <TableCell className="hidden md:table-cell">
-                  <Badge
-                    variant="secondary"
-                    style={
-                      t.type === 'income'
-                        ? { backgroundColor: '#05966920', color: '#059669' }
-                        : t.type === 'investment'
-                        ? { backgroundColor: 'color-mix(in oklab, var(--primary) 13%, transparent)', color: 'var(--primary)' }
-                        : t.type === 'credit_card_payment'
-                        ? { backgroundColor: '#0284c720', color: '#0284c7' }
-                        : { backgroundColor: 'color-mix(in oklab, var(--destructive) 13%, transparent)', color: 'var(--destructive)' }
-                    }
-                  >
+                  <Badge variant="secondary">
                     {t.type === 'income' ? 'Receita'
                       : t.type === 'investment' ? 'Investimento'
                       : t.type === 'credit_card_payment' ? 'Pg. Fatura'
@@ -149,10 +131,7 @@ export function TransactionTable({ transactions, onEdit, onDeleted, banks = [], 
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">
-                  <span
-                    className="font-semibold tabular-nums"
-                    style={{ color: t.type === 'income' ? '#059669' : t.type === 'investment' ? 'var(--primary)' : t.type === 'credit_card_payment' ? '#0284c7' : 'var(--destructive)' }}
-                  >
+                  <span className="font-semibold tabular-nums text-foreground">
                     {t.type === 'income' ? '+' : '-'}
                     {formatCurrency(t.amount)}
                   </span>

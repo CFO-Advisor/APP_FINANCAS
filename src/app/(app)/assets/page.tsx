@@ -77,38 +77,23 @@ export default function AssetsPage() {
       {!loading && (
         <div className="grid gap-4 sm:grid-cols-3">
           {[
-            { label: 'Total Geral',  value: totalGeral,  color: 'var(--primary)', icon: null },
-            { label: 'Bens',         value: goodsTotal,  color: '#d97706', icon: ASSET_GROUP_DEFS[0].icon },
-            { label: 'Direitos',     value: rightsTotal, color: '#0284c7', icon: ASSET_GROUP_DEFS[1].icon },
-          ].map(({ label, value, color, icon: Icon }) => (
+            { label: 'Total Geral',  value: totalGeral,  icon: null },
+            { label: 'Bens',         value: goodsTotal,  icon: ASSET_GROUP_DEFS[0].icon },
+            { label: 'Direitos',     value: rightsTotal, icon: ASSET_GROUP_DEFS[1].icon },
+          ].map(({ label, value, icon: Icon }) => (
             <div
               key={label}
-              className="relative overflow-hidden rounded-xl border border-border bg-card px-5 pb-5 pt-5"
+              className="rounded-xl border border-border bg-card px-5 py-5"
             >
-              <div
-                className="pointer-events-none absolute -right-6 -top-6 h-32 w-32 rounded-full opacity-[0.12] blur-2xl"
-                style={{ background: color }}
-              />
-              {Icon && (
-                <div
-                  className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl"
-                  style={{ background: `color-mix(in oklab, ${color} 13%, transparent)`, color }}
-                >
-                  <Icon className="h-5 w-5" strokeWidth={2.2} />
-                </div>
-              )}
-              {!Icon && (
-                <div
-                  className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl text-lg font-bold"
-                  style={{ background: `color-mix(in oklab, ${color} 13%, transparent)`, color }}
-                >
-                  Σ
-                </div>
-              )}
-              <p className="mb-1 text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              <p className="mb-2.5 flex items-center gap-1.5 text-[0.7rem] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+                {Icon ? (
+                  <Icon className="h-3.5 w-3.5 shrink-0" />
+                ) : (
+                  <span className="shrink-0 text-sm font-bold leading-none">Σ</span>
+                )}
                 {label}
               </p>
-              <p className="text-[1.75rem] font-bold leading-none tabular-nums" style={{ color }}>
+              <p className="text-[1.75rem] font-semibold leading-none tracking-tight tabular-nums text-foreground">
                 {formatCurrency(value)}
               </p>
             </div>
@@ -132,13 +117,12 @@ export default function AssetsPage() {
                 <CardHeader className="pb-2 pt-4">
                   <CardTitle className="flex items-center gap-3 text-base font-semibold">
                     <span
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg"
-                      style={{ background: group.color + '22', color: group.color }}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-muted-foreground"
                     >
                       <group.icon className="h-4 w-4" />
                     </span>
                     {group.label}
-                    <span className="ml-auto text-sm font-normal" style={{ color: group.color }}>
+                    <span className="ml-auto text-sm font-normal text-foreground">
                       {formatCurrency(groupTotal)}
                     </span>
                   </CardTitle>
@@ -157,8 +141,7 @@ export default function AssetsPage() {
                           <div className="min-w-0 flex-1">
                             <div className="flex flex-wrap items-center gap-1.5">
                               <span
-                                className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium"
-                                style={{ background: group.color + '20', color: group.color }}
+                                className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground"
                               >
                                 {item.category}
                               </span>
@@ -177,7 +160,7 @@ export default function AssetsPage() {
 
                           {/* Value */}
                           <div className="shrink-0 text-right">
-                            <p className="text-sm font-semibold tabular-nums" style={{ color: group.color }}>
+                            <p className="text-sm font-semibold tabular-nums text-foreground">
                               {formatCurrency(item.value)}
                             </p>
                           </div>

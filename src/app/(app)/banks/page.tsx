@@ -386,8 +386,7 @@ function BankCard({ bank, allTx, expanded, filter, onToggle, onEdit, onDelete, o
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
                           <span
-                            className="shrink-0 rounded-full px-1.5 py-0.5 text-[0.6rem] font-semibold"
-                            style={{ background: `color-mix(in oklab, ${meta.color} 20%, transparent)`, color: meta.color }}
+                            className="shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-[0.6rem] font-semibold text-muted-foreground"
                           >
                             {meta.label}
                           </span>
@@ -400,8 +399,7 @@ function BankCard({ bank, allTx, expanded, filter, onToggle, onEdit, onDelete, o
 
                       {/* Amount */}
                       <span
-                        className="shrink-0 text-right text-sm font-semibold tabular-nums"
-                        style={{ color: meta.color }}
+                        className="shrink-0 text-right text-sm font-semibold tabular-nums text-foreground"
                       >
                         {meta.sign}{formatCurrency(tx.amount)}
                       </span>

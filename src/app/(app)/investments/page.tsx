@@ -237,17 +237,13 @@ export default function InvestmentsPage() {
       ) : (
         <>
           {/* Total investido — card de destaque */}
-          <Card className="relative overflow-hidden border-border shadow-sm">
-            <div className="absolute inset-x-0 top-0 h-[3px]" style={{ background: 'var(--primary)' }} />
-            <Wallet
-              className="absolute right-6 top-1/2 -translate-y-1/2 h-14 w-14 opacity-[0.07]"
-              style={{ color: 'var(--primary)' }}
-            />
+          <Card className="border-border shadow-sm">
             <CardContent className="px-6 py-5">
-              <p className="mb-1.5 text-[0.68rem] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+              <p className="mb-1.5 flex items-center gap-1.5 text-[0.68rem] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+                <Wallet className="h-3.5 w-3.5 shrink-0" />
                 Total Investido
               </p>
-              <p className="text-[2rem] font-bold leading-none" style={{ color: 'var(--primary)' }}>
+              <p className="text-[2rem] font-bold leading-none text-foreground">
                 {formatCurrency(grandTotal)}
               </p>
               {grandTotal > 0 && (
@@ -273,17 +269,13 @@ export default function InvestmentsPage() {
             {groupTotals.map((g) => {
               const pct = grandTotal > 0 ? (g.total / grandTotal) * 100 : 0
               return (
-                <Card key={g.label} className="relative overflow-hidden border-border shadow-sm">
-                  <div className="absolute inset-x-0 top-0 h-[3px]" style={{ background: g.color }} />
-                  <g.icon
-                    className="absolute right-3 top-4 h-7 w-7 opacity-[0.12]"
-                    style={{ color: g.color }}
-                  />
+                <Card key={g.label} className="border-border shadow-sm">
                   <CardContent className="px-4 pb-4 pt-5">
-                    <p className="mb-1.5 text-[0.6rem] font-bold uppercase tracking-[0.08em] text-muted-foreground leading-tight pr-6">
+                    <p className="mb-1.5 flex items-center gap-1.5 text-[0.6rem] font-bold uppercase tracking-[0.08em] text-muted-foreground leading-tight">
+                      <g.icon className="h-3 w-3 shrink-0" />
                       {g.label}
                     </p>
-                    <p className="text-lg font-bold leading-none" style={{ color: g.color }}>
+                    <p className="text-lg font-bold leading-none text-foreground">
                       {formatCurrency(g.total)}
                     </p>
                     {grandTotal > 0 && (
@@ -430,7 +422,7 @@ export default function InvestmentsPage() {
             <>
               <p className="text-sm text-muted-foreground">
                 Informe o valor já investido em{' '}
-                <strong style={{ color: editingGroup.color }}>{editingGroup.label}</strong>{' '}
+                <strong className="text-foreground">{editingGroup.label}</strong>{' '}
                 antes de começar a usar o app. Será somado às suas transações.
               </p>
               <div className="space-y-1.5">

@@ -105,29 +105,20 @@ export default function DebtsPage() {
       {!loading && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            { label: 'Compromisso / Mês', value: totalMonthly, color: 'var(--destructive)', bg: 'color-mix(in oklab, var(--destructive) 13%, transparent)', Icon: TrendingDown },
-            { label: 'Empréstimos & Financ.', value: totalLoans,   color: '#d97706', bg: '#d9770622', Icon: DEBT_GROUP_DEFS[0].icon },
-            { label: 'Contas do Mês',          value: totalBills,   color: '#0284c7', bg: '#0284c722', Icon: DEBT_GROUP_DEFS[1].icon },
-            { label: 'Outras Obrigações',       value: totalOther,   color: 'var(--primary)', bg: 'color-mix(in oklab, var(--primary) 13%, transparent)', Icon: DEBT_GROUP_DEFS[2].icon },
-          ].map(({ label, value, color, bg, Icon }) => (
+            { label: 'Compromisso / Mês',        value: totalMonthly, Icon: TrendingDown },
+            { label: 'Empréstimos & Financ.',    value: totalLoans,   Icon: DEBT_GROUP_DEFS[0].icon },
+            { label: 'Contas do Mês',            value: totalBills,   Icon: DEBT_GROUP_DEFS[1].icon },
+            { label: 'Outras Obrigações',        value: totalOther,   Icon: DEBT_GROUP_DEFS[2].icon },
+          ].map(({ label, value, Icon }) => (
             <div
               key={label}
-              className="relative overflow-hidden rounded-xl border border-border bg-card px-5 pb-5 pt-5"
+              className="rounded-xl border border-border bg-card px-5 py-5"
             >
-              <div
-                className="pointer-events-none absolute -right-6 -top-6 h-32 w-32 rounded-full opacity-[0.12] blur-2xl"
-                style={{ background: color }}
-              />
-              <div
-                className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl"
-                style={{ background: bg, color }}
-              >
-                <Icon className="h-5 w-5" strokeWidth={2.2} />
-              </div>
-              <p className="mb-1 text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              <p className="mb-2.5 flex items-center gap-1.5 text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                <Icon className="h-3.5 w-3.5" />
                 {label}
               </p>
-              <p className="text-[1.75rem] font-bold leading-none tabular-nums" style={{ color }}>
+              <p className="text-[1.75rem] font-bold leading-none tabular-nums text-foreground">
                 {formatCurrency(value)}
               </p>
             </div>
@@ -151,8 +142,7 @@ export default function DebtsPage() {
                 <CardHeader className="pb-2 pt-4">
                   <CardTitle className="flex items-center gap-3 text-base font-semibold">
                     <span
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg"
-                      style={{ background: group.color + '22', color: group.color }}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-muted-foreground"
                     >
                       <group.icon className="h-4 w-4" />
                     </span>
@@ -182,8 +172,7 @@ export default function DebtsPage() {
                           <div className="min-w-0 flex-1">
                             <div className="flex flex-wrap items-center gap-1.5">
                               <span
-                                className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium"
-                                style={{ background: group.color + '20', color: group.color }}
+                                className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground"
                               >
                                 {debt.category}
                               </span>
@@ -209,10 +198,9 @@ export default function DebtsPage() {
                                 </div>
                                 <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
                                   <div
-                                    className="h-full rounded-full transition-all"
+                                    className="h-full rounded-full bg-foreground/60 transition-all"
                                     style={{
                                       width: `${Math.min(100, ((debt.installments_paid ?? 0) / debt.installments_total) * 100)}%`,
-                                      background: group.color,
                                     }}
                                   />
                                 </div>
@@ -228,7 +216,7 @@ export default function DebtsPage() {
 
                           {/* Amount */}
                           <div className="shrink-0 text-right">
-                            <p className="text-sm font-semibold tabular-nums" style={{ color: group.color }}>
+                            <p className="text-sm font-semibold tabular-nums text-foreground">
                               {formatCurrency(debt.monthly_amount)}
                               <span className="text-xs font-normal text-muted-foreground">/mês</span>
                             </p>

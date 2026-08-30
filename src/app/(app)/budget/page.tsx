@@ -169,12 +169,11 @@ export default function BudgetPage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <SummaryCard
             label="Receitas Orçadas"
-            accentColor="var(--primary)"
             value={totalIncBudget}
           />
           <SummaryCard
             label="Receitas Realizadas"
-            accentColor={totalIncActual >= totalIncBudget ? '#059669' : 'var(--primary)'}
+            accentColor={totalIncActual >= totalIncBudget ? '#059669' : undefined}
             value={totalIncActual}
             sub={totalIncBudget > 0
               ? `${((totalIncActual / totalIncBudget) * 100).toFixed(0)}% do orçado`
@@ -182,12 +181,11 @@ export default function BudgetPage() {
           />
           <SummaryCard
             label="Despesas Orçadas"
-            accentColor="var(--primary)"
             value={totalExpBudget}
           />
           <SummaryCard
             label="Despesas Realizadas"
-            accentColor={totalExpActual > totalExpBudget ? 'var(--destructive)' : 'var(--primary)'}
+            accentColor={totalExpActual > totalExpBudget ? 'var(--destructive)' : undefined}
             value={totalExpActual}
             sub={totalExpBudget > 0
               ? `${((totalExpActual / totalExpBudget) * 100).toFixed(0)}% do orçado`
@@ -246,19 +244,24 @@ function SummaryCard({
 }: {
   label: string
   value: number
-  accentColor: string
+  /** Only set when the value itself carries a positive/negative signal (over/under budget). */
+  accentColor?: string
   sub?: string
 }) {
   return (
-    <Card className="relative overflow-hidden shadow-sm">
-      <div className="absolute inset-x-0 top-0 h-[3px]" style={{ background: accentColor }} />
+    <Card className="shadow-sm">
       <CardHeader className="pb-1 pt-5">
         <CardTitle className="text-[0.68rem] font-bold uppercase tracking-[0.1em] text-muted-foreground">
           {label}
         </CardTitle>
       </CardHeader>
       <CardContent className="pb-4">
-        <p className="text-xl font-bold" style={{ color: accentColor }}>{formatCurrency(value)}</p>
+        <p
+          className="text-xl font-bold text-foreground"
+          style={accentColor ? { color: accentColor } : undefined}
+        >
+          {formatCurrency(value)}
+        </p>
         {sub && <p className="mt-0.5 text-xs text-muted-foreground">{sub}</p>}
       </CardContent>
     </Card>

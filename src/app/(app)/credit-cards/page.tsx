@@ -30,19 +30,22 @@ interface KpiItem {
   value: string
   sub?: string
   icon: LucideIcon
-  accentColor: string
+  /** Only set when the value itself carries a positive/negative/warning signal. */
+  accentColor?: string
 }
 
 function KpiCard({ label, value, sub, icon: Icon, accentColor }: KpiItem) {
   return (
-    <Card className="relative overflow-hidden border-border shadow-sm">
-      <div className="absolute inset-x-0 top-0 h-[3px]" style={{ background: accentColor }} />
-      <Icon className="absolute right-4 top-5 h-9 w-9 opacity-[0.12]" style={{ color: accentColor }} />
+    <Card className="border-border shadow-sm">
       <CardContent className="px-5 pb-5 pt-6">
-        <p className="mb-2 text-[0.68rem] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+        <p className="mb-2 flex items-center gap-1.5 text-[0.68rem] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+          <Icon className="h-3.5 w-3.5" />
           {label}
         </p>
-        <p className="text-[1.7rem] font-bold leading-none" style={{ color: accentColor }}>
+        <p
+          className="text-[1.7rem] font-bold leading-none text-foreground"
+          style={accentColor ? { color: accentColor } : undefined}
+        >
           {value}
         </p>
         {sub && <p className="mt-1.5 text-xs text-muted-foreground">{sub}</p>}
@@ -106,21 +109,18 @@ export default function CreditCardsPage() {
       value: formatCurrency(totalDebt),
       sub: `${cards.length} cartão${cards.length !== 1 ? 'ões' : ''} com fatura`,
       icon: CreditCardLucide,
-      accentColor: 'var(--destructive)',
     },
     {
       label: 'Limite Total',
       value: formatCurrency(totalLimit),
       sub: `Soma dos limites cadastrados`,
       icon: Wallet,
-      accentColor: 'var(--primary)',
     },
     {
       label: 'Crédito Disponível',
       value: formatCurrency(totalAvailable),
       sub: `${(100 - totalUtilization).toFixed(0)}% do limite livre`,
       icon: ShieldCheck,
-      accentColor: '#059669',
     },
     {
       label: 'Utilização Global',
@@ -203,8 +203,8 @@ export default function CreditCardsPage() {
               />
             </div>
             <div className="mt-2 flex justify-between text-xs text-muted-foreground">
-              <span style={{ color: 'var(--destructive)' }}>Usado: {formatCurrency(totalDebt)}</span>
-              <span style={{ color: '#059669' }}>Disponível: {formatCurrency(totalAvailable)}</span>
+              <span>Usado: {formatCurrency(totalDebt)}</span>
+              <span>Disponível: {formatCurrency(totalAvailable)}</span>
             </div>
           </div>
 
@@ -268,7 +268,7 @@ export default function CreditCardsPage() {
                     <div className="mt-4 grid grid-cols-3 gap-3 border-t border-border pt-4 text-center">
                       <div>
                         <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground">Saldo Devedor</p>
-                        <p className="text-lg font-bold" style={{ color: 'var(--destructive)' }}>{formatCurrency(card.outstandingBalance)}</p>
+                        <p className="text-lg font-bold text-foreground">{formatCurrency(card.outstandingBalance)}</p>
                         <p className="text-[0.65rem] text-muted-foreground">
                           Vence {format(dueDate, "dd/MM", { locale: ptBR })}
                           {isDueSoon && !isOverdue && <span style={{ color: '#d97706' }}> · {daysUntilDue}d</span>}
@@ -277,7 +277,7 @@ export default function CreditCardsPage() {
                       </div>
                       <div>
                         <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground">Disponível</p>
-                        <p className="text-lg font-bold" style={{ color: '#059669' }}>{formatCurrency(card.availableCredit)}</p>
+                        <p className="text-lg font-bold text-foreground">{formatCurrency(card.availableCredit)}</p>
                         <p className="text-[0.65rem] text-muted-foreground">de {formatCurrency(card.credit_limit)}</p>
                       </div>
                       <div>
