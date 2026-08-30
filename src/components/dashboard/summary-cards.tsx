@@ -6,15 +6,21 @@ interface KpiCard {
   title: string
   value: number
   icon: LucideIcon
-  accentColor: string
+  /** Only set when the value itself carries a positive/negative signal (e.g. balance). */
+  valueColor?: string
 }
 
 export function SummaryCards({ summary }: { summary: DashboardSummary }) {
   const cards: KpiCard[] = [
-    { title: 'Receitas',      value: summary.totalIncome,      icon: TrendingUp,  accentColor: '#059669' },
-    { title: 'Despesas',      value: summary.totalExpense,     icon: TrendingDown, accentColor: 'var(--destructive)' },
-    { title: 'Investimentos', value: summary.totalInvestment,  icon: BarChart3,   accentColor: 'var(--primary)' },
-    { title: 'Saldo',         value: summary.balance,          icon: Wallet,      accentColor: summary.balance >= 0 ? '#059669' : 'var(--destructive)' },
+    { title: 'Receitas', value: summary.totalIncome, icon: TrendingUp },
+    { title: 'Despesas', value: summary.totalExpense, icon: TrendingDown },
+    { title: 'Investimentos', value: summary.totalInvestment, icon: BarChart3 },
+    {
+      title: 'Saldo',
+      value: summary.balance,
+      icon: Wallet,
+      valueColor: summary.balance >= 0 ? '#059669' : 'var(--destructive)',
+    },
   ]
 
   return (
@@ -22,26 +28,16 @@ export function SummaryCards({ summary }: { summary: DashboardSummary }) {
       {cards.map((card) => (
         <div
           key={card.title}
-          className="relative overflow-hidden rounded-xl border border-border bg-card px-5 pb-5 pt-5 transition-transform duration-200 hover:-translate-y-0.5"
+          className="rounded-xl border border-border bg-card px-5 py-5 transition-colors duration-200 hover:border-foreground/20"
         >
-          {/* Radial gradient glow from top-right */}
-          <div
-            className="pointer-events-none absolute -right-6 -top-6 h-32 w-32 rounded-full opacity-[0.12] blur-2xl"
-            style={{ background: card.accentColor }}
-          />
-
-          {/* Icon pill */}
-          <div
-            className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl"
-            style={{ background: card.accentColor + '22', color: card.accentColor }}
-          >
-            <card.icon className="h-5 w-5" strokeWidth={2.2} />
-          </div>
-
-          <p className="mb-1 text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          <p className="mb-2.5 flex items-center gap-1.5 text-[0.7rem] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+            <card.icon className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />
             {card.title}
           </p>
-          <p className="text-[1.75rem] font-bold leading-none tabular-nums" style={{ color: card.accentColor }}>
+          <p
+            className="text-[1.75rem] font-semibold leading-none tracking-tight tabular-nums text-foreground"
+            style={card.valueColor ? { color: card.valueColor } : undefined}
+          >
             {formatCurrency(card.value)}
           </p>
         </div>

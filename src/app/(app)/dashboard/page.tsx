@@ -385,17 +385,17 @@ export default function DashboardPage() {
               </p>
               <div className="space-y-2.5">
                 {([
-                  { label: 'Bancos',          value: bankTotal,       color: '#059669', Icon: Landmark       },
-                  { label: 'Investimentos',   value: investmentTotal, color: 'var(--primary)', Icon: TrendingUpIcon  },
-                  { label: 'Bens',            value: goodsTotal,      color: '#d97706', Icon: Package2        },
-                  { label: 'Direitos',        value: rightsTotal,     color: '#0284c7', Icon: ScrollText      },
-                ] as const).map(({ label, value, color, Icon }) => (
+                  { label: 'Bancos',          value: bankTotal,       Icon: Landmark       },
+                  { label: 'Investimentos',   value: investmentTotal, Icon: TrendingUpIcon  },
+                  { label: 'Bens',            value: goodsTotal,      Icon: Package2        },
+                  { label: 'Direitos',        value: rightsTotal,     Icon: ScrollText      },
+                ] as const).map(({ label, value, Icon }) => (
                   <div key={label} className="flex items-center gap-2">
-                    <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md" style={{ background: color + '20', color }}>
+                    <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
                       <Icon className="h-3 w-3" />
                     </span>
                     <span className="flex-1 text-sm text-muted-foreground">{label}</span>
-                    <span className="tabular-nums text-sm font-medium" style={{ color }}>{formatCurrency(value)}</span>
+                    <span className="tabular-nums text-sm font-medium text-foreground">{formatCurrency(value)}</span>
                   </div>
                 ))}
               </div>
@@ -412,17 +412,17 @@ export default function DashboardPage() {
               </p>
               <div className="space-y-2.5">
                 {([
-                  { label: 'Cartões',         value: cardTotal,      color: 'var(--destructive)', Icon: CreditCardIcon },
-                  { label: 'Empréstimos',     value: loanRemaining,  color: '#d97706', Icon: Landmark       },
-                  { label: 'Contas a Pagar',  value: billsMonthly,   color: '#0284c7', Icon: ScrollText     },
-                  { label: 'Obrigações',      value: otherTotal,     color: 'var(--primary)', Icon: AlertCircle    },
-                ] as const).map(({ label, value, color, Icon }) => (
+                  { label: 'Cartões',         value: cardTotal,      Icon: CreditCardIcon },
+                  { label: 'Empréstimos',     value: loanRemaining,  Icon: Landmark       },
+                  { label: 'Contas a Pagar',  value: billsMonthly,   Icon: ScrollText     },
+                  { label: 'Obrigações',      value: otherTotal,     Icon: AlertCircle    },
+                ] as const).map(({ label, value, Icon }) => (
                   <div key={label} className="flex items-center gap-2">
-                    <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md" style={{ background: color + '20', color }}>
+                    <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
                       <Icon className="h-3 w-3" />
                     </span>
                     <span className="flex-1 text-sm text-muted-foreground">{label}</span>
-                    <span className="tabular-nums text-sm font-medium" style={{ color }}>{formatCurrency(value)}</span>
+                    <span className="tabular-nums text-sm font-medium text-foreground">{formatCurrency(value)}</span>
                   </div>
                 ))}
               </div>
