@@ -22,24 +22,24 @@ export default function AuthLayout({
 
         <Link href="/" className="relative flex items-center gap-2.5">
           <CfoMark className="h-7 w-7" />
-          <span className="font-heading text-[15px] font-bold tracking-tight text-foreground">
+          <span className="font-heading text-[15px] font-bold tracking-tight text-white">
             CFO Advisor
-            <span className="ml-1.5 font-sans text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+            <span className="ml-1.5 font-sans text-[11px] font-semibold uppercase tracking-[0.16em] text-white/60">
               Finanças
             </span>
           </span>
         </Link>
 
         <div className="relative max-w-md">
-          <h2 className="font-heading text-3xl font-bold leading-tight tracking-tight text-foreground">
+          <h2 className="font-heading text-3xl font-bold leading-tight tracking-tight text-white">
             Controle financeiro simples para decisões melhores.
           </h2>
-          <p className="mt-4 text-[15px] leading-relaxed text-muted-foreground/90">
+          <p className="mt-4 text-[15px] leading-relaxed text-white/70">
             Receitas, despesas, orçamento e relatórios em um só lugar.
           </p>
         </div>
 
-        <p className="relative text-xs text-muted-foreground/80">
+        <p className="relative text-xs text-white/50">
           © {new Date().getFullYear()} CFO Advisor · Finanças Pessoais
         </p>
       </div>
