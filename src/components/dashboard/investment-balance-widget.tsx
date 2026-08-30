@@ -50,7 +50,7 @@ export function InvestmentBalanceWidget({ groups }: InvestmentBalanceWidgetProps
         <CardHeader className="flex flex-row items-center justify-between pb-3">
           <CardTitle className="text-base">Saldo por Investimento</CardTitle>
           <Link href="/investments">
-            <Button variant="ghost" size="sm" className="flex items-center gap-1" style={{ color: '#a78bfa' }}>
+            <Button variant="ghost" size="sm" className="flex items-center gap-1" style={{ color: 'var(--primary)' }}>
               Ver <ArrowRight className="h-3 w-3" />
             </Button>
           </Link>
@@ -72,7 +72,7 @@ export function InvestmentBalanceWidget({ groups }: InvestmentBalanceWidgetProps
       <CardHeader className="flex flex-row items-center justify-between pb-1">
         <CardTitle className="text-base">Saldo por Investimento</CardTitle>
         <Link href="/investments">
-          <Button variant="ghost" size="sm" className="flex items-center gap-1" style={{ color: '#a78bfa' }}>
+          <Button variant="ghost" size="sm" className="flex items-center gap-1" style={{ color: 'var(--primary)' }}>
             Ver todos <ArrowRight className="h-3 w-3" />
           </Button>
         </Link>
@@ -105,7 +105,7 @@ export function InvestmentBalanceWidget({ groups }: InvestmentBalanceWidgetProps
           )}
           <div>
             <p className="text-xs text-muted-foreground">Total Investido</p>
-            <p className="text-2xl font-bold" style={{ color: '#a78bfa' }}>
+            <p className="text-2xl font-bold" style={{ color: 'var(--primary)' }}>
               {formatCurrency(total)}
             </p>
             <p className="text-xs text-muted-foreground">

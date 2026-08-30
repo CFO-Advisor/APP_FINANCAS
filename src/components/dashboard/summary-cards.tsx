@@ -11,10 +11,10 @@ interface KpiCard {
 
 export function SummaryCards({ summary }: { summary: DashboardSummary }) {
   const cards: KpiCard[] = [
-    { title: 'Receitas',      value: summary.totalIncome,      icon: TrendingUp,  accentColor: '#43e97b' },
-    { title: 'Despesas',      value: summary.totalExpense,     icon: TrendingDown, accentColor: '#ff6584' },
-    { title: 'Investimentos', value: summary.totalInvestment,  icon: BarChart3,   accentColor: '#a78bfa' },
-    { title: 'Saldo',         value: summary.balance,          icon: Wallet,      accentColor: summary.balance >= 0 ? '#7c6eff' : '#ff6584' },
+    { title: 'Receitas',      value: summary.totalIncome,      icon: TrendingUp,  accentColor: '#059669' },
+    { title: 'Despesas',      value: summary.totalExpense,     icon: TrendingDown, accentColor: 'var(--destructive)' },
+    { title: 'Investimentos', value: summary.totalInvestment,  icon: BarChart3,   accentColor: 'var(--primary)' },
+    { title: 'Saldo',         value: summary.balance,          icon: Wallet,      accentColor: summary.balance >= 0 ? '#059669' : 'var(--destructive)' },
   ]
 
   return (

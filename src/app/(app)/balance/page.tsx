@@ -140,23 +140,23 @@ export default function BalancePage() {
 
     // ── Assemble sides ───────────────────────────────
     const ativosLines: BalanceLine[] = [
-      { label: 'Bancos e Contas',    value: bankTotal,       href: '/banks',        color: '#43e97b', sublabel: `${rawBanks.length} conta${rawBanks.length !== 1 ? 's' : ''}` },
-      { label: 'Investimentos',      value: investmentTotal, href: '/investments',  color: '#a78bfa' },
-      { label: 'Bens',               value: goodsTotal,      href: '/assets',       color: '#fbbf24' },
-      { label: 'Direitos',           value: rightsTotal,     href: '/assets',       color: '#38f9d7' },
+      { label: 'Bancos e Contas',    value: bankTotal,       href: '/banks',        color: '#059669', sublabel: `${rawBanks.length} conta${rawBanks.length !== 1 ? 's' : ''}` },
+      { label: 'Investimentos',      value: investmentTotal, href: '/investments',  color: 'var(--primary)' },
+      { label: 'Bens',               value: goodsTotal,      href: '/assets',       color: '#d97706' },
+      { label: 'Direitos',           value: rightsTotal,     href: '/assets',       color: '#0284c7' },
     ]
     const ativosTotal = bankTotal + investmentTotal + goodsTotal + rightsTotal
 
     const passivosLines: BalanceLine[] = [
-      { label: 'Cartões de Crédito',             value: cardOutstanding, href: '/credit-cards', color: '#ff6584', sublabel: 'saldo em aberto' },
-      { label: 'Empréstimos & Financiamentos',   value: loanRemaining,   href: '/debts',        color: '#f7971e', sublabel: 'saldo devedor' },
-      { label: 'Contas a Pagar',                 value: billsMonthly,    href: '/debts',        color: '#38f9d7', sublabel: 'compromisso mensal' },
-      { label: 'Outras Obrigações',              value: otherTotal,      href: '/debts',        color: '#a78bfa' },
+      { label: 'Cartões de Crédito',             value: cardOutstanding, href: '/credit-cards', color: 'var(--destructive)', sublabel: 'saldo em aberto' },
+      { label: 'Empréstimos & Financiamentos',   value: loanRemaining,   href: '/debts',        color: '#d97706', sublabel: 'saldo devedor' },
+      { label: 'Contas a Pagar',                 value: billsMonthly,    href: '/debts',        color: '#0284c7', sublabel: 'compromisso mensal' },
+      { label: 'Outras Obrigações',              value: otherTotal,      href: '/debts',        color: 'var(--primary)' },
     ]
     const passivosTotal = cardOutstanding + loanRemaining + billsMonthly + otherTotal
 
-    setAtivos({ title: 'Ativos', accent: '#43e97b', lines: ativosLines, total: ativosTotal })
-    setPassivos({ title: 'Passivos', accent: '#ff6584', lines: passivosLines, total: passivosTotal })
+    setAtivos({ title: 'Ativos', accent: '#059669', lines: ativosLines, total: ativosTotal })
+    setPassivos({ title: 'Passivos', accent: 'var(--destructive)', lines: passivosLines, total: passivosTotal })
     setLoading(false)
   }, [])
 
@@ -185,14 +185,14 @@ export default function BalancePage() {
           >
             <div
               className="pointer-events-none absolute -right-10 -top-10 h-48 w-48 rounded-full opacity-10 blur-3xl"
-              style={{ background: isPositive ? '#43e97b' : '#ff6584' }}
+              style={{ background: isPositive ? '#059669' : 'var(--destructive)' }}
             />
             <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
               Patrimônio Líquido
             </p>
             <p
               className="text-4xl font-bold tabular-nums"
-              style={{ color: isPositive ? '#43e97b' : '#ff6584' }}
+              style={{ color: isPositive ? '#059669' : 'var(--destructive)' }}
             >
               {formatCurrency(patrimonioLiquido)}
             </p>
@@ -214,7 +214,7 @@ export default function BalancePage() {
                     className="h-full rounded-full transition-all"
                     style={{
                       width: `${Math.min(100, (ativos.total / (ativos.total + passivos.total)) * 100)}%`,
-                      background: 'linear-gradient(90deg, #43e97b, #7c6eff)',
+                      background: 'linear-gradient(90deg, #059669, var(--primary))',
                     }}
                   />
                 </div>
@@ -230,12 +230,12 @@ export default function BalancePage() {
               <div className="flex items-center gap-3 border-b border-border px-5 py-4">
                 <span
                   className="inline-flex h-8 w-8 items-center justify-center rounded-lg"
-                  style={{ background: '#43e97b22', color: '#43e97b' }}
+                  style={{ background: '#05966922', color: '#059669' }}
                 >
                   <TrendingUp className="h-4 w-4" />
                 </span>
                 <span className="font-semibold">Ativos</span>
-                <span className="ml-auto text-sm font-bold tabular-nums" style={{ color: '#43e97b' }}>
+                <span className="ml-auto text-sm font-bold tabular-nums" style={{ color: '#059669' }}>
                   {formatCurrency(ativos?.total ?? 0)}
                 </span>
               </div>
@@ -243,15 +243,15 @@ export default function BalancePage() {
               {/* Lines */}
               <div className="divide-y divide-border px-5">
                 {[
-                  { label: 'Bancos e Contas',   icon: Landmark,   color: '#43e97b', href: '/banks',       value: ativos?.lines[0].value ?? 0, sublabel: ativos?.lines[0].sublabel },
-                  { label: 'Investimentos',     icon: TrendingUp, color: '#a78bfa', href: '/investments', value: ativos?.lines[1].value ?? 0 },
-                  { label: 'Bens',              icon: Package2,   color: '#fbbf24', href: '/assets',      value: ativos?.lines[2].value ?? 0 },
-                  { label: 'Direitos',          icon: ScrollText, color: '#38f9d7', href: '/assets',      value: ativos?.lines[3].value ?? 0 },
-                ].map(({ label, icon: Icon, color, href, value, sublabel }) => (
+                  { label: 'Bancos e Contas',   icon: Landmark,   color: '#059669', bg: '#05966922', href: '/banks',       value: ativos?.lines[0].value ?? 0, sublabel: ativos?.lines[0].sublabel },
+                  { label: 'Investimentos',     icon: TrendingUp, color: 'var(--primary)', bg: 'color-mix(in oklab, var(--primary) 13%, transparent)', href: '/investments', value: ativos?.lines[1].value ?? 0 },
+                  { label: 'Bens',              icon: Package2,   color: '#d97706', bg: '#d9770622', href: '/assets',      value: ativos?.lines[2].value ?? 0 },
+                  { label: 'Direitos',          icon: ScrollText, color: '#0284c7', bg: '#0284c722', href: '/assets',      value: ativos?.lines[3].value ?? 0 },
+                ].map(({ label, icon: Icon, color, bg, href, value, sublabel }) => (
                   <div key={label} className="flex items-center gap-3 py-3">
                     <span
                       className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
-                      style={{ background: color + '22', color }}
+                      style={{ background: bg, color }}
                     >
                       <Icon className="h-3.5 w-3.5" />
                     </span>
@@ -274,7 +274,7 @@ export default function BalancePage() {
               {/* Total footer */}
               <div className="flex items-center justify-between border-t border-border bg-muted/30 px-5 py-3">
                 <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Total Ativos</span>
-                <span className="text-base font-bold tabular-nums" style={{ color: '#43e97b' }}>
+                <span className="text-base font-bold tabular-nums" style={{ color: '#059669' }}>
                   {formatCurrency(ativos?.total ?? 0)}
                 </span>
               </div>
@@ -286,12 +286,12 @@ export default function BalancePage() {
               <div className="flex items-center gap-3 border-b border-border px-5 py-4">
                 <span
                   className="inline-flex h-8 w-8 items-center justify-center rounded-lg"
-                  style={{ background: '#ff658422', color: '#ff6584' }}
+                  style={{ background: 'color-mix(in oklab, var(--destructive) 13%, transparent)', color: 'var(--destructive)' }}
                 >
                   <AlertCircle className="h-4 w-4" />
                 </span>
                 <span className="font-semibold">Passivos</span>
-                <span className="ml-auto text-sm font-bold tabular-nums" style={{ color: '#ff6584' }}>
+                <span className="ml-auto text-sm font-bold tabular-nums" style={{ color: 'var(--destructive)' }}>
                   {formatCurrency(passivos?.total ?? 0)}
                 </span>
               </div>
@@ -299,15 +299,15 @@ export default function BalancePage() {
               {/* Lines */}
               <div className="divide-y divide-border px-5">
                 {[
-                  { label: 'Cartões de Crédito',           icon: CreditCard,   color: '#ff6584', href: '/credit-cards', value: passivos?.lines[0].value ?? 0, sublabel: passivos?.lines[0].sublabel },
-                  { label: 'Empréstimos & Financiamentos', icon: Landmark,     color: '#f7971e', href: '/debts',        value: passivos?.lines[1].value ?? 0, sublabel: passivos?.lines[1].sublabel },
-                  { label: 'Contas a Pagar',               icon: ScrollText,   color: '#38f9d7', href: '/debts',        value: passivos?.lines[2].value ?? 0, sublabel: passivos?.lines[2].sublabel },
-                  { label: 'Outras Obrigações',            icon: AlertCircle,  color: '#a78bfa', href: '/debts',        value: passivos?.lines[3].value ?? 0 },
-                ].map(({ label, icon: Icon, color, href, value, sublabel }) => (
+                  { label: 'Cartões de Crédito',           icon: CreditCard,   color: 'var(--destructive)', bg: 'color-mix(in oklab, var(--destructive) 13%, transparent)', href: '/credit-cards', value: passivos?.lines[0].value ?? 0, sublabel: passivos?.lines[0].sublabel },
+                  { label: 'Empréstimos & Financiamentos', icon: Landmark,     color: '#d97706', bg: '#d9770622', href: '/debts',        value: passivos?.lines[1].value ?? 0, sublabel: passivos?.lines[1].sublabel },
+                  { label: 'Contas a Pagar',               icon: ScrollText,   color: '#0284c7', bg: '#0284c722', href: '/debts',        value: passivos?.lines[2].value ?? 0, sublabel: passivos?.lines[2].sublabel },
+                  { label: 'Outras Obrigações',            icon: AlertCircle,  color: 'var(--primary)', bg: 'color-mix(in oklab, var(--primary) 13%, transparent)', href: '/debts',        value: passivos?.lines[3].value ?? 0 },
+                ].map(({ label, icon: Icon, color, bg, href, value, sublabel }) => (
                   <div key={label} className="flex items-center gap-3 py-3">
                     <span
                       className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
-                      style={{ background: color + '22', color }}
+                      style={{ background: bg, color }}
                     >
                       <Icon className="h-3.5 w-3.5" />
                     </span>
@@ -330,7 +330,7 @@ export default function BalancePage() {
               {/* Total footer */}
               <div className="flex items-center justify-between border-t border-border bg-muted/30 px-5 py-3">
                 <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Total Passivos</span>
-                <span className="text-base font-bold tabular-nums" style={{ color: '#ff6584' }}>
+                <span className="text-base font-bold tabular-nums" style={{ color: 'var(--destructive)' }}>
                   {formatCurrency(passivos?.total ?? 0)}
                 </span>
               </div>
@@ -355,7 +355,7 @@ export default function BalancePage() {
                 <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">=</span>
                 <span
                   className="text-xl font-bold tabular-nums"
-                  style={{ color: isPositive ? '#43e97b' : '#ff6584' }}
+                  style={{ color: isPositive ? '#059669' : 'var(--destructive)' }}
                 >
                   {formatCurrency(patrimonioLiquido)}
                 </span>

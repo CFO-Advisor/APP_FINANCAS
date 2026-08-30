@@ -169,12 +169,12 @@ export default function BudgetPage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <SummaryCard
             label="Receitas Orçadas"
-            accentColor="#6c63ff"
+            accentColor="var(--primary)"
             value={totalIncBudget}
           />
           <SummaryCard
             label="Receitas Realizadas"
-            accentColor={totalIncActual >= totalIncBudget ? '#43e97b' : '#6c63ff'}
+            accentColor={totalIncActual >= totalIncBudget ? '#059669' : 'var(--primary)'}
             value={totalIncActual}
             sub={totalIncBudget > 0
               ? `${((totalIncActual / totalIncBudget) * 100).toFixed(0)}% do orçado`
@@ -182,12 +182,12 @@ export default function BudgetPage() {
           />
           <SummaryCard
             label="Despesas Orçadas"
-            accentColor="#6c63ff"
+            accentColor="var(--primary)"
             value={totalExpBudget}
           />
           <SummaryCard
             label="Despesas Realizadas"
-            accentColor={totalExpActual > totalExpBudget ? '#ff6584' : '#6c63ff'}
+            accentColor={totalExpActual > totalExpBudget ? 'var(--destructive)' : 'var(--primary)'}
             value={totalExpActual}
             sub={totalExpBudget > 0
               ? `${((totalExpActual / totalExpBudget) * 100).toFixed(0)}% do orçado`

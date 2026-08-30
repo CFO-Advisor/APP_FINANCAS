@@ -19,18 +19,17 @@ import { DEBT_GROUP_DEFS } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 import type { Debt, DebtStatus } from '@/lib/types'
 
-const STATUS_STYLES: Record<DebtStatus, { bg: string; text: string; label: string }> = {
-  active:  { bg: '#7c6eff20', text: '#7c6eff', label: 'Ativo'    },
-  overdue: { bg: '#ff558820', text: '#ff5588', label: 'Vencido'  },
-  paid:    { bg: '#43e97b20', text: '#43e97b', label: 'Pago'     },
+const STATUS_STYLES: Record<DebtStatus, { className: string; label: string }> = {
+  active:  { className: 'bg-primary/10 text-primary', label: 'Ativo'    },
+  overdue: { className: 'bg-destructive/10 text-destructive', label: 'Vencido'  },
+  paid:    { className: 'bg-emerald-500/10 text-emerald-600', label: 'Pago'     },
 }
 
 function StatusBadge({ status }: { status: DebtStatus }) {
   const s = STATUS_STYLES[status]
   return (
     <span
-      className="inline-flex items-center rounded-full px-2 py-0.5 text-[0.65rem] font-semibold"
-      style={{ background: s.bg, color: s.text }}
+      className={cn('inline-flex items-center rounded-full px-2 py-0.5 text-[0.65rem] font-semibold', s.className)}
     >
       {s.label}
     </span>
@@ -106,11 +105,11 @@ export default function DebtsPage() {
       {!loading && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            { label: 'Compromisso / Mês', value: totalMonthly, color: '#ff6584', Icon: TrendingDown },
-            { label: 'Empréstimos & Financ.', value: totalLoans,   color: '#f7971e', Icon: DEBT_GROUP_DEFS[0].icon },
-            { label: 'Contas do Mês',          value: totalBills,   color: '#38f9d7', Icon: DEBT_GROUP_DEFS[1].icon },
-            { label: 'Outras Obrigações',       value: totalOther,   color: '#a78bfa', Icon: DEBT_GROUP_DEFS[2].icon },
-          ].map(({ label, value, color, Icon }) => (
+            { label: 'Compromisso / Mês', value: totalMonthly, color: 'var(--destructive)', bg: 'color-mix(in oklab, var(--destructive) 13%, transparent)', Icon: TrendingDown },
+            { label: 'Empréstimos & Financ.', value: totalLoans,   color: '#d97706', bg: '#d9770622', Icon: DEBT_GROUP_DEFS[0].icon },
+            { label: 'Contas do Mês',          value: totalBills,   color: '#0284c7', bg: '#0284c722', Icon: DEBT_GROUP_DEFS[1].icon },
+            { label: 'Outras Obrigações',       value: totalOther,   color: 'var(--primary)', bg: 'color-mix(in oklab, var(--primary) 13%, transparent)', Icon: DEBT_GROUP_DEFS[2].icon },
+          ].map(({ label, value, color, bg, Icon }) => (
             <div
               key={label}
               className="relative overflow-hidden rounded-xl border border-border bg-card px-5 pb-5 pt-5"
@@ -121,7 +120,7 @@ export default function DebtsPage() {
               />
               <div
                 className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl"
-                style={{ background: color + '22', color }}
+                style={{ background: bg, color }}
               >
                 <Icon className="h-5 w-5" strokeWidth={2.2} />
               </div>
@@ -259,7 +258,7 @@ export default function DebtsPage() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 text-muted-foreground hover:text-blue-500"
+                              className="h-8 w-8 text-muted-foreground hover:text-primary"
                               onClick={() => { setEditTarget(debt); setDialogOpen(true) }}
                             >
                               <Pencil className="h-3.5 w-3.5" />

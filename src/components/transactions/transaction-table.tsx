@@ -134,12 +134,12 @@ export function TransactionTable({ transactions, onEdit, onDeleted, banks = [], 
                     variant="secondary"
                     style={
                       t.type === 'income'
-                        ? { backgroundColor: '#43e97b20', color: '#43e97b' }
+                        ? { backgroundColor: '#05966920', color: '#059669' }
                         : t.type === 'investment'
-                        ? { backgroundColor: '#a78bfa20', color: '#a78bfa' }
+                        ? { backgroundColor: 'color-mix(in oklab, var(--primary) 13%, transparent)', color: 'var(--primary)' }
                         : t.type === 'credit_card_payment'
-                        ? { backgroundColor: '#6c63ff20', color: '#6c63ff' }
-                        : { backgroundColor: '#ff658420', color: '#ff6584' }
+                        ? { backgroundColor: '#0284c720', color: '#0284c7' }
+                        : { backgroundColor: 'color-mix(in oklab, var(--destructive) 13%, transparent)', color: 'var(--destructive)' }
                     }
                   >
                     {t.type === 'income' ? 'Receita'
@@ -151,7 +151,7 @@ export function TransactionTable({ transactions, onEdit, onDeleted, banks = [], 
                 <TableCell className="text-right">
                   <span
                     className="font-semibold tabular-nums"
-                    style={{ color: t.type === 'income' ? '#43e97b' : t.type === 'investment' ? '#a78bfa' : t.type === 'credit_card_payment' ? '#6c63ff' : '#ff6584' }}
+                    style={{ color: t.type === 'income' ? '#059669' : t.type === 'investment' ? 'var(--primary)' : t.type === 'credit_card_payment' ? '#0284c7' : 'var(--destructive)' }}
                   >
                     {t.type === 'income' ? '+' : '-'}
                     {formatCurrency(t.amount)}
@@ -162,7 +162,7 @@ export function TransactionTable({ transactions, onEdit, onDeleted, banks = [], 
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-muted-foreground hover:text-blue-600"
+                      className="h-8 w-8 text-muted-foreground hover:text-primary"
                       onClick={() => onEdit(t)}
                     >
                       <Pencil className="h-3.5 w-3.5" />
@@ -170,7 +170,7 @@ export function TransactionTable({ transactions, onEdit, onDeleted, banks = [], 
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-muted-foreground hover:text-red-600"
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
                       onClick={() => setDeleteTarget(t)}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
@@ -188,7 +188,7 @@ export function TransactionTable({ transactions, onEdit, onDeleted, banks = [], 
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-red-500" />
+              <AlertTriangle className="h-5 w-5 text-destructive" />
               Excluir transação
             </DialogTitle>
           </DialogHeader>

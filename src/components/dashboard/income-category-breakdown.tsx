@@ -48,7 +48,7 @@ export function IncomeCategoryBreakdown({ data }: IncomeCategoryBreakdownProps) 
     <Card className="shadow-sm">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-base">Receitas por Categoria</CardTitle>
-        <span className="text-sm font-semibold text-green-600">
+        <span className="text-sm font-semibold text-emerald-600">
           {formatCurrency(totalIncome)}
         </span>
       </CardHeader>
@@ -84,14 +84,14 @@ export function IncomeCategoryBreakdown({ data }: IncomeCategoryBreakdownProps) 
                             <span className="text-xs text-muted-foreground">
                               {pct.toFixed(1)}%
                             </span>
-                            <span className="w-24 text-right font-medium text-green-600">
+                            <span className="w-24 text-right font-medium text-emerald-600">
                               {formatCurrency(item.value)}
                             </span>
                           </div>
                         </div>
-                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-green-500/15">
+                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-emerald-500/15">
                           <div
-                            className="h-full rounded-full bg-green-500 transition-all duration-500"
+                            className="h-full rounded-full bg-emerald-500 transition-all duration-500"
                             style={{ width: `${pct}%` }}
                           />
                         </div>

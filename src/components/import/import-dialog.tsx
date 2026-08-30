@@ -337,12 +337,12 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
         {step === 'preview' && file && (
           <div className="space-y-3">
             <div className="flex items-center gap-4 text-sm">
-              <span className="flex items-center gap-1.5 text-green-500">
+              <span className="flex items-center gap-1.5 text-emerald-600">
                 <CheckCircle2 className="h-4 w-4" />
                 {validCount} válida(s)
               </span>
               {errorRows.length > 0 && (
-                <span className="flex items-center gap-1.5 text-red-500">
+                <span className="flex items-center gap-1.5 text-destructive">
                   <AlertCircle className="h-4 w-4" />
                   {errorRows.length} erro(s)
                 </span>
@@ -362,10 +362,10 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
                 </thead>
                 <tbody>
                   {file.parsed.map((row, i) => (
-                    <tr key={i} className={`border-t border-border ${row.error ? 'bg-red-500/5' : ''}`}>
+                    <tr key={i} className={`border-t border-border ${row.error ? 'bg-destructive/5' : ''}`}>
                       <td className="px-3 py-1.5 text-muted-foreground">{row.date || '—'}</td>
                       <td className="max-w-[200px] truncate px-3 py-1.5">{row.description}</td>
-                      <td className={`px-3 py-1.5 text-right font-medium tabular-nums ${row.type === 'income' ? 'text-green-500' : 'text-red-500'}`}>
+                      <td className={`px-3 py-1.5 text-right font-medium tabular-nums ${row.type === 'income' ? 'text-emerald-600' : 'text-destructive'}`}>
                         {row.error ? '—' : `R$ ${row.amount.toFixed(2)}`}
                       </td>
                       <td className="px-3 py-1.5 text-muted-foreground">
@@ -373,7 +373,7 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
                       </td>
                       <td className="px-3 py-1.5">
                         {row.error && (
-                          <span className="text-red-500" title={row.error}>
+                          <span className="text-destructive" title={row.error}>
                             <AlertCircle className="h-3 w-3" />
                           </span>
                         )}
@@ -385,7 +385,7 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
             </div>
 
             {errorRows.length > 0 && (
-              <div className="rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-500">
+              <div className="rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive">
                 <strong>Erros encontrados:</strong>
                 <ul className="mt-1 space-y-0.5 list-disc pl-4">
                   {errorRows.slice(0, 5).map((r, i) => <li key={i}>{r.error}</li>)}
@@ -399,7 +399,7 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
         {/* Step: Done */}
         {step === 'done' && (
           <div className="flex flex-col items-center gap-4 py-6 text-center">
-            <CheckCircle2 className="h-12 w-12 text-green-500" />
+            <CheckCircle2 className="h-12 w-12 text-emerald-600" />
             <div>
               <p className="text-lg font-semibold">Importação concluída!</p>
               <p className="mt-1 text-sm text-muted-foreground">

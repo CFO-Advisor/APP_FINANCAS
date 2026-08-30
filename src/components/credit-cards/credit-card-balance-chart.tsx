@@ -39,8 +39,8 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Toolti
   return (
     <div className="rounded-lg border border-border bg-card px-4 py-3 shadow-lg text-xs space-y-1">
       <p className="font-semibold text-sm text-foreground">{row.name}</p>
-      <p style={{ color: '#ff6584' }}>Fatura: {formatCurrency(row.used)}</p>
-      <p style={{ color: '#43e97b' }}>Disponível: {formatCurrency(row.available)}</p>
+      <p style={{ color: 'var(--destructive)' }}>Fatura: {formatCurrency(row.used)}</p>
+      <p style={{ color: '#059669' }}>Disponível: {formatCurrency(row.available)}</p>
       <p className="text-muted-foreground">Limite: {formatCurrency(row.limit)} · {row.pct.toFixed(0)}% utilizado</p>
     </div>
   )
@@ -64,7 +64,7 @@ export function CreditCardBalanceChart({ cards }: CreditCardBalanceChartProps) {
     <Card className="shadow-sm">
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-          <span className="inline-block h-2 w-2 rounded-full" style={{ background: '#6c63ff' }} />
+          <span className="inline-block h-2 w-2 rounded-full" style={{ background: 'var(--primary)' }} />
           Limite vs. Fatura por Cartão
         </CardTitle>
       </CardHeader>
@@ -115,7 +115,7 @@ export function CreditCardBalanceChart({ cards }: CreditCardBalanceChartProps) {
         {/* Legend */}
         <div className="mt-3 flex items-center gap-5 text-xs text-muted-foreground">
           <span className="flex items-center gap-1.5">
-            <span className="inline-block h-2 w-5 rounded-sm" style={{ background: '#ff6584' }} />
+            <span className="inline-block h-2 w-5 rounded-sm" style={{ background: 'var(--destructive)' }} />
             Fatura atual (cor do cartão)
           </span>
           <span className="flex items-center gap-1.5">

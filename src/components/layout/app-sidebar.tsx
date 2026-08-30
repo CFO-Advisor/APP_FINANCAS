@@ -21,61 +21,11 @@ import {
   Calculator,
 } from 'lucide-react'
 
-function CfoIcon({ className }: { className?: string }) {
+function CfoMark({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
-      {/* Suit body — main silhouette */}
-      <path
-        d="M2 23v-4c0-3.4 2.1-6.2 5-7.4l2.5-.8L12 12.5l2.5-1.7 2.5.8c2.9 1.2 5 4 5 7.4v4H2Z"
-        fill="rgba(255,255,255,0.83)"
-      />
-      {/* Left lapel shadow panel */}
-      <path
-        d="M12 12.5 L8.5 19.5 H2 V19 C2 17.5 3 15.8 5 14.7 L9.5 11.8 Z"
-        fill="rgba(155,140,220,0.35)"
-      />
-      {/* Right lapel shadow panel */}
-      <path
-        d="M12 12.5 L15.5 19.5 H22 V19 C22 17.5 21 15.8 19 14.7 L14.5 11.8 Z"
-        fill="rgba(155,140,220,0.35)"
-      />
-      {/* Left lapel edge */}
-      <path d="M12 12.5 L8 19" stroke="rgba(255,255,255,0.55)" strokeWidth="0.75" strokeLinecap="round"/>
-      {/* Right lapel edge */}
-      <path d="M12 12.5 L16 19" stroke="rgba(255,255,255,0.55)" strokeWidth="0.75" strokeLinecap="round"/>
-      {/* Shirt collar V */}
-      <path
-        d="M10.3 11 L12 12.5 L13.7 11"
-        fill="none"
-        stroke="rgba(255,255,255,0.92)"
-        strokeWidth="1.1"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      {/* Tie knot */}
-      <path d="M10.8 11.3 L12 12.5 L13.2 11.3 Z" fill="rgba(205,190,255,0.9)"/>
-      {/* Tie blade */}
-      <path d="M11.3 12.5 L10.7 19.5 L12 18.4 L13.3 19.5 L12.7 12.5 Z" fill="rgba(195,178,255,0.82)"/>
-      {/* Pocket square */}
-      <path
-        d="M7 17.2 V19.3 H9.2"
-        stroke="rgba(255,255,255,0.52)"
-        strokeWidth="0.7"
-        fill="none"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      {/* Jacket button */}
-      <circle cx="12" cy="21" r="0.55" fill="rgba(155,140,220,0.75)"/>
-      {/* Neck */}
-      <rect x="10.8" y="9.1" width="2.4" height="2.3" rx="0.5" fill="rgba(255,255,255,0.92)"/>
-      {/* Head */}
-      <circle cx="12" cy="6.2" r="3.4" fill="white"/>
-      {/* Hair */}
-      <path
-        d="M8.7 5.4 C8.7 3 10.2 2 12 2 C13.8 2 15.3 3 15.3 5.4 C15.1 4.1 13.9 3.3 12 3.3 C10.1 3.3 8.9 4.1 8.7 5.4 Z"
-        fill="rgba(200,185,255,0.62)"
-      />
+    <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true">
+      <path d="M20 3 34 11v18L20 37 6 29V11L20 3Z" stroke="#B8860B" strokeWidth="2.5" strokeLinejoin="round" />
+      <circle cx="20" cy="20" r="4.5" fill="#00A3E0" />
     </svg>
   )
 }
@@ -118,9 +68,7 @@ function NavContent({ pathname, collapsed, isMobile = false, onCloseDrawer, onNa
         )}
       >
         <div className="flex items-center gap-3" style={collapsed ? { flexDirection: 'column' } : {}}>
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600">
-            <CfoIcon className="h-6 w-6" />
-          </div>
+          <CfoMark className="h-8 w-8 shrink-0" />
           {!collapsed && (
             <div className="min-w-0 flex-1">
               <p className="truncate text-base font-black leading-tight tracking-tight">CFO Advisor</p>
@@ -157,15 +105,22 @@ function NavContent({ pathname, collapsed, isMobile = false, onCloseDrawer, onNa
               title={collapsed ? label : undefined}
               onClick={() => { onNavigate(href); onNavClick?.() }}
               className={cn(
-                'relative flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150',
+                'group relative flex w-full items-center gap-3 rounded-[10px] px-3 py-2.5 text-sm font-medium transition-all duration-150',
                 collapsed && 'justify-center px-2',
                 active
-                  ? 'text-white shadow-sm'
-                  : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+                  ? 'bg-sidebar-accent text-sidebar-accent-foreground ring-1 ring-inset ring-sidebar-primary/35'
+                  : 'text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground'
               )}
-              style={active ? { background: 'linear-gradient(135deg, #10b981, #059669)' } : undefined}
             >
-              <Icon className="h-4 w-4 shrink-0" />
+              {active && (
+                <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-sidebar-primary" />
+              )}
+              <Icon
+                className={cn(
+                  'h-4 w-4 shrink-0 transition-colors',
+                  active ? 'text-sidebar-primary' : 'text-muted-foreground/80 group-hover:text-foreground'
+                )}
+              />
               {!collapsed && label}
             </button>
           )
@@ -238,9 +193,7 @@ export function AppSidebar() {
       {/* ── Mobile top bar ───────────────────────────────── */}
       <header className="fixed inset-x-0 top-0 z-40 flex h-14 shrink-0 items-center justify-between border-b border-border bg-sidebar/95 backdrop-blur-sm px-4 md:hidden">
         <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600">
-            <CfoIcon className="h-5 w-5" />
-          </div>
+          <CfoMark className="h-7 w-7 shrink-0" />
           <span className="text-base font-black tracking-tight">CFO Advisor</span>
         </Link>
         <div className="flex items-center gap-1">

@@ -39,7 +39,7 @@ export function IncomeCategoryChart({ data }: IncomeCategoryChartProps) {
       <Card className="shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-            <span className="inline-block h-2 w-2 rounded-full bg-[#43e97b]" />
+            <span className="inline-block h-2 w-2 rounded-full bg-emerald-600" />
             Receitas por Categoria
           </CardTitle>
         </CardHeader>
@@ -59,7 +59,7 @@ export function IncomeCategoryChart({ data }: IncomeCategoryChartProps) {
     <Card className="shadow-sm">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-          <span className="inline-block h-2 w-2 rounded-full bg-[#43e97b]" />
+          <span className="inline-block h-2 w-2 rounded-full bg-emerald-600" />
           Receitas por Categoria
         </CardTitle>
       </CardHeader>

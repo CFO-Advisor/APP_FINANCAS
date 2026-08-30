@@ -77,9 +77,9 @@ export default function AssetsPage() {
       {!loading && (
         <div className="grid gap-4 sm:grid-cols-3">
           {[
-            { label: 'Total Geral',  value: totalGeral,  color: '#7c6eff', icon: null },
-            { label: 'Bens',         value: goodsTotal,  color: '#fbbf24', icon: ASSET_GROUP_DEFS[0].icon },
-            { label: 'Direitos',     value: rightsTotal, color: '#38f9d7', icon: ASSET_GROUP_DEFS[1].icon },
+            { label: 'Total Geral',  value: totalGeral,  color: 'var(--primary)', icon: null },
+            { label: 'Bens',         value: goodsTotal,  color: '#d97706', icon: ASSET_GROUP_DEFS[0].icon },
+            { label: 'Direitos',     value: rightsTotal, color: '#0284c7', icon: ASSET_GROUP_DEFS[1].icon },
           ].map(({ label, value, color, icon: Icon }) => (
             <div
               key={label}
@@ -92,7 +92,7 @@ export default function AssetsPage() {
               {Icon && (
                 <div
                   className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl"
-                  style={{ background: color + '22', color }}
+                  style={{ background: `color-mix(in oklab, ${color} 13%, transparent)`, color }}
                 >
                   <Icon className="h-5 w-5" strokeWidth={2.2} />
                 </div>
@@ -100,7 +100,7 @@ export default function AssetsPage() {
               {!Icon && (
                 <div
                   className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl text-lg font-bold"
-                  style={{ background: color + '22', color }}
+                  style={{ background: `color-mix(in oklab, ${color} 13%, transparent)`, color }}
                 >
                   Σ
                 </div>
@@ -187,7 +187,7 @@ export default function AssetsPage() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 text-muted-foreground hover:text-blue-500"
+                              className="h-8 w-8 text-muted-foreground hover:text-primary"
                               onClick={() => { setEditTarget(item); setDialogOpen(true) }}
                             >
                               <Pencil className="h-3.5 w-3.5" />

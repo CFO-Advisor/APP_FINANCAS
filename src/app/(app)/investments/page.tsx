@@ -238,16 +238,16 @@ export default function InvestmentsPage() {
         <>
           {/* Total investido — card de destaque */}
           <Card className="relative overflow-hidden border-border shadow-sm">
-            <div className="absolute inset-x-0 top-0 h-[3px]" style={{ background: '#a78bfa' }} />
+            <div className="absolute inset-x-0 top-0 h-[3px]" style={{ background: 'var(--primary)' }} />
             <Wallet
               className="absolute right-6 top-1/2 -translate-y-1/2 h-14 w-14 opacity-[0.07]"
-              style={{ color: '#a78bfa' }}
+              style={{ color: 'var(--primary)' }}
             />
             <CardContent className="px-6 py-5">
               <p className="mb-1.5 text-[0.68rem] font-bold uppercase tracking-[0.1em] text-muted-foreground">
                 Total Investido
               </p>
-              <p className="text-[2rem] font-bold leading-none" style={{ color: '#a78bfa' }}>
+              <p className="text-[2rem] font-bold leading-none" style={{ color: 'var(--primary)' }}>
                 {formatCurrency(grandTotal)}
               </p>
               {grandTotal > 0 && (

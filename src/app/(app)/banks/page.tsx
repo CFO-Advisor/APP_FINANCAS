@@ -27,10 +27,10 @@ import type { Bank, BankBalance, Transaction } from '@/lib/types'
 type BankTx = Pick<Transaction, 'id' | 'bank_id' | 'credit_card_id' | 'type' | 'amount' | 'date' | 'description' | 'category'>
 
 const TYPE_LABEL: Record<string, { label: string; color: string; sign: '+' | '-' }> = {
-  income:               { label: 'Receita',     color: '#43e97b', sign: '+' },
-  expense:              { label: 'Despesa',      color: '#ff6584', sign: '-' },
-  investment:           { label: 'Investimento', color: '#a78bfa', sign: '-' },
-  credit_card_payment:  { label: 'Pg. Fatura',   color: '#f7971e', sign: '-' },
+  income:               { label: 'Receita',     color: '#059669', sign: '+' },
+  expense:              { label: 'Despesa',      color: 'var(--destructive)', sign: '-' },
+  investment:           { label: 'Investimento', color: 'var(--primary)', sign: '-' },
+  credit_card_payment:  { label: 'Pg. Fatura',   color: '#0284c7', sign: '-' },
 }
 
 // ── Running balance computation ───────────────────────
@@ -153,7 +153,7 @@ export default function BanksPage() {
           <CardContent className="flex items-center justify-between py-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Saldo Total</p>
-              <p className="text-3xl font-bold" style={{ color: totalBalance >= 0 ? '#43e97b' : '#ff6584' }}>
+              <p className="text-3xl font-bold" style={{ color: totalBalance >= 0 ? '#059669' : 'var(--destructive)' }}>
                 {formatCurrency(totalBalance)}
               </p>
             </div>
@@ -290,7 +290,7 @@ function BankCard({ bank, allTx, expanded, filter, onToggle, onEdit, onDelete, o
           <div className="flex items-end justify-between">
             <div>
               <p className="text-xs text-muted-foreground">Saldo atual</p>
-              <p className="text-xl font-bold" style={{ color: bank.balance >= 0 ? '#43e97b' : '#ff6584' }}>
+              <p className="text-xl font-bold" style={{ color: bank.balance >= 0 ? '#059669' : 'var(--destructive)' }}>
                 {formatCurrency(bank.balance)}
               </p>
             </div>
@@ -387,7 +387,7 @@ function BankCard({ bank, allTx, expanded, filter, onToggle, onEdit, onDelete, o
                         <div className="flex items-center gap-1.5">
                           <span
                             className="shrink-0 rounded-full px-1.5 py-0.5 text-[0.6rem] font-semibold"
-                            style={{ background: meta.color + '20', color: meta.color }}
+                            style={{ background: `color-mix(in oklab, ${meta.color} 20%, transparent)`, color: meta.color }}
                           >
                             {meta.label}
                           </span>
@@ -409,7 +409,7 @@ function BankCard({ bank, allTx, expanded, filter, onToggle, onEdit, onDelete, o
                       {/* Running balance */}
                       <span
                         className="w-28 shrink-0 text-right text-xs font-medium tabular-nums"
-                        style={{ color: balanceAfter >= 0 ? '#43e97b' : '#ff6584' }}
+                        style={{ color: balanceAfter >= 0 ? '#059669' : 'var(--destructive)' }}
                       >
                         {formatCurrency(balanceAfter)}
                       </span>
@@ -425,7 +425,7 @@ function BankCard({ bank, allTx, expanded, filter, onToggle, onEdit, onDelete, o
                 <span>{extrato.length} lançamento{extrato.length !== 1 ? 's' : ''}{hasFilter ? ' no período' : ''}</span>
                 <span>
                   Saldo{hasFilter ? ' final do período' : ' atual'}:{' '}
-                  <strong style={{ color: extrato[0].balanceAfter >= 0 ? '#43e97b' : '#ff6584' }}>
+                  <strong style={{ color: extrato[0].balanceAfter >= 0 ? '#059669' : 'var(--destructive)' }}>
                     {formatCurrency(extrato[0].balanceAfter)}
                   </strong>
                 </span>

@@ -14,7 +14,7 @@ interface BudgetWidgetProps {
 
 function MiniBar({ pct, over, green }: { pct: number; over: boolean; green?: boolean }) {
   const filled = Math.min(pct, 100)
-  const color = over ? '#ff6584' : green ? '#43e97b' : pct > 80 ? '#f7971e' : '#6c63ff'
+  const color = over ? 'var(--destructive)' : green ? '#059669' : pct > 80 ? '#d97706' : 'var(--primary)'
   return (
     <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
       <div className="h-full rounded-full" style={{ width: `${filled}%`, backgroundColor: color }} />
@@ -44,7 +44,7 @@ function Section({
             <div key={item.category}>
               <div className="mb-0.5 flex items-center justify-between text-xs">
                 <span className="truncate text-foreground">{item.category}</span>
-                <span className={`ml-2 shrink-0 font-medium ${over ? 'text-red-600' : green ? 'text-green-600' : 'text-foreground'}`}>
+                <span className={`ml-2 shrink-0 font-medium ${over ? 'text-destructive' : green ? 'text-emerald-600' : 'text-foreground'}`}>
                   {formatCurrency(item.actual)}
                   {item.budgeted > 0 && (
                     <span className="ml-1 text-muted-foreground font-normal">
@@ -79,7 +79,7 @@ export function BudgetWidget({ expenseItems, incomeItems }: BudgetWidgetProps) {
           <Button
             variant="ghost"
             size="sm"
-            className="flex items-center gap-1 text-blue-600"
+            className="flex items-center gap-1 text-primary"
           >
             Ver detalhes <ArrowRight className="h-3 w-3" />
           </Button>

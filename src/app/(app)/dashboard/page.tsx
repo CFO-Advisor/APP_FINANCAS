@@ -363,7 +363,7 @@ export default function DashboardPage() {
                 <p className="text-xs text-muted-foreground">Patrimônio Líquido</p>
                 <p
                   className="text-lg font-bold tabular-nums"
-                  style={{ color: patrimonioLiquido >= 0 ? '#43e97b' : '#ff6584' }}
+                  style={{ color: patrimonioLiquido >= 0 ? '#059669' : 'var(--destructive)' }}
                 >
                   {formatCurrency(patrimonioLiquido)}
                 </p>
@@ -380,15 +380,15 @@ export default function DashboardPage() {
           <div className="grid divide-y divide-border sm:grid-cols-2 sm:divide-x sm:divide-y-0">
             {/* Ativos */}
             <div className="px-5 py-4">
-              <p className="mb-3 text-[0.65rem] font-bold uppercase tracking-widest" style={{ color: '#43e97b' }}>
+              <p className="mb-3 text-[0.65rem] font-bold uppercase tracking-widest" style={{ color: '#059669' }}>
                 Ativos
               </p>
               <div className="space-y-2.5">
                 {([
-                  { label: 'Bancos',          value: bankTotal,       color: '#43e97b', Icon: Landmark       },
-                  { label: 'Investimentos',   value: investmentTotal, color: '#a78bfa', Icon: TrendingUpIcon  },
-                  { label: 'Bens',            value: goodsTotal,      color: '#fbbf24', Icon: Package2        },
-                  { label: 'Direitos',        value: rightsTotal,     color: '#38f9d7', Icon: ScrollText      },
+                  { label: 'Bancos',          value: bankTotal,       color: '#059669', Icon: Landmark       },
+                  { label: 'Investimentos',   value: investmentTotal, color: 'var(--primary)', Icon: TrendingUpIcon  },
+                  { label: 'Bens',            value: goodsTotal,      color: '#d97706', Icon: Package2        },
+                  { label: 'Direitos',        value: rightsTotal,     color: '#0284c7', Icon: ScrollText      },
                 ] as const).map(({ label, value, color, Icon }) => (
                   <div key={label} className="flex items-center gap-2">
                     <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md" style={{ background: color + '20', color }}>
@@ -401,21 +401,21 @@ export default function DashboardPage() {
               </div>
               <div className="mt-3 flex justify-between border-t border-border pt-2.5">
                 <span className="text-[0.65rem] font-bold uppercase tracking-widest text-muted-foreground">Total</span>
-                <span className="text-sm font-bold tabular-nums" style={{ color: '#43e97b' }}>{formatCurrency(totalAtivos)}</span>
+                <span className="text-sm font-bold tabular-nums" style={{ color: '#059669' }}>{formatCurrency(totalAtivos)}</span>
               </div>
             </div>
 
             {/* Passivos */}
             <div className="px-5 py-4">
-              <p className="mb-3 text-[0.65rem] font-bold uppercase tracking-widest" style={{ color: '#ff6584' }}>
+              <p className="mb-3 text-[0.65rem] font-bold uppercase tracking-widest" style={{ color: 'var(--destructive)' }}>
                 Passivos
               </p>
               <div className="space-y-2.5">
                 {([
-                  { label: 'Cartões',         value: cardTotal,      color: '#ff6584', Icon: CreditCardIcon },
-                  { label: 'Empréstimos',     value: loanRemaining,  color: '#f7971e', Icon: Landmark       },
-                  { label: 'Contas a Pagar',  value: billsMonthly,   color: '#38f9d7', Icon: ScrollText     },
-                  { label: 'Obrigações',      value: otherTotal,     color: '#a78bfa', Icon: AlertCircle    },
+                  { label: 'Cartões',         value: cardTotal,      color: 'var(--destructive)', Icon: CreditCardIcon },
+                  { label: 'Empréstimos',     value: loanRemaining,  color: '#d97706', Icon: Landmark       },
+                  { label: 'Contas a Pagar',  value: billsMonthly,   color: '#0284c7', Icon: ScrollText     },
+                  { label: 'Obrigações',      value: otherTotal,     color: 'var(--primary)', Icon: AlertCircle    },
                 ] as const).map(({ label, value, color, Icon }) => (
                   <div key={label} className="flex items-center gap-2">
                     <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md" style={{ background: color + '20', color }}>
@@ -428,7 +428,7 @@ export default function DashboardPage() {
               </div>
               <div className="mt-3 flex justify-between border-t border-border pt-2.5">
                 <span className="text-[0.65rem] font-bold uppercase tracking-widest text-muted-foreground">Total</span>
-                <span className="text-sm font-bold tabular-nums" style={{ color: '#ff6584' }}>{formatCurrency(totalPassivos)}</span>
+                <span className="text-sm font-bold tabular-nums" style={{ color: 'var(--destructive)' }}>{formatCurrency(totalPassivos)}</span>
               </div>
             </div>
           </div>

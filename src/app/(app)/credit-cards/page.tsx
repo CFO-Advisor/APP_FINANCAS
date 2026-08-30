@@ -98,7 +98,7 @@ export default function CreditCardsPage() {
   const totalUtilization = totalLimit > 0 ? (totalDebt / totalLimit) * 100 : 0
 
   const utilizationColor =
-    totalUtilization > 80 ? '#ff6584' : totalUtilization > 50 ? '#f7971e' : '#43e97b'
+    totalUtilization > 80 ? 'var(--destructive)' : totalUtilization > 50 ? '#d97706' : '#059669'
 
   const kpis: KpiItem[] = [
     {
@@ -106,21 +106,21 @@ export default function CreditCardsPage() {
       value: formatCurrency(totalDebt),
       sub: `${cards.length} cartão${cards.length !== 1 ? 'ões' : ''} com fatura`,
       icon: CreditCardLucide,
-      accentColor: '#ff6584',
+      accentColor: 'var(--destructive)',
     },
     {
       label: 'Limite Total',
       value: formatCurrency(totalLimit),
       sub: `Soma dos limites cadastrados`,
       icon: Wallet,
-      accentColor: '#6c63ff',
+      accentColor: 'var(--primary)',
     },
     {
       label: 'Crédito Disponível',
       value: formatCurrency(totalAvailable),
       sub: `${(100 - totalUtilization).toFixed(0)}% do limite livre`,
       icon: ShieldCheck,
-      accentColor: '#43e97b',
+      accentColor: '#059669',
     },
     {
       label: 'Utilização Global',
@@ -163,7 +163,7 @@ export default function CreditCardsPage() {
           </div>
           <div className="h-64 animate-pulse rounded-lg border bg-card shadow-sm" />
           <div className="flex items-center justify-center py-10">
-            <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#6c63ff' }} />
+            <Loader2 className="h-8 w-8 animate-spin" style={{ color: 'var(--primary)' }} />
           </div>
         </>
       ) : cards.length === 0 ? (
@@ -203,8 +203,8 @@ export default function CreditCardsPage() {
               />
             </div>
             <div className="mt-2 flex justify-between text-xs text-muted-foreground">
-              <span style={{ color: '#ff6584' }}>Usado: {formatCurrency(totalDebt)}</span>
-              <span style={{ color: '#43e97b' }}>Disponível: {formatCurrency(totalAvailable)}</span>
+              <span style={{ color: 'var(--destructive)' }}>Usado: {formatCurrency(totalDebt)}</span>
+              <span style={{ color: '#059669' }}>Disponível: {formatCurrency(totalAvailable)}</span>
             </div>
           </div>
 
@@ -225,7 +225,7 @@ export default function CreditCardsPage() {
               const daysUntilDue = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
               const isDueSoon = daysUntilDue <= 5 && daysUntilDue >= 0
               const isOverdue = daysUntilDue < 0
-              const cardUtilColor = card.utilizationPct > 80 ? '#ff6584' : card.utilizationPct > 50 ? '#f7971e' : '#43e97b'
+              const cardUtilColor = card.utilizationPct > 80 ? 'var(--destructive)' : card.utilizationPct > 50 ? '#d97706' : '#059669'
 
               return (
                 <Card key={card.id} className="shadow-sm overflow-hidden">
@@ -268,16 +268,16 @@ export default function CreditCardsPage() {
                     <div className="mt-4 grid grid-cols-3 gap-3 border-t border-border pt-4 text-center">
                       <div>
                         <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground">Saldo Devedor</p>
-                        <p className="text-lg font-bold" style={{ color: '#ff6584' }}>{formatCurrency(card.outstandingBalance)}</p>
+                        <p className="text-lg font-bold" style={{ color: 'var(--destructive)' }}>{formatCurrency(card.outstandingBalance)}</p>
                         <p className="text-[0.65rem] text-muted-foreground">
                           Vence {format(dueDate, "dd/MM", { locale: ptBR })}
-                          {isDueSoon && !isOverdue && <span style={{ color: '#f7971e' }}> · {daysUntilDue}d</span>}
-                          {isOverdue && <span style={{ color: '#ff6584' }}> · vencida!</span>}
+                          {isDueSoon && !isOverdue && <span style={{ color: '#d97706' }}> · {daysUntilDue}d</span>}
+                          {isOverdue && <span style={{ color: 'var(--destructive)' }}> · vencida!</span>}
                         </p>
                       </div>
                       <div>
                         <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground">Disponível</p>
-                        <p className="text-lg font-bold" style={{ color: '#43e97b' }}>{formatCurrency(card.availableCredit)}</p>
+                        <p className="text-lg font-bold" style={{ color: '#059669' }}>{formatCurrency(card.availableCredit)}</p>
                         <p className="text-[0.65rem] text-muted-foreground">de {formatCurrency(card.credit_limit)}</p>
                       </div>
                       <div>
@@ -327,11 +327,11 @@ export default function CreditCardsPage() {
                                 <div className="mb-1.5 flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2">
                                   <p className="text-xs font-semibold text-muted-foreground">{cycle.label}</p>
                                   <div className="flex items-center gap-3 text-xs">
-                                    <span style={{ color: '#ff6584' }}>−{formatCurrency(expensesTotal)}</span>
+                                    <span style={{ color: 'var(--destructive)' }}>−{formatCurrency(expensesTotal)}</span>
                                     {paymentsTotal > 0 && (
-                                      <span style={{ color: '#43e97b' }}>+{formatCurrency(paymentsTotal)}</span>
+                                      <span style={{ color: '#059669' }}>+{formatCurrency(paymentsTotal)}</span>
                                     )}
-                                    <span className="font-bold tabular-nums" style={{ color: netTotal > 0 ? '#ff6584' : '#43e97b' }}>
+                                    <span className="font-bold tabular-nums" style={{ color: netTotal > 0 ? 'var(--destructive)' : '#059669' }}>
                                       = {formatCurrency(Math.abs(netTotal))}
                                     </span>
                                   </div>
@@ -350,7 +350,7 @@ export default function CreditCardsPage() {
                                         <div className="min-w-0 flex-1">
                                           <div className="flex items-center gap-1.5">
                                             {isPayment && (
-                                              <span className="shrink-0 rounded-full px-1.5 py-0.5 text-[0.6rem] font-bold uppercase tracking-wide" style={{ background: '#43e97b20', color: '#43e97b' }}>
+                                              <span className="shrink-0 rounded-full px-1.5 py-0.5 text-[0.6rem] font-bold uppercase tracking-wide" style={{ background: '#05966920', color: '#059669' }}>
                                                 Pgto
                                               </span>
                                             )}
@@ -364,7 +364,7 @@ export default function CreditCardsPage() {
                                         </div>
                                         <span
                                           className="ml-3 shrink-0 text-sm font-semibold tabular-nums"
-                                          style={{ color: isPayment ? '#43e97b' : '#ff6584' }}
+                                          style={{ color: isPayment ? '#059669' : 'var(--destructive)' }}
                                         >
                                           {isPayment ? '+' : '−'}{formatCurrency(t.amount)}
                                         </span>

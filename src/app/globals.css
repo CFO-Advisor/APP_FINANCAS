@@ -1,6 +1,60 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "shadcn/tailwind.css";
+
+@theme inline {
+  @keyframes accordion-down {
+    from { height: 0; }
+    to { height: var(--radix-accordion-content-height, var(--accordion-panel-height, auto)); }
+  }
+
+  @keyframes accordion-up {
+    from { height: var(--radix-accordion-content-height, var(--accordion-panel-height, auto)); }
+    to { height: 0; }
+  }
+}
+
+@custom-variant data-open {
+  &:where([data-state="open"]), &:where([data-open]:not([data-open="false"])) { @slot; }
+}
+
+@custom-variant data-closed {
+  &:where([data-state="closed"]), &:where([data-closed]:not([data-closed="false"])) { @slot; }
+}
+
+@custom-variant data-checked {
+  &:where([data-state="checked"]), &:where([data-checked]:not([data-checked="false"])) { @slot; }
+}
+
+@custom-variant data-unchecked {
+  &:where([data-state="unchecked"]), &:where([data-unchecked]:not([data-unchecked="false"])) { @slot; }
+}
+
+@custom-variant data-selected {
+  &:where([data-selected="true"]) { @slot; }
+}
+
+@custom-variant data-disabled {
+  &:where([data-disabled="true"]), &:where([data-disabled]:not([data-disabled="false"])) { @slot; }
+}
+
+@custom-variant data-active {
+  &:where([data-state="active"]), &:where([data-active]:not([data-active="false"])) { @slot; }
+}
+
+@custom-variant data-horizontal {
+  &:where([data-orientation="horizontal"]) { @slot; }
+}
+
+@custom-variant data-vertical {
+  &:where([data-orientation="vertical"]) { @slot; }
+}
+
+@utility no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar { display: none; }
+}
 
 @custom-variant dark (&:is(.dark *));
 
@@ -164,6 +218,13 @@
     );
 }
 
+/* Selects in forms must respect the width of their grid/card column. */
+.console-app-shell select {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
 /* Hairline gradient border card */
 .card-hairline {
   position: relative;
@@ -238,24 +299,75 @@
   letter-spacing: -0.02em;
 }
 
-/* Scrollbar polish (webkit) */
+/* Scrollbar polish (webkit) — cores por tema */
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 16px;
+  height: 16px;
+}
+::-webkit-scrollbar-track {
+  background: var(--sidebar);
 }
 ::-webkit-scrollbar-thumb {
-  background: oklch(0.985 0 0 / 12%);
+  background: var(--sidebar-accent);
   border-radius: 999px;
-  border: 2px solid transparent;
+  border: 4px solid transparent;
   background-clip: content-box;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: oklch(0.985 0 0 / 20%);
+  background: color-mix(in srgb, var(--sidebar-accent), black 15%);
   background-clip: content-box;
-  border: 2px solid transparent;
+  border: 4px solid transparent;
 }
-::-webkit-scrollbar-track {
-  background: transparent;
+.dark ::-webkit-scrollbar-track {
+  background: oklch(0.95 0.006 250 / 8%);
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: var(--sidebar-accent);
+  border-radius: 999px;
+  border: 4px solid transparent;
+  background-clip: content-box;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--sidebar-accent), white 15%);
+  background-clip: content-box;
+  border: 4px solid transparent;
+}
+/* Arrow buttons at the ends of the scrollbar (visible in both themes) */
+::-webkit-scrollbar-button {
+  display: block;
+  width: 16px;
+  height: 16px;
+  background-color: oklch(0.88 0.015 250 / 25%);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 9px 9px;
+  transition: background-color 120ms;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  -webkit-mask-size: 9px 9px;
+}
+::-webkit-scrollbar-button:hover {
+  background-color: oklch(0.84 0.02 250 / 40%);
+}
+.dark ::-webkit-scrollbar-button {
+  background-color: oklch(0.95 0.006 250 / 14%);
+}
+.dark ::-webkit-scrollbar-button:hover {
+  background-color: oklch(0.95 0.006 250 / 32%);
+}
+::-webkit-scrollbar-button:vertical:decrement {
+  -webkit-mask-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M2 6.5 5 3.5l3 3' fill='none' stroke='black' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+::-webkit-scrollbar-button:vertical:increment {
+  -webkit-mask-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M2 3.5 5 6.5l3-3' fill='none' stroke='black' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--sidebar-accent) var(--sidebar);
+}
+.dark * {
+  scrollbar-color: var(--sidebar-accent) var(--sidebar);
 }
 
 /* Focus ring default */
@@ -269,15 +381,6 @@
   background: oklch(0.80 0.13 90 / 30%);
 }
 
-/* Recharts polish */
-.recharts-pie-sector:focus,
-.recharts-wrapper:focus {
-  outline: none;
-}
-.recharts-default-legend {
-  font-size: 12px;
-}
-
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -288,4 +391,110 @@
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* Reference design: CFO Advisor · Finanças — "Private Ledger". */
+:root {
+  --background: #f5f5f2;
+  --foreground: #111111;
+  --card: #ffffff;
+  --card-foreground: #111111;
+  --popover: #ffffff;
+  --popover-foreground: #111111;
+  --primary: #111111;
+  --primary-foreground: #ffffff;
+  --secondary: #eeeeeb;
+  --secondary-foreground: #111111;
+  --muted: #eeeeeb;
+  --muted-foreground: #6b6b67;
+  --accent: #e5e5e0;
+  --accent-foreground: #111111;
+  --tertiary: #f0f0ed;
+  --tertiary-foreground: #111111;
+  --border: #deded9;
+  --input: #deded9;
+  --ring: #111111;
+  --sidebar: #f0f0ed;
+  --sidebar-foreground: #222222;
+  --sidebar-primary: #111111;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e4e4df;
+  --sidebar-accent-foreground: #111111;
+  --sidebar-border: #d9d9d4;
+  --sidebar-ring: #111111;
+  --radius: 0.42rem;
+}
+
+.dark {
+  --background: #090909;
+  --foreground: #f1f1ed;
+  --card: #101010;
+  --card-foreground: #f1f1ed;
+  --popover: #141414;
+  --popover-foreground: #f1f1ed;
+  --primary: #e8e8e3;
+  --primary-foreground: #090909;
+  --secondary: #1a1a19;
+  --secondary-foreground: #eeeeea;
+  --muted: #151515;
+  --muted-foreground: #9b9b95;
+  --accent: #20201f;
+  --accent-foreground: #eeeeea;
+  --tertiary: #121212;
+  --tertiary-foreground: #eeeeea;
+  --border: #2c2c2a;
+  --input: #363633;
+  --ring: #d7d7d1;
+  --sidebar: #0c0c0c;
+  --sidebar-foreground: #d4d4cf;
+  --sidebar-primary: #e8e8e3;
+  --sidebar-primary-foreground: #090909;
+  --sidebar-accent: #191918;
+  --sidebar-accent-foreground: #f1f1ed;
+  --sidebar-border: #252523;
+  --sidebar-ring: #d7d7d1;
+}
+
+body { letter-spacing: -0.005em; }
+
+.app-shell-bg {
+  background-color: var(--background);
+  background-image: linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px);
+  background-size: 100% 72px;
+}
+
+.dark .card-hairline::after { background: linear-gradient(160deg, rgba(255,255,255,.16), rgba(255,255,255,.035) 42%, transparent 72%); }
+.btn-sweep { background-image: none; background-color: var(--primary); color: var(--primary-foreground); box-shadow: none; }
+.btn-sweep:hover { background-image: none; background-color: #dcdcd8; color: #050505; }
+.dark .hero-aurora { background: linear-gradient(180deg, rgba(255,255,255,.045), transparent 60%); }
+.dark .hero-grid { background-image: linear-gradient(rgba(255,255,255,.028) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.028) 1px, transparent 1px); }
+.dark [class*="rounded-xl"], .dark [class*="rounded-2xl"] { border-radius: .65rem; }
+.dark [class*="shadow-2xl"], .dark [class*="shadow-lg"] { box-shadow: 0 12px 32px rgba(0,0,0,.22); }
+.dark input, .dark textarea, .dark select, .dark [role="combobox"] { background-color: #0b0b0b; border-color: #30302e; }
+.dark input:focus, .dark textarea:focus, .dark [role="combobox"]:focus-visible { border-color: #f4f4f1; box-shadow: 0 0 0 1px #f4f4f1; }
+.dark main h1 { letter-spacing: -0.04em; font-weight: 650; }
+.dark main h2, .dark main h3 { letter-spacing: -0.025em; }
+
+.console-app-shell { background-color: var(--background); background-image: none; }
+.console-app-shell > aside { background: var(--sidebar); border-color: var(--sidebar-border); }
+.console-app-shell main { background: var(--background); }
+.console-app-shell main > div { max-width: 1220px; }
+.console-dashboard h1 { font-size: clamp(1.8rem, 2.7vw, 2.15rem); font-weight: 500; letter-spacing: -0.055em; }
+.console-dashboard > div:first-child { align-items: flex-end; margin-bottom: 0.35rem; }
+.console-dashboard > div:first-child p, .console-dashboard .text-muted-foreground { color: var(--muted-foreground); }
+.console-dashboard .card-hairline { background: var(--card); border: 1px solid var(--border); box-shadow: none; }
+.console-dashboard .card-hairline::after { display: none; }
+.console-dashboard [class*="rounded-xl"], .console-dashboard [class*="rounded-2xl"] { border-radius: 0.48rem; }
+.console-dashboard .kpi-value { font-size: 1.6rem; font-weight: 500; letter-spacing: -0.045em; }
+.console-dashboard .grid > .group, .console-dashboard .grid > .card-hairline, .console-dashboard .border-border { border-color: var(--border); }
+.console-dashboard button[class*="bg-primary"] { border-radius: 0.42rem; }
+.console-dashboard .bg-card\/70, .console-dashboard .bg-card\/60 { background-color: var(--card); }
+.console-app-shell aside nav button:hover { background: var(--sidebar-accent); }
+.console-app-shell aside nav p { color: var(--muted-foreground); }
+.console-app-shell aside .border-sidebar-border { border-color: var(--sidebar-border); }
+.console-app-shell select { width: 100%; min-width: 0; max-width: 100%; }
+
+@media (max-width: 767px) {
+  .console-app-shell main > div { padding-top: 1.5rem; }
+  .console-dashboard > div:first-child { align-items: flex-start; }
 }

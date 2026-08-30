@@ -125,7 +125,7 @@ export function BudgetFormDialog({
               onClick={() => handleTypeChange('income')}
               className={`rounded-lg border-2 py-2 text-sm font-medium transition-colors ${
                 type === 'income'
-                  ? 'border-green-500 bg-green-50 text-green-600'
+                  ? 'border-emerald-500 bg-emerald-50 text-emerald-600'
                   : 'border-transparent bg-muted text-muted-foreground hover:bg-secondary'
               }`}
             >
@@ -136,7 +136,7 @@ export function BudgetFormDialog({
               onClick={() => handleTypeChange('expense')}
               className={`rounded-lg border-2 py-2 text-sm font-medium transition-colors ${
                 type === 'expense'
-                  ? 'border-red-500 bg-red-50 text-red-600'
+                  ? 'border-destructive bg-destructive/10 text-destructive'
                   : 'border-transparent bg-muted text-muted-foreground hover:bg-secondary'
               }`}
             >
@@ -189,7 +189,7 @@ export function BudgetFormDialog({
             <Button
               type="submit"
               disabled={loading}
-              className={type === 'income' ? 'bg-green-600 hover:bg-green-700' : ''}
+              className={type === 'income' ? 'bg-emerald-600 hover:bg-emerald-700' : ''}
             >
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {budget ? 'Salvar' : 'Adicionar'}

@@ -42,7 +42,7 @@ export function BankBalanceWidget({ banks }: BankBalanceWidgetProps) {
         <CardHeader className="flex flex-row items-center justify-between pb-3">
           <CardTitle className="text-base">Saldo por Banco</CardTitle>
           <Link href="/banks">
-            <Button variant="ghost" size="sm" className="flex items-center gap-1 text-blue-600">
+            <Button variant="ghost" size="sm" className="flex items-center gap-1 text-primary">
               Gerenciar <ArrowRight className="h-3 w-3" />
             </Button>
           </Link>
@@ -72,7 +72,7 @@ export function BankBalanceWidget({ banks }: BankBalanceWidgetProps) {
       <CardHeader className="flex flex-row items-center justify-between pb-1">
         <CardTitle className="text-base">Saldo por Banco</CardTitle>
         <Link href="/banks">
-          <Button variant="ghost" size="sm" className="flex items-center gap-1 text-blue-600">
+          <Button variant="ghost" size="sm" className="flex items-center gap-1 text-primary">
             Ver todos <ArrowRight className="h-3 w-3" />
           </Button>
         </Link>
@@ -104,7 +104,7 @@ export function BankBalanceWidget({ banks }: BankBalanceWidgetProps) {
           )}
           <div>
             <p className="text-xs text-muted-foreground">Saldo Total</p>
-            <p className="text-2xl font-bold" style={{ color: totalBalance >= 0 ? '#43e97b' : '#ff6584' }}>
+            <p className="text-2xl font-bold" style={{ color: totalBalance >= 0 ? '#059669' : 'var(--destructive)' }}>
               {formatCurrency(totalBalance)}
             </p>
             <p className="text-xs text-muted-foreground">{banks.length} conta{banks.length !== 1 ? 's' : ''}</p>
@@ -121,14 +121,14 @@ export function BankBalanceWidget({ banks }: BankBalanceWidgetProps) {
                 <div className="mb-1 flex items-center gap-2 text-xs">
                   <BankIcon name={bank.name} color={bank.color} size="xs" />
                   <span className="flex-1 truncate font-medium">{bank.name}</span>
-                  <span className="shrink-0 font-semibold" style={{ color: negative ? '#ff6584' : '#43e97b' }}>
+                  <span className="shrink-0 font-semibold" style={{ color: negative ? 'var(--destructive)' : '#059669' }}>
                     {formatCurrency(bank.balance)}
                   </span>
                 </div>
                 <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
                   <div
                     className="h-full rounded-full transition-all duration-500"
-                    style={{ width: `${pct}%`, backgroundColor: negative ? '#ff6584' : bank.color }}
+                    style={{ width: `${pct}%`, backgroundColor: negative ? 'var(--destructive)' : bank.color }}
                   />
                 </div>
               </div>

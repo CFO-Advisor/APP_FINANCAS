@@ -2,7 +2,7 @@ import { AppSidebar } from '@/components/layout/app-sidebar'
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="app-shell-bg console-app-shell flex min-h-screen bg-background">
       {/* Sidebar: flex child on desktop, fixed drawer on mobile */}
       <AppSidebar />
 

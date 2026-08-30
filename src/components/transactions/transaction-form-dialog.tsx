@@ -251,15 +251,15 @@ export function TransactionFormDialog({
 
   const typeStyles: Record<TransactionType, { active: string; label: string }> = {
     expense: {
-      active: 'border-red-500 bg-red-50 text-red-600',
+      active: 'border-destructive bg-destructive/10 text-destructive',
       label: 'Despesa',
     },
     income: {
-      active: 'border-green-500 bg-green-50 text-green-600',
+      active: 'border-emerald-500 bg-emerald-50 text-emerald-600',
       label: 'Receita',
     },
     investment: {
-      active: 'border-purple-500 bg-purple-50 text-purple-600',
+      active: 'border-primary bg-primary/10 text-primary',
       label: 'Investimento',
     },
     credit_card_payment: {
@@ -270,9 +270,9 @@ export function TransactionFormDialog({
 
   const submitBtnClass =
     form.type === 'income'
-      ? 'bg-green-600 hover:bg-green-700'
+      ? 'bg-emerald-600 hover:bg-emerald-700'
       : form.type === 'investment'
-      ? 'bg-purple-600 hover:bg-purple-700'
+      ? 'bg-primary hover:bg-primary/90'
       : form.type === 'credit_card_payment'
       ? 'bg-sky-600 hover:bg-sky-700'
       : ''
@@ -377,7 +377,7 @@ export function TransactionFormDialog({
                 )}
 
                 <SelectSeparator />
-                <SelectItem value={NEW_CAT_VALUE} className="text-blue-600 font-medium">
+                <SelectItem value={NEW_CAT_VALUE} className="text-primary font-medium">
                   <Plus className="mr-1 inline h-3 w-3" />
                   Nova categoria...
                 </SelectItem>

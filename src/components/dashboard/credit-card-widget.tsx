@@ -44,7 +44,7 @@ export function CreditCardWidget({ cards }: CreditCardWidgetProps) {
           Cartões de Crédito
         </CardTitle>
         <Link href="/credit-cards">
-          <Button variant="ghost" size="sm" className="text-xs" style={{ color: '#a78bfa' }}>
+          <Button variant="ghost" size="sm" className="text-xs" style={{ color: 'var(--primary)' }}>
             Ver todos →
           </Button>
         </Link>
@@ -53,7 +53,7 @@ export function CreditCardWidget({ cards }: CreditCardWidgetProps) {
         {/* Total debt */}
         <div className="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2">
           <span className="text-sm text-muted-foreground">Total nas faturas</span>
-          <span className="font-bold" style={{ color: '#ff6584' }}>{formatCurrency(totalDebt)}</span>
+          <span className="font-bold" style={{ color: 'var(--destructive)' }}>{formatCurrency(totalDebt)}</span>
         </div>
 
         {/* Per-card list */}
@@ -72,7 +72,7 @@ export function CreditCardWidget({ cards }: CreditCardWidgetProps) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
                     <p className="truncate text-sm font-medium">{card.name}</p>
-                    <span className="ml-2 shrink-0 text-sm font-semibold" style={{ color: '#ff6584' }}>
+                    <span className="ml-2 shrink-0 text-sm font-semibold" style={{ color: 'var(--destructive)' }}>
                       {formatCurrency(card.outstandingBalance)}
                     </span>
                   </div>
@@ -83,7 +83,7 @@ export function CreditCardWidget({ cards }: CreditCardWidgetProps) {
                         className="h-1.5 rounded-full transition-all"
                         style={{
                           width: `${Math.min(card.utilizationPct, 100)}%`,
-                          backgroundColor: card.utilizationPct > 80 ? '#ff6584' : card.utilizationPct > 50 ? '#f7971e' : '#6c63ff',
+                          backgroundColor: card.utilizationPct > 80 ? 'var(--destructive)' : card.utilizationPct > 50 ? '#d97706' : 'var(--primary)',
                         }}
                       />
                     </div>
@@ -93,11 +93,11 @@ export function CreditCardWidget({ cards }: CreditCardWidgetProps) {
                   </div>
                   <div className="mt-0.5 flex items-center gap-1">
                     {(isDueSoon || isOverdue) && (
-                      <AlertCircle className="h-3 w-3" style={{ color: isOverdue ? '#ff6584' : '#f7971e' }} />
+                      <AlertCircle className="h-3 w-3" style={{ color: isOverdue ? 'var(--destructive)' : '#d97706' }} />
                     )}
                     <p
                       className="text-xs"
-                      style={{ color: isOverdue ? '#ff6584' : isDueSoon ? '#f7971e' : undefined, fontWeight: (isOverdue || isDueSoon) ? 500 : undefined }}
+                      style={{ color: isOverdue ? 'var(--destructive)' : isDueSoon ? '#d97706' : undefined, fontWeight: (isOverdue || isDueSoon) ? 500 : undefined }}
                     >
                       Vence {format(dueDate, "dd 'de' MMM", { locale: ptBR })}
                       {isDueSoon && !isOverdue && ` (${daysUntilDue}d)`}

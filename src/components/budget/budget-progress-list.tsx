@@ -16,10 +16,10 @@ interface BudgetProgressListProps {
 }
 
 function barColor(over: boolean, accentColor: 'red' | 'green', pct: number): string {
-  if (over) return '#ff6584'
-  if (accentColor === 'green') return '#43e97b'
-  if (pct > 80) return '#f7971e'
-  return '#6c63ff'
+  if (over) return 'var(--destructive)'
+  if (accentColor === 'green') return '#059669'
+  if (pct > 80) return '#d97706'
+  return 'var(--primary)'
 }
 
 function ProgressBar({ pct, over, accentColor }: { pct: number; over: boolean; accentColor: 'red' | 'green' }) {
@@ -69,7 +69,7 @@ export function BudgetProgressList({
           <div className="text-right text-xs text-muted-foreground">
             <span
               className="font-semibold"
-              style={{ color: totalOver ? '#ff6584' : 'inherit' }}
+              style={{ color: totalOver ? 'var(--destructive)' : 'inherit' }}
             >
               {formatCurrency(totalActual)}
             </span>
@@ -105,7 +105,7 @@ export function BudgetProgressList({
                         variant="ghost"
                         size="icon"
                         className="h-6 w-6"
-                        style={{ color: '#ff6584' }}
+                        style={{ color: 'var(--destructive)' }}
                         onClick={() => onDelete(budget)}
                       >
                         <Trash2 className="h-3 w-3" />
@@ -122,18 +122,18 @@ export function BudgetProgressList({
                   Real:{' '}
                   <span
                     className="font-semibold"
-                    style={{ color: over ? '#ff6584' : 'inherit' }}
+                    style={{ color: over ? 'var(--destructive)' : 'inherit' }}
                   >
                     {formatCurrency(item.actual)}
                   </span>
                 </span>
                 <span>
                   {over ? (
-                    <span style={{ color: '#ff6584' }}>
+                    <span style={{ color: 'var(--destructive)' }}>
                       +{formatCurrency(Math.abs(item.remaining))} acima
                     </span>
                   ) : (
-                    <span style={{ color: '#43e97b' }}>
+                    <span style={{ color: '#059669' }}>
                       {formatCurrency(item.remaining)} restante
                     </span>
                   )}

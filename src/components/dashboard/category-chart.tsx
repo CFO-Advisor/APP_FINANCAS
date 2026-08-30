@@ -35,7 +35,7 @@ export function CategoryChart({ data }: CategoryChartProps) {
       <Card className="shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-            <span className="inline-block h-2 w-2 rounded-full bg-[#ff6584]" />
+            <span className="inline-block h-2 w-2 rounded-full bg-destructive" />
             Gastos por Categoria
           </CardTitle>
         </CardHeader>
@@ -50,7 +50,7 @@ export function CategoryChart({ data }: CategoryChartProps) {
     <Card className="shadow-sm">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-          <span className="inline-block h-2 w-2 rounded-full bg-[#ff6584]" />
+          <span className="inline-block h-2 w-2 rounded-full bg-destructive" />
           Gastos por Categoria
         </CardTitle>
       </CardHeader>

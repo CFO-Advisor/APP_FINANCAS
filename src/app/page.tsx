@@ -1,6 +1,15 @@
 import Link from 'next/link'
-import { TrendingUp, PieChart, FileDown, Shield, Smartphone, BarChart3 } from 'lucide-react'
+import { ArrowRight, Check, TrendingUp, PieChart, FileDown, Shield, Smartphone, BarChart3 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+
+function CfoMark({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true">
+      <path d="M20 3 34 11v18L20 37 6 29V11L20 3Z" stroke="#B8860B" strokeWidth="2.5" strokeLinejoin="round" />
+      <circle cx="20" cy="20" r="4.5" fill="#00A3E0" />
+    </svg>
+  )
+}
 
 const features = [
   {
@@ -35,136 +44,154 @@ const features = [
   },
 ]
 
+const steps = [
+  { n: '01', title: 'Registre', description: 'Lance receitas e despesas conforme elas acontecem, em segundos.' },
+  { n: '02', title: 'Organize', description: 'Categorize, defina orçamentos e acompanhe cartões e dívidas.' },
+  { n: '03', title: 'Decida', description: 'Enxergue saldo, gráficos e tendências para decidir com clareza.' },
+]
+
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-slate-950">
-      {/* Navbar */}
-      <header className="sticky top-0 z-50 border-b border-slate-800 bg-slate-950/95 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600">
-              <TrendingUp className="h-5 w-5 text-white" />
-            </div>
-            <span className="text-xl font-bold text-white">Finanças</span>
-          </div>
-          <nav className="flex items-center gap-3">
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="sticky top-0 z-50 border-b border-white/[0.06] bg-background/80 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3.5">
+          <Link href="/" className="flex items-center gap-2.5">
+            <CfoMark className="h-8 w-8" />
+            <span className="font-heading text-[15px] font-bold tracking-tight">
+              CFO Advisor
+              <span className="ml-1.5 font-sans text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                Finanças
+              </span>
+            </span>
+          </Link>
+          <nav className="flex items-center gap-2">
             <Link href="/login">
-              <Button variant="ghost" className="text-gray-300 hover:text-white hover:bg-slate-800">
+              <Button variant="ghost" className="h-9 px-4 text-sm font-medium text-muted-foreground hover:text-foreground">
                 Entrar
               </Button>
             </Link>
             <Link href="/register">
-              <Button className="bg-emerald-600 hover:bg-emerald-700 text-white">
-                Criar conta grátis
+              <Button className="btn-sweep h-9 border-0 px-4 text-sm font-semibold text-primary-foreground transition-transform hover:scale-[1.02] active:scale-100">
+                Criar conta
               </Button>
             </Link>
           </nav>
         </div>
       </header>
 
-      {/* Hero */}
-      <section className="relative min-h-[600px] overflow-hidden">
-        {/* Background with overlay */}
-        <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{
-            backgroundImage:
-              'linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(15, 23, 42, 0.75) 100%), url("data:image/svg+xml,%3Csvg width=\'100\' height=\'100\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cdefs%3E%3Cpattern id=\'grid\' width=\'40\' height=\'40\' patternUnits=\'userSpaceOnUse\'%3E%3Cpath d=\'M 40 0 L 0 0 0 40\' fill=\'none\' stroke=\'rgba(148,163,184,0.1)\' stroke-width=\'0.5\'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width=\'100\' height=\'100\' fill=\'url(%23grid)\' /%3E%3C/svg%3E")',
-          }}
-        />
-
-        {/* Content */}
-        <div className="relative mx-auto flex max-w-7xl flex-col items-start justify-center px-4 py-32 sm:px-6 lg:px-8 lg:py-40">
-          <h1 className="mb-6 max-w-4xl text-5xl font-bold tracking-tight text-white sm:text-6xl">
-            Controle Financeiro Simples
-          </h1>
-          <p className="mb-8 max-w-2xl text-xl text-gray-300">
-            Guiando sua empresa rumo ao sucesso financeiro com soluções personalizadas.
-            Registre receitas e despesas, visualize gráficos e exporte relatórios com
-            facilidade.
-          </p>
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <Link href="/register">
-              <Button
-                size="lg"
-                className="border border-emerald-500 bg-transparent text-emerald-500 hover:bg-emerald-500 hover:text-white"
-              >
-                Saiba mais
-              </Button>
-            </Link>
-            <Link href="/login">
-              <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700 text-white">
-                Começar agora
-              </Button>
-            </Link>
+      <main>
+        <section className="relative overflow-hidden">
+          <div className="hero-aurora absolute inset-0" aria-hidden="true" />
+          <div className="hero-grid absolute inset-0" aria-hidden="true" />
+          <div className="relative mx-auto max-w-6xl px-5 pb-20 pt-24 sm:pt-32">
+            <div className="max-w-3xl">
+              <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground backdrop-blur">
+                <span className="h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_10px] shadow-primary/80" />
+                Finanças pessoais, sem complicação
+              </p>
+              <h1 className="font-heading text-[2.6rem] font-extrabold leading-[1.06] tracking-tight sm:text-6xl">
+                Suas finanças, <span className="text-foreground">sob controle</span> de verdade.
+              </h1>
+              <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground">
+                Registre receitas e despesas, visualize gráficos e exporte relatórios com facilidade —
+                tudo em um único lugar, pensado para o seu dia a dia.
+              </p>
+              <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+                <Link href="/register">
+                  <Button size="lg" className="btn-sweep h-12 border-0 px-7 text-[15px] font-semibold text-primary-foreground transition-transform hover:scale-[1.02] active:scale-100">
+                    Começar agora <ArrowRight className="ml-1 h-4 w-4" />
+                  </Button>
+                </Link>
+                <Link href="/login">
+                  <Button size="lg" variant="outline" className="h-12 border-white/15 bg-white/[0.03] px-7 text-[15px] font-medium backdrop-blur hover:bg-white/[0.07]">
+                    Já tenho conta
+                  </Button>
+                </Link>
+              </div>
+              <p className="mt-5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                <Check className="h-3.5 w-3.5 text-primary" /> 100% gratuito
+                <span className="mx-1 text-white/20">·</span>
+                <Check className="h-3.5 w-3.5 text-primary" /> Dados isolados por usuário
+              </p>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Stats */}
-      <section className="border-t border-slate-800 bg-slate-900/50 py-16">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid gap-8 md:grid-cols-3">
-            {[
-              { value: '100%', label: 'Gratuito' },
-              { value: 'RLS', label: 'Dados isolados por usuário' },
-              { value: 'CSV', label: 'Exportação de dados' },
-            ].map((stat) => (
-              <div key={stat.label} className="text-center">
-                <div className="text-4xl font-bold text-emerald-500">{stat.value}</div>
-                <div className="mt-2 text-sm text-gray-400">{stat.label}</div>
+        <section className="relative border-t border-white/[0.06]">
+          <div className="mx-auto grid max-w-6xl gap-10 px-5 py-20 md:grid-cols-3 md:gap-8">
+            {steps.map((step) => (
+              <div key={step.n} className="relative">
+                <span className="font-heading text-sm font-bold tracking-[0.2em] text-primary/70">{step.n}</span>
+                <h2 className="font-heading mt-3 text-xl font-bold tracking-tight">{step.title}</h2>
+                <p className="mt-2 max-w-xs text-sm leading-relaxed text-muted-foreground">{step.description}</p>
               </div>
             ))}
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Features */}
-      <section className="border-t border-slate-800 py-24">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mb-16 text-center">
-            <h2 className="mb-4 text-4xl font-bold text-white">Tudo que você precisa</h2>
-            <p className="text-gray-400">
+        <div className="rule-gradient mx-auto max-w-6xl" aria-hidden="true" />
+
+        <section className="mx-auto max-w-6xl px-5 py-20">
+          <div className="mb-12 max-w-2xl">
+            <h2 className="font-heading text-3xl font-bold tracking-tight sm:text-4xl">
+              Tudo que você precisa,<br />sem o que você não usa.
+            </h2>
+            <p className="mt-4 text-muted-foreground">
               Funcionalidades pensadas para simplificar o controle financeiro pessoal.
             </p>
           </div>
-          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {features.map((feature) => (
               <div
                 key={feature.title}
-                className="rounded-lg border border-slate-800 bg-slate-900/50 p-6 transition-all hover:border-emerald-500/50 hover:bg-slate-800/50"
+                className="card-hairline group rounded-xl bg-card/60 p-6 ring-1 ring-white/[0.06] transition-colors duration-200 hover:bg-card hover:ring-primary/25"
               >
-                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-emerald-500/10">
-                  <feature.icon className="h-6 w-6 text-emerald-500" />
+                <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/20">
+                  <feature.icon className="h-5 w-5" strokeWidth={2} />
                 </div>
-                <h3 className="mb-2 font-semibold text-white">{feature.title}</h3>
-                <p className="text-sm text-gray-400">{feature.description}</p>
+                <h3 className="font-heading text-base font-bold tracking-tight">{feature.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{feature.description}</p>
               </div>
             ))}
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* CTA */}
-      <section className="border-t border-slate-800 bg-gradient-to-r from-slate-900 to-slate-800 py-20">
-        <div className="mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
-          <h2 className="mb-4 text-3xl font-bold text-white">
-            Comece a controlar suas finanças hoje
-          </h2>
-          <p className="mb-8 text-gray-400">
-            Crie sua conta gratuitamente e tenha controle total do seu dinheiro.
+        <section className="mx-auto max-w-6xl px-5 pb-24">
+          <div className="card-hairline relative overflow-hidden rounded-2xl bg-card/70 px-8 py-14 text-center ring-1 ring-white/[0.06] sm:px-12">
+            <div
+              className="pointer-events-none absolute inset-0"
+              style={{ background: 'linear-gradient(180deg, rgba(255,255,255,.035), transparent 70%)' }}
+              aria-hidden="true"
+            />
+            <h2 className="font-heading relative text-2xl font-bold tracking-tight sm:text-3xl">
+              Comece a controlar suas finanças hoje.
+            </h2>
+            <p className="relative mx-auto mt-3 max-w-md text-sm text-muted-foreground">
+              Crie sua conta gratuitamente e tenha controle total do seu dinheiro.
+            </p>
+            <div className="relative mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+              <Link href="/register">
+                <Button size="lg" className="btn-sweep h-12 border-0 px-8 text-[15px] font-semibold text-primary-foreground transition-transform hover:scale-[1.02] active:scale-100">
+                  Criar conta grátis
+                </Button>
+              </Link>
+              <Link href="/login">
+                <Button size="lg" variant="ghost" className="h-12 px-6 text-[15px] font-medium text-muted-foreground hover:text-foreground">
+                  Fazer login
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer className="border-t border-white/[0.06] py-8">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-5 text-xs text-muted-foreground sm:flex-row">
+          <p>© {new Date().getFullYear()} Finanças Pessoais · Feito com Next.js e Supabase.</p>
+          <p className="flex items-center gap-1.5">
+            <span className="h-1 w-1 rounded-full bg-primary/60" /> Dados isolados por usuário
           </p>
-          <Link href="/register">
-            <Button className="bg-emerald-600 hover:bg-emerald-700 text-white px-8" size="lg">
-              Criar conta grátis
-            </Button>
-          </Link>
         </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="border-t border-slate-800 py-8 text-center text-sm text-gray-400">
-        <p>© {new Date().getFullYear()} Finanças Pessoais. Feito com Next.js e Supabase.</p>
       </footer>
     </div>
   )
