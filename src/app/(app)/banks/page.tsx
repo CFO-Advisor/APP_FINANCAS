@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { Plus, Pencil, Trash2, Loader2, ChevronDown, ChevronUp, X, FileDown } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -68,43 +68,53 @@ export default function BanksPage() {
   const [expandedBankId, setExpandedBankId] = useState<string | null>(null)
   const [dateFilters, setDateFilters] = useState<Record<string, { start: string; end: string }>>({})
 
-  const fetchBanks = useCallback(async () => {
-    setLoading(true)
-    const supabase = createClient()
+  const [reloadKey, setReloadKey] = useState(0)
+  const fetchBanks = () => setReloadKey((k) => k + 1)
 
-    const [banksRes, txRes] = await Promise.all([
-      supabase.from('banks').select('*').order('created_at'),
-      supabase
-        .from('transactions')
-        .select('id, bank_id, credit_card_id, type, amount, date, description, category')
-        .not('bank_id', 'is', null)
-        .order('date', { ascending: false }),
-    ])
+  useEffect(() => {
+    let ignore = false
 
-    if (banksRes.error) { setLoading(false); return }
+    async function load() {
+      setLoading(true)
+      const supabase = createClient()
 
-    const rawBanks = (banksRes.data ?? []) as Bank[]
-    const allTx = (txRes.data ?? []) as BankTx[]
+      const [banksRes, txRes] = await Promise.all([
+        supabase.from('banks').select('*').order('created_at'),
+        supabase
+          .from('transactions')
+          .select('id, bank_id, credit_card_id, type, amount, date, description, category')
+          .not('bank_id', 'is', null)
+          .order('date', { ascending: false }),
+      ])
 
-    setAllBankTransactions(allTx)
+      if (ignore) return
 
-    const totals: Record<string, { income: number; expense: number }> = {}
-    for (const t of allTx) {
-      if (!t.bank_id) continue
-      if (t.credit_card_id && t.type !== 'credit_card_payment') continue
-      if (!totals[t.bank_id]) totals[t.bank_id] = { income: 0, expense: 0 }
-      if (t.type === 'income') totals[t.bank_id].income += t.amount
-      else totals[t.bank_id].expense += t.amount
+      if (banksRes.error) { setLoading(false); return }
+
+      const rawBanks = (banksRes.data ?? []) as Bank[]
+      const allTx = (txRes.data ?? []) as BankTx[]
+
+      setAllBankTransactions(allTx)
+
+      const totals: Record<string, { income: number; expense: number }> = {}
+      for (const t of allTx) {
+        if (!t.bank_id) continue
+        if (t.credit_card_id && t.type !== 'credit_card_payment') continue
+        if (!totals[t.bank_id]) totals[t.bank_id] = { income: 0, expense: 0 }
+        if (t.type === 'income') totals[t.bank_id].income += t.amount
+        else totals[t.bank_id].expense += t.amount
+      }
+
+      setBanks(rawBanks.map((b) => {
+        const t = totals[b.id] ?? { income: 0, expense: 0 }
+        return { ...b, totalIncome: t.income, totalExpense: t.expense, balance: b.initial_balance + t.income - t.expense }
+      }))
+      setLoading(false)
     }
 
-    setBanks(rawBanks.map((b) => {
-      const t = totals[b.id] ?? { income: 0, expense: 0 }
-      return { ...b, totalIncome: t.income, totalExpense: t.expense, balance: b.initial_balance + t.income - t.expense }
-    }))
-    setLoading(false)
-  }, [])
-
-  useEffect(() => { fetchBanks() }, [fetchBanks])
+    load()
+    return () => { ignore = true }
+  }, [reloadKey])
 
   async function confirmDelete() {
     if (!deleteTarget) return

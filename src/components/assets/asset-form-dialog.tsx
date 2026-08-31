@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -43,21 +43,27 @@ export function AssetFormDialog({ open, onOpenChange, asset, onSuccess }: AssetF
   const [form, setForm] = useState(emptyForm)
   const [saving, setSaving] = useState(false)
 
-  useEffect(() => {
-    if (!open) return
-    if (asset) {
-      setForm({
-        group_type:       asset.group_type,
-        category:         asset.category,
-        description:      asset.description,
-        value:            String(asset.value),
-        acquisition_date: asset.acquisition_date ?? '',
-        notes:            asset.notes ?? '',
-      })
-    } else {
-      setForm({ ...emptyForm, category: ASSET_GROUP_DEFS[0].categories[0] })
+  // Reset the form whenever the dialog opens/closes or the target asset changes.
+  // Done during render (not an effect) — https://react.dev/learn/you-might-not-need-an-effect
+  // Mirrors the original effect's `if (!open) return` guard.
+  const [lastSync, setLastSync] = useState<{ open: boolean; asset: Asset | null }>({ open, asset })
+  if (lastSync.open !== open || lastSync.asset !== asset) {
+    setLastSync({ open, asset })
+    if (open) {
+      if (asset) {
+        setForm({
+          group_type:       asset.group_type,
+          category:         asset.category,
+          description:      asset.description,
+          value:            String(asset.value),
+          acquisition_date: asset.acquisition_date ?? '',
+          notes:            asset.notes ?? '',
+        })
+      } else {
+        setForm({ ...emptyForm, category: ASSET_GROUP_DEFS[0].categories[0] })
+      }
     }
-  }, [open, asset])
+  }
 
   const groupDef = ASSET_GROUP_DEFS.find((g) => g.key === form.group_type)!
 

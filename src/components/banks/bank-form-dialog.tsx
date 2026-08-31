@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -44,7 +44,11 @@ export function BankFormDialog({ open, onOpenChange, bank, onSuccess }: BankForm
   const [agency, setAgency] = useState('')
   const [accountNumber, setAccountNumber] = useState('')
 
-  useEffect(() => {
+  // Reset the form whenever the dialog opens/closes or the target bank changes.
+  // Done during render (not an effect) — https://react.dev/learn/you-might-not-need-an-effect
+  const [lastSync, setLastSync] = useState<{ bank: Bank | null | undefined; open: boolean }>({ bank, open })
+  if (lastSync.bank !== bank || lastSync.open !== open) {
+    setLastSync({ bank, open })
     if (bank) {
       setName(bank.name)
       setType(bank.type)
@@ -60,7 +64,7 @@ export function BankFormDialog({ open, onOpenChange, bank, onSuccess }: BankForm
       setAgency('')
       setAccountNumber('')
     }
-  }, [bank, open])
+  }
 
   function applyPreset(preset: typeof BANK_PRESETS[number]) {
     setName(preset.name)
