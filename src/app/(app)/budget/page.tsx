@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { Plus, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -31,31 +31,39 @@ export default function BudgetPage() {
   const [month, setMonth] = useState(new Date().getMonth() + 1)
   const [year, setYear] = useState(currentYear)
 
-  const fetchData = useCallback(async () => {
-    setLoading(true)
-    const supabase = createClient()
-
-    const startDate = `${year}-${String(month).padStart(2, '0')}-01`
-    const lastDay = new Date(year, month, 0).getDate()
-    const endDate = `${year}-${String(month).padStart(2, '0')}-${lastDay}`
-
-    const [budgetsRes, txRes] = await Promise.all([
-      supabase.from('budgets').select('*').eq('month', month).eq('year', year),
-      supabase
-        .from('transactions')
-        .select('*')
-        .gte('date', startDate)
-        .lte('date', endDate),
-    ])
-
-    if (!budgetsRes.error && budgetsRes.data) setBudgets(budgetsRes.data as Budget[])
-    if (!txRes.error && txRes.data) setTransactions(txRes.data as Transaction[])
-    setLoading(false)
-  }, [month, year])
+  const [reloadKey, setReloadKey] = useState(0)
+  const fetchData = () => setReloadKey((k) => k + 1)
 
   useEffect(() => {
-    fetchData()
-  }, [fetchData])
+    let ignore = false
+
+    async function load() {
+      setLoading(true)
+      const supabase = createClient()
+
+      const startDate = `${year}-${String(month).padStart(2, '0')}-01`
+      const lastDay = new Date(year, month, 0).getDate()
+      const endDate = `${year}-${String(month).padStart(2, '0')}-${lastDay}`
+
+      const [budgetsRes, txRes] = await Promise.all([
+        supabase.from('budgets').select('*').eq('month', month).eq('year', year),
+        supabase
+          .from('transactions')
+          .select('*')
+          .gte('date', startDate)
+          .lte('date', endDate),
+      ])
+
+      if (ignore) return
+
+      if (!budgetsRes.error && budgetsRes.data) setBudgets(budgetsRes.data as Budget[])
+      if (!txRes.error && txRes.data) setTransactions(txRes.data as Transaction[])
+      setLoading(false)
+    }
+
+    load()
+    return () => { ignore = true }
+  }, [reloadKey, month, year])
 
   async function handleDelete(budget: Budget) {
     const supabase = createClient()
