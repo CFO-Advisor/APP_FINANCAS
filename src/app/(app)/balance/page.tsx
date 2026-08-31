@@ -191,9 +191,6 @@ export default function BalancePage() {
                   <TrendingUp className="h-4 w-4" />
                 </span>
                 <span className="font-semibold">Ativos</span>
-                <span className="ml-auto text-sm font-bold tabular-nums text-foreground">
-                  {formatCurrency(ativos?.total ?? 0)}
-                </span>
               </div>
 
               {/* Lines */}
@@ -245,9 +242,6 @@ export default function BalancePage() {
                   <AlertCircle className="h-4 w-4" />
                 </span>
                 <span className="font-semibold">Passivos</span>
-                <span className="ml-auto text-sm font-bold tabular-nums text-foreground">
-                  {formatCurrency(passivos?.total ?? 0)}
-                </span>
               </div>
 
               {/* Lines */}
@@ -296,12 +290,6 @@ export default function BalancePage() {
                   <Wallet className="h-4 w-4" />
                 </span>
                 <span className="font-semibold">Patrimônio Líquido</span>
-                <span
-                  className="ml-auto text-sm font-bold tabular-nums"
-                  style={{ color: isPositive ? '#059669' : 'var(--destructive)' }}
-                >
-                  {formatCurrency(patrimonioLiquido)}
-                </span>
               </div>
 
               <div className="divide-y divide-border px-5">
