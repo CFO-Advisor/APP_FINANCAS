@@ -23,30 +23,6 @@ interface BalanceSide {
   total: number
 }
 
-// ── Helper: format as secondary text ──────────────────
-function Line({ line }: { line: BalanceLine }) {
-  return (
-    <div className="flex items-center justify-between py-2.5">
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium">{line.label}</p>
-        {line.sublabel && (
-          <p className="text-xs text-muted-foreground">{line.sublabel}</p>
-        )}
-      </div>
-      <div className="flex items-center gap-1.5 shrink-0">
-        <span className="tabular-nums text-sm font-semibold" style={{ color: line.color }}>
-          {formatCurrency(line.value)}
-        </span>
-        {line.href && (
-          <Link href={line.href} className="text-muted-foreground hover:text-foreground transition-colors">
-            <ArrowUpRight className="h-3.5 w-3.5" />
-          </Link>
-        )}
-      </div>
-    </div>
-  )
-}
-
 // ── Page ───────────────────────────────────────────────
 export default function BalancePage() {
   const [loading, setLoading] = useState(true)
@@ -54,7 +30,6 @@ export default function BalancePage() {
   const [passivos, setPassivos] = useState<BalanceSide | null>(null)
 
   const load = useCallback(async () => {
-    setLoading(true)
     const supabase = createClient()
 
     const [
