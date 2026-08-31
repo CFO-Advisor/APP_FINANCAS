@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import Link from 'next/link'
 import { ArrowRight, Landmark, TrendingUp as TrendingUpIcon, Package2, ScrollText, CreditCard as CreditCardIcon, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -45,7 +45,10 @@ export default function DashboardPage() {
   const [month, setMonth] = useState(new Date().getMonth() + 1)
   const [year, setYear] = useState(currentYear)
 
-  const fetchData = useCallback(async () => {
+  useEffect(() => {
+    let ignore = false
+
+    async function fetchData() {
     setLoading(true)
     const supabase = createClient()
 
@@ -84,6 +87,8 @@ export default function DashboardPage() {
       supabase.from('debts').select('group_type, total_amount, monthly_amount, installments_paid, status').neq('status', 'paid'),
       supabase.from('transactions').select('type, amount').gte('date', prevStartDate).lte('date', prevEndDate),
     ])
+
+    if (ignore) return
 
     if (!txRes.error && txRes.data) setTransactions(txRes.data as Transaction[])
     if (!budgetsRes.error && budgetsRes.data) setBudgets(budgetsRes.data as Budget[])
@@ -150,9 +155,11 @@ export default function DashboardPage() {
     if (!debtsRes.error && debtsRes.data) setDebtsData(debtsRes.data as Pick<Debt, 'group_type' | 'total_amount' | 'monthly_amount' | 'installments_paid' | 'status'>[])
 
     setLoading(false)
-  }, [month, year, viewMode])
+    }
 
-  useEffect(() => { fetchData() }, [fetchData])
+    fetchData()
+    return () => { ignore = true }
+  }, [month, year, viewMode])
 
   const summary: DashboardSummary = transactions.reduce(
     (acc, t) => {
