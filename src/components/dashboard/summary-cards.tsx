@@ -1,25 +1,59 @@
-import { TrendingUp, TrendingDown, Wallet, BarChart3, type LucideIcon } from 'lucide-react'
+import { TrendingUp, TrendingDown, Wallet, BarChart3, ArrowUpRight, ArrowDownRight, type LucideIcon } from 'lucide-react'
 import { formatCurrency } from '@/lib/csv-export'
 import type { DashboardSummary } from '@/lib/types'
 
 interface KpiCard {
   title: string
   value: number
+  prevValue: number
   icon: LucideIcon
   /** Only set when the value itself carries a positive/negative signal (e.g. balance). */
   valueColor?: string
+  /** For this KPI, does an increase mean things are better (true) or worse (false)? */
+  upIsGood: boolean
 }
 
-export function SummaryCards({ summary }: { summary: DashboardSummary }) {
+function TrendBadge({ value, prevValue, upIsGood, trendLabel }: { value: number; prevValue: number; upIsGood: boolean; trendLabel: string }) {
+  if (prevValue === 0) {
+    if (value === 0) return null
+    return <p className="mt-1 text-xs text-muted-foreground">novo vs {trendLabel}</p>
+  }
+
+  const pct = ((value - prevValue) / Math.abs(prevValue)) * 100
+  const isUp = pct > 0
+  const isGood = pct === 0 ? null : isUp === upIsGood
+  const color = isGood === null ? undefined : isGood ? '#059669' : 'var(--destructive)'
+  const Icon = isUp ? ArrowUpRight : ArrowDownRight
+
+  return (
+    <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+      {pct !== 0 && <Icon className="h-3 w-3 shrink-0" style={{ color }} />}
+      <span style={{ color }}>{Math.abs(pct).toFixed(0)}%</span>
+      vs {trendLabel}
+    </p>
+  )
+}
+
+export function SummaryCards({
+  summary,
+  previous,
+  trendLabel = 'período anterior',
+}: {
+  summary: DashboardSummary
+  previous?: DashboardSummary
+  trendLabel?: string
+}) {
   const cards: KpiCard[] = [
-    { title: 'Receitas', value: summary.totalIncome, icon: TrendingUp },
-    { title: 'Despesas', value: summary.totalExpense, icon: TrendingDown },
-    { title: 'Investimentos', value: summary.totalInvestment, icon: BarChart3 },
+    { title: 'Receitas', value: summary.totalIncome, prevValue: previous?.totalIncome ?? 0, icon: TrendingUp, upIsGood: true },
+    { title: 'Despesas', value: summary.totalExpense, prevValue: previous?.totalExpense ?? 0, icon: TrendingDown, upIsGood: false },
+    { title: 'Investimentos', value: summary.totalInvestment, prevValue: previous?.totalInvestment ?? 0, icon: BarChart3, upIsGood: true },
     {
       title: 'Saldo',
       value: summary.balance,
+      prevValue: previous?.balance ?? 0,
       icon: Wallet,
       valueColor: summary.balance >= 0 ? '#059669' : 'var(--destructive)',
+      upIsGood: true,
     },
   ]
 
@@ -40,6 +74,9 @@ export function SummaryCards({ summary }: { summary: DashboardSummary }) {
           >
             {formatCurrency(card.value)}
           </p>
+          {previous && (
+            <TrendBadge value={card.value} prevValue={card.prevValue} upIsGood={card.upIsGood} trendLabel={trendLabel} />
+          )}
         </div>
       ))}
     </div>

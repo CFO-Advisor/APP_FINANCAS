@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { SummaryCards } from '@/components/dashboard/summary-cards'
+import { DashboardAlerts } from '@/components/dashboard/dashboard-alerts'
 import { CategoryChart } from '@/components/dashboard/category-chart'
 import { IncomeCategoryChart } from '@/components/dashboard/income-category-chart'
 import { InvestmentCategoryChart } from '@/components/dashboard/investment-category-chart'
@@ -38,6 +39,7 @@ export default function DashboardPage() {
   const [investmentGroupBalances, setInvestmentGroupBalances] = useState<InvestmentGroupBalance[]>([])
   const [assetsData, setAssetsData] = useState<Pick<Asset, 'group_type' | 'value'>[]>([])
   const [debtsData, setDebtsData] = useState<Pick<Debt, 'group_type' | 'total_amount' | 'monthly_amount' | 'installments_paid' | 'status'>[]>([])
+  const [previousSummary, setPreviousSummary] = useState<DashboardSummary>({ totalIncome: 0, totalExpense: 0, totalInvestment: 0, balance: 0 })
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState<ViewMode>('monthly')
   const [month, setMonth] = useState(new Date().getMonth() + 1)
@@ -54,7 +56,17 @@ export default function DashboardPage() {
       ? `${year}-12-31`
       : `${year}-${String(month).padStart(2, '0')}-${new Date(year, month, 0).getDate()}`
 
-    const [txRes, budgetsRes, banksRes, allTxRes, cardsRes, allCardTxRes, allInvTxRes, invSettingsRes, assetsRes, debtsRes] = await Promise.all([
+    // Previous period (previous month, or previous year in yearly view) — for KPI trend deltas
+    const prevMonth = month === 1 ? 12 : month - 1
+    const prevMonthYear = month === 1 ? year - 1 : year
+    const prevStartDate = viewMode === 'yearly'
+      ? `${year - 1}-01-01`
+      : `${prevMonthYear}-${String(prevMonth).padStart(2, '0')}-01`
+    const prevEndDate = viewMode === 'yearly'
+      ? `${year - 1}-12-31`
+      : `${prevMonthYear}-${String(prevMonth).padStart(2, '0')}-${new Date(prevMonthYear, prevMonth, 0).getDate()}`
+
+    const [txRes, budgetsRes, banksRes, allTxRes, cardsRes, allCardTxRes, allInvTxRes, invSettingsRes, assetsRes, debtsRes, prevTxRes] = await Promise.all([
       supabase
         .from('transactions')
         .select('*')
@@ -70,10 +82,27 @@ export default function DashboardPage() {
       supabase.from('investment_settings').select('group_key, initial_balance'),
       supabase.from('assets').select('group_type, value'),
       supabase.from('debts').select('group_type, total_amount, monthly_amount, installments_paid, status').neq('status', 'paid'),
+      supabase.from('transactions').select('type, amount').gte('date', prevStartDate).lte('date', prevEndDate),
     ])
 
     if (!txRes.error && txRes.data) setTransactions(txRes.data as Transaction[])
     if (!budgetsRes.error && budgetsRes.data) setBudgets(budgetsRes.data as Budget[])
+
+    if (!prevTxRes.error && prevTxRes.data) {
+      const prevTx = prevTxRes.data as Pick<Transaction, 'type' | 'amount'>[]
+      setPreviousSummary(
+        prevTx.reduce(
+          (acc, t) => {
+            if (t.type === 'income') acc.totalIncome += t.amount
+            else if (t.type === 'expense') acc.totalExpense += t.amount
+            else if (t.type === 'investment') acc.totalInvestment += t.amount
+            acc.balance = acc.totalIncome - acc.totalExpense
+            return acc
+          },
+          { totalIncome: 0, totalExpense: 0, totalInvestment: 0, balance: 0 }
+        )
+      )
+    }
 
     if (!banksRes.error && banksRes.data) {
       const rawBanks = banksRes.data as Bank[]
@@ -210,6 +239,7 @@ export default function DashboardPage() {
 
   const selectedMonthLabel = MONTHS.find((m) => m.value === month)?.label ?? ''
   const periodLabel = viewMode === 'yearly' ? String(year) : `${selectedMonthLabel} ${year}`
+  const trendLabel = viewMode === 'yearly' ? 'ano anterior' : 'mês anterior'
 
   return (
     <div className="space-y-6">
@@ -282,6 +312,9 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* Alerts — only rendered when there's something actionable */}
+      {!loading && <DashboardAlerts cards={cardBalances} budgetItems={budgetExpenseItems} />}
+
       {/* Summary Cards */}
       {loading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -290,7 +323,7 @@ export default function DashboardPage() {
           ))}
         </div>
       ) : (
-        <SummaryCards summary={summary} />
+        <SummaryCards summary={summary} previous={previousSummary} trendLabel={trendLabel} />
       )}
 
       {/* Three donut charts side by side */}
@@ -375,6 +408,26 @@ export default function DashboardPage() {
               </Link>
             </div>
           </div>
+
+          {/* Ativos vs Passivos proportion bar */}
+          {(totalAtivos + totalPassivos) > 0 && (
+            <div className="px-5 pt-4">
+              <div className="mb-1.5 flex justify-between text-[0.65rem] text-muted-foreground">
+                <span>Ativos {((totalAtivos / (totalAtivos + totalPassivos)) * 100).toFixed(0)}%</span>
+                <span>Passivos {((totalPassivos / (totalAtivos + totalPassivos)) * 100).toFixed(0)}%</span>
+              </div>
+              <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full"
+                  style={{ width: `${(totalAtivos / (totalAtivos + totalPassivos)) * 100}%`, backgroundColor: '#059669' }}
+                />
+                <div
+                  className="h-full"
+                  style={{ width: `${(totalPassivos / (totalAtivos + totalPassivos)) * 100}%`, backgroundColor: 'var(--destructive)' }}
+                />
+              </div>
+            </div>
+          )}
 
           {/* Two columns */}
           <div className="grid divide-y divide-border sm:grid-cols-2 sm:divide-x sm:divide-y-0">
