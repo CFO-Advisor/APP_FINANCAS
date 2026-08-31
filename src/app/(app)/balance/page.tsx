@@ -182,7 +182,7 @@ export default function BalancePage() {
           {/* Two-column layout */}
           <div className="grid gap-5 lg:grid-cols-2">
             {/* ATIVOS */}
-            <div className="rounded-xl border border-border bg-card overflow-hidden">
+            <div className="flex h-full flex-col rounded-xl border border-border bg-card overflow-hidden">
               {/* Header */}
               <div className="flex items-center gap-3 border-b border-border px-5 py-4">
                 <span
@@ -224,7 +224,7 @@ export default function BalancePage() {
               </div>
 
               {/* Total footer */}
-              <div className="flex items-center justify-between border-t border-border bg-muted/30 px-5 py-3">
+              <div className="mt-auto flex items-center justify-between border-t border-border bg-muted/30 px-5 py-3">
                 <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Total Ativos</span>
                 <span className="text-base font-bold tabular-nums text-foreground">
                   {formatCurrency(ativos?.total ?? 0)}
