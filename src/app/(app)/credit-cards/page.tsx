@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import { Plus, Pencil, Trash2, Loader2, ChevronDown, ChevronUp, Upload, CreditCard as CreditCardLucide, Wallet, ShieldCheck, TrendingUp } from 'lucide-react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
@@ -65,24 +65,34 @@ export default function CreditCardsPage() {
   const [deleting, setDeleting] = useState(false)
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null)
 
-  const fetchData = useCallback(async () => {
-    setLoading(true)
-    const supabase = createClient()
+  const [reloadKey, setReloadKey] = useState(0)
+  const fetchData = () => setReloadKey((k) => k + 1)
 
-    const [cardsRes, txRes] = await Promise.all([
-      supabase.from('credit_cards').select('*').order('created_at'),
-      supabase.from('transactions').select('*').not('credit_card_id', 'is', null).order('date', { ascending: false }),
-    ])
+  useEffect(() => {
+    let ignore = false
 
-    const rawCards = (cardsRes.data ?? []) as CreditCard[]
-    const txs = (txRes.data ?? []) as Transaction[]
+    async function load() {
+      setLoading(true)
+      const supabase = createClient()
 
-    setAllTransactions(txs)
-    setCards(rawCards.map((c) => computeCardBalance(c, txs)))
-    setLoading(false)
-  }, [])
+      const [cardsRes, txRes] = await Promise.all([
+        supabase.from('credit_cards').select('*').order('created_at'),
+        supabase.from('transactions').select('*').not('credit_card_id', 'is', null).order('date', { ascending: false }),
+      ])
 
-  useEffect(() => { fetchData() }, [fetchData])
+      if (ignore) return
+
+      const rawCards = (cardsRes.data ?? []) as CreditCard[]
+      const txs = (txRes.data ?? []) as Transaction[]
+
+      setAllTransactions(txs)
+      setCards(rawCards.map((c) => computeCardBalance(c, txs)))
+      setLoading(false)
+    }
+
+    load()
+    return () => { ignore = true }
+  }, [reloadKey])
 
   async function confirmDelete() {
     if (!deleteTarget) return

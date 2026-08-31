@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { Banknote, BarChart2, Building2, Coins, Package, Wallet, Pencil, Loader2, type LucideIcon } from 'lucide-react'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 import { toast } from 'sonner'
@@ -84,34 +84,39 @@ export default function InvestmentsPage() {
 
   const selectedMonthLabel = MONTHS.find((m) => m.value === month)?.label ?? ''
 
-  const fetchData = useCallback(async () => {
-    setLoading(true)
-    const supabase = createClient()
-    const lastDay = new Date(year, month, 0).getDate()
-    const endDate = `${year}-${String(month).padStart(2, '0')}-${lastDay}`
-
-    const [txRes, settingsRes] = await Promise.all([
-      supabase
-        .from('transactions')
-        .select('*')
-        .eq('type', 'investment')
-        .lte('date', endDate),
-      supabase.from('investment_settings').select('*'),
-    ])
-
-    setTransactions((txRes.data as Transaction[]) ?? [])
-
-    const balMap: Record<string, number> = {}
-    for (const s of (settingsRes.data ?? []) as { group_key: string; initial_balance: number }[]) {
-      balMap[s.group_key] = s.initial_balance
-    }
-    setInitialBalances(balMap)
-    setLoading(false)
-  }, [month, year])
-
   useEffect(() => {
+    let ignore = false
+
+    async function fetchData() {
+      setLoading(true)
+      const supabase = createClient()
+      const lastDay = new Date(year, month, 0).getDate()
+      const endDate = `${year}-${String(month).padStart(2, '0')}-${lastDay}`
+
+      const [txRes, settingsRes] = await Promise.all([
+        supabase
+          .from('transactions')
+          .select('*')
+          .eq('type', 'investment')
+          .lte('date', endDate),
+        supabase.from('investment_settings').select('*'),
+      ])
+
+      if (ignore) return
+
+      setTransactions((txRes.data as Transaction[]) ?? [])
+
+      const balMap: Record<string, number> = {}
+      for (const s of (settingsRes.data ?? []) as { group_key: string; initial_balance: number }[]) {
+        balMap[s.group_key] = s.initial_balance
+      }
+      setInitialBalances(balMap)
+      setLoading(false)
+    }
+
     fetchData()
-  }, [fetchData])
+    return () => { ignore = true }
+  }, [month, year])
 
   function openEdit(group: GroupDef) {
     setEditingGroup(group)

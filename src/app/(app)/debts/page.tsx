@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import { Plus, Pencil, Trash2, Loader2, TrendingDown, CheckCircle2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -44,18 +44,27 @@ export default function DebtsPage() {
   const [deleteTarget, setDeleteTarget] = useState<Debt | null>(null)
   const [deleting, setDeleting] = useState(false)
 
-  const fetchDebts = useCallback(async () => {
-    setLoading(true)
-    const supabase = createClient()
-    const { data, error } = await supabase
-      .from('debts')
-      .select('*')
-      .order('created_at', { ascending: false })
-    if (!error) setDebts((data ?? []) as Debt[])
-    setLoading(false)
-  }, [])
+  const [reloadKey, setReloadKey] = useState(0)
+  const fetchDebts = () => setReloadKey((k) => k + 1)
 
-  useEffect(() => { fetchDebts() }, [fetchDebts])
+  useEffect(() => {
+    let ignore = false
+
+    async function load() {
+      setLoading(true)
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from('debts')
+        .select('*')
+        .order('created_at', { ascending: false })
+      if (ignore) return
+      if (!error) setDebts((data ?? []) as Debt[])
+      setLoading(false)
+    }
+
+    load()
+    return () => { ignore = true }
+  }, [reloadKey])
 
   async function togglePaid(debt: Debt) {
     const newStatus: DebtStatus = debt.status === 'paid' ? 'active' : 'paid'

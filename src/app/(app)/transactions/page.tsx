@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { Plus, FileDown, Loader2, Upload } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { TransactionFilters } from '@/components/transactions/transaction-filters'
@@ -57,34 +57,42 @@ export default function TransactionsPage() {
   const [type, setType] = useState('all')
   const [search, setSearch] = useState('')
 
-  const fetchTransactions = useCallback(async () => {
-    setLoading(true)
-    const supabase = createClient()
-
-    const startDate = `${year}-${String(month).padStart(2, '0')}-01`
-    const lastDay = new Date(year, month, 0).getDate()
-    const endDate = `${year}-${String(month).padStart(2, '0')}-${lastDay}`
-
-    const [txRes, banksRes, cardsRes] = await Promise.all([
-      supabase
-        .from('transactions')
-        .select('*')
-        .gte('date', startDate)
-        .lte('date', endDate)
-        .order('date', { ascending: false }),
-      supabase.from('banks').select('*').order('name'),
-      supabase.from('credit_cards').select('*').order('name'),
-    ])
-
-    if (!txRes.error && txRes.data) setTransactions(txRes.data as Transaction[])
-    if (!banksRes.error && banksRes.data) setBanks(banksRes.data as Bank[])
-    if (!cardsRes.error && cardsRes.data) setCreditCards(cardsRes.data as CreditCard[])
-    setLoading(false)
-  }, [month, year])
+  const [reloadKey, setReloadKey] = useState(0)
+  const fetchTransactions = () => setReloadKey((k) => k + 1)
 
   useEffect(() => {
-    fetchTransactions()
-  }, [fetchTransactions])
+    let ignore = false
+
+    async function load() {
+      setLoading(true)
+      const supabase = createClient()
+
+      const startDate = `${year}-${String(month).padStart(2, '0')}-01`
+      const lastDay = new Date(year, month, 0).getDate()
+      const endDate = `${year}-${String(month).padStart(2, '0')}-${lastDay}`
+
+      const [txRes, banksRes, cardsRes] = await Promise.all([
+        supabase
+          .from('transactions')
+          .select('*')
+          .gte('date', startDate)
+          .lte('date', endDate)
+          .order('date', { ascending: false }),
+        supabase.from('banks').select('*').order('name'),
+        supabase.from('credit_cards').select('*').order('name'),
+      ])
+
+      if (ignore) return
+
+      if (!txRes.error && txRes.data) setTransactions(txRes.data as Transaction[])
+      if (!banksRes.error && banksRes.data) setBanks(banksRes.data as Bank[])
+      if (!cardsRes.error && cardsRes.data) setCreditCards(cardsRes.data as CreditCard[])
+      setLoading(false)
+    }
+
+    load()
+    return () => { ignore = true }
+  }, [reloadKey, month, year])
 
   const filtered = useMemo(() => {
     return transactions.filter((t) => {

@@ -370,18 +370,22 @@ function SelicCdi() {
   const [manualRate, setManualRate] = useState<string>('')
   const [result, setResult] = useState<{ montante: number; rendimento: number; taxaUsada: number } | null>(null)
 
-  async function loadRates() {
-    setLoadingRate(true)
-    setRateError(null)
-    const [selicRes, cdiRes] = await Promise.all([fetchSelicRate(), fetchCdiRate()])
-    if (selicRes.ok) setSelicRate(selicRes.data)
-    if (cdiRes.ok) setCdiRate(cdiRes.data)
-    if (!selicRes.ok && !cdiRes.ok) setRateError(selicRes.error)
-    setLoadingRate(false)
-  }
-
   useEffect(() => {
+    let ignore = false
+
+    async function loadRates() {
+      setLoadingRate(true)
+      setRateError(null)
+      const [selicRes, cdiRes] = await Promise.all([fetchSelicRate(), fetchCdiRate()])
+      if (ignore) return
+      if (selicRes.ok) setSelicRate(selicRes.data)
+      if (cdiRes.ok) setCdiRate(cdiRes.data)
+      if (!selicRes.ok && !cdiRes.ok) setRateError(selicRes.error)
+      setLoadingRate(false)
+    }
+
     loadRates()
+    return () => { ignore = true }
   }, [])
 
   const activeAnnualRate = (() => {
@@ -670,21 +674,28 @@ function Cambio() {
   const [rateError, setRateError] = useState<string | null>(null)
   const [result, setResult] = useState<{ convertido: number; taxa: number } | null>(null)
 
-  async function loadRates() {
-    setLoadingRates(true)
-    setRateError(null)
-    const res = await fetchExchangeRates()
-    if (res.ok) {
-      setRates(res.data)
-    } else {
-      setRateError(res.error)
-    }
-    setLoadingRates(false)
-  }
+  const [reloadKey, setReloadKey] = useState(0)
+  const loadRates = () => setReloadKey((k) => k + 1)
 
   useEffect(() => {
-    loadRates()
-  }, [])
+    let ignore = false
+
+    async function load() {
+      setLoadingRates(true)
+      setRateError(null)
+      const res = await fetchExchangeRates()
+      if (ignore) return
+      if (res.ok) {
+        setRates(res.data)
+      } else {
+        setRateError(res.error)
+      }
+      setLoadingRates(false)
+    }
+
+    load()
+    return () => { ignore = true }
+  }, [reloadKey])
 
   function converter() {
     const V = parseFloat(valor)
