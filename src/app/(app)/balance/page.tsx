@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Loader2, Landmark, TrendingUp, Package2, ScrollText, CreditCard, AlertCircle, ArrowUpRight, Wallet } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -29,7 +29,10 @@ export default function BalancePage() {
   const [ativos, setAtivos] = useState<BalanceSide | null>(null)
   const [passivos, setPassivos] = useState<BalanceSide | null>(null)
 
-  const load = useCallback(async () => {
+  useEffect(() => {
+    let ignore = false
+
+    async function load() {
     const supabase = createClient()
 
     const [
@@ -130,12 +133,15 @@ export default function BalancePage() {
     ]
     const passivosTotal = cardOutstanding + loanRemaining + billsMonthly + otherTotal
 
+    if (ignore) return
     setAtivos({ title: 'Ativos', accent: '#059669', lines: ativosLines, total: ativosTotal })
     setPassivos({ title: 'Passivos', accent: 'var(--destructive)', lines: passivosLines, total: passivosTotal })
     setLoading(false)
-  }, [])
+    }
 
-  useEffect(() => { load() }, [load])
+    load()
+    return () => { ignore = true }
+  }, [])
 
   const patrimonioLiquido = (ativos?.total ?? 0) - (passivos?.total ?? 0)
   const isPositive = patrimonioLiquido >= 0
