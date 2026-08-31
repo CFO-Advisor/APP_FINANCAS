@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -52,7 +52,11 @@ export function BudgetFormDialog({
 
   const activeGroups = type === 'expense' ? EXPENSE_CATEGORY_GROUPS : INCOME_CATEGORY_GROUPS
 
-  useEffect(() => {
+  // Reset the form whenever the dialog opens/closes or the target budget changes.
+  // Done during render (not an effect) — https://react.dev/learn/you-might-not-need-an-effect
+  const [lastSync, setLastSync] = useState<{ budget: Budget | null | undefined; open: boolean }>({ budget, open })
+  if (lastSync.budget !== budget || lastSync.open !== open) {
+    setLastSync({ budget, open })
     if (budget) {
       setType(budget.type === 'investment' || budget.type === 'credit_card_payment' ? 'expense' : budget.type)
       setCategory(budget.category)
@@ -62,7 +66,7 @@ export function BudgetFormDialog({
       setCategory(EXPENSE_CATEGORY_GROUPS[0].categories[0])
       setAmount(0)
     }
-  }, [budget, open])
+  }
 
   function handleTypeChange(newType: 'expense' | 'income') {
     const groups = newType === 'expense' ? EXPENSE_CATEGORY_GROUPS : INCOME_CATEGORY_GROUPS
