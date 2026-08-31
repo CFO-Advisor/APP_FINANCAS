@@ -179,45 +179,6 @@ export default function BalancePage() {
         </div>
       ) : (
         <>
-          {/* Patrimônio Líquido hero */}
-          <div
-            className="rounded-2xl border border-border bg-card px-6 py-6"
-          >
-            <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-              Patrimônio Líquido
-            </p>
-            <p
-              className="text-4xl font-bold tabular-nums"
-              style={{ color: isPositive ? '#059669' : 'var(--destructive)' }}
-            >
-              {formatCurrency(patrimonioLiquido)}
-            </p>
-            <p className="mt-2 text-sm text-muted-foreground">
-              {isPositive
-                ? `Ativos superam passivos em ${formatCurrency(patrimonioLiquido)}`
-                : `Passivos superam ativos em ${formatCurrency(Math.abs(patrimonioLiquido))}`}
-            </p>
-
-            {/* Mini progress bar showing ativos vs passivos */}
-            {ativos && passivos && ativos.total + passivos.total > 0 && (
-              <div className="mt-4">
-                <div className="mb-1 flex justify-between text-xs text-muted-foreground">
-                  <span>Ativos: {formatCurrency(ativos.total)}</span>
-                  <span>Passivos: {formatCurrency(passivos.total)}</span>
-                </div>
-                <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                  <div
-                    className="h-full rounded-full transition-all"
-                    style={{
-                      width: `${Math.min(100, (ativos.total / (ativos.total + passivos.total)) * 100)}%`,
-                      background: 'linear-gradient(90deg, #059669, var(--primary))',
-                    }}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-
           {/* Two-column layout */}
           <div className="grid gap-5 lg:grid-cols-2">
             {/* ATIVOS */}
@@ -373,31 +334,6 @@ export default function BalancePage() {
             </div>
           </div>
 
-          {/* Net worth summary bar */}
-          <div className="rounded-xl border border-border bg-card px-5 py-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                <span>
-                  <span className="font-medium text-foreground">Ativos:</span>{' '}
-                  {formatCurrency(ativos?.total ?? 0)}
-                </span>
-                <span className="text-border">−</span>
-                <span>
-                  <span className="font-medium text-foreground">Passivos:</span>{' '}
-                  {formatCurrency(passivos?.total ?? 0)}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">=</span>
-                <span
-                  className="text-xl font-bold tabular-nums"
-                  style={{ color: isPositive ? '#059669' : 'var(--destructive)' }}
-                >
-                  {formatCurrency(patrimonioLiquido)}
-                </span>
-              </div>
-            </div>
-          </div>
         </>
       )}
     </div>
