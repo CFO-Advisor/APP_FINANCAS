@@ -1,15 +1,20 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useSyncExternalStore } from 'react'
 import { useTheme } from 'next-themes'
 import { Sun, Moon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
+const emptySubscribe = () => () => {}
+
+/** True only after hydration — avoids a manual mounted-flag effect. */
+function useIsClient() {
+  return useSyncExternalStore(emptySubscribe, () => true, () => false)
+}
+
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme()
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => setMounted(true), [])
+  const mounted = useIsClient()
 
   if (!mounted) return <div className="h-8 w-8" />
 

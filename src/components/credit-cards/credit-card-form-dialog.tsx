@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -44,7 +44,12 @@ export function CreditCardFormDialog({ open, onOpenChange, card, onSuccess }: Cr
   const [closingDay, setClosingDay] = useState(5)
   const [dueDay, setDueDay] = useState(15)
 
-  useEffect(() => {
+  // Reset the form whenever the dialog opens/closes or the target card changes.
+  // Done during render (not an effect) — the recommended pattern for syncing
+  // state to props: https://react.dev/learn/you-might-not-need-an-effect
+  const [lastSync, setLastSync] = useState<{ card: CreditCard | null | undefined; open: boolean }>({ card, open })
+  if (lastSync.card !== card || lastSync.open !== open) {
+    setLastSync({ card, open })
     if (card) {
       setName(card.name)
       setBrand(card.brand)
@@ -60,7 +65,7 @@ export function CreditCardFormDialog({ open, onOpenChange, card, onSuccess }: Cr
       setClosingDay(5)
       setDueDay(15)
     }
-  }, [card, open])
+  }
 
   function handleBrandChange(b: CardBrand) {
     setBrand(b)
