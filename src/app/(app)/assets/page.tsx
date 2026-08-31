@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import { Plus, Pencil, Trash2, Loader2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -28,19 +28,28 @@ export default function AssetsPage() {
   const [deleteTarget, setDeleteTarget] = useState<Asset | null>(null)
   const [deleting, setDeleting] = useState(false)
 
-  const fetchAssets = useCallback(async () => {
-    setLoading(true)
-    const supabase = createClient()
-    const { data, error } = await supabase
-      .from('assets')
-      .select('*')
-      .order('group_type')
-      .order('created_at', { ascending: false })
-    if (!error) setAssets((data ?? []) as Asset[])
-    setLoading(false)
-  }, [])
+  const [reloadKey, setReloadKey] = useState(0)
+  const fetchAssets = () => setReloadKey((k) => k + 1)
 
-  useEffect(() => { fetchAssets() }, [fetchAssets])
+  useEffect(() => {
+    let ignore = false
+
+    async function load() {
+      setLoading(true)
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from('assets')
+        .select('*')
+        .order('group_type')
+        .order('created_at', { ascending: false })
+      if (ignore) return
+      if (!error) setAssets((data ?? []) as Asset[])
+      setLoading(false)
+    }
+
+    load()
+    return () => { ignore = true }
+  }, [reloadKey])
 
   async function confirmDelete() {
     if (!deleteTarget) return
