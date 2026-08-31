@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
-import { Loader2, Landmark, TrendingUp, Package2, ScrollText, CreditCard, AlertCircle, ArrowUpRight } from 'lucide-react'
+import { Loader2, Landmark, TrendingUp, Package2, ScrollText, CreditCard, AlertCircle, ArrowUpRight, Wallet } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { formatCurrency } from '@/lib/csv-export'
 import type { Bank, Transaction, CreditCard as CreditCardType, Debt, Asset } from '@/lib/types'
@@ -319,11 +319,55 @@ export default function BalancePage() {
                 ))}
               </div>
 
-              {/* Total footer */}
+              {/* Subtotal footer */}
               <div className="flex items-center justify-between border-t border-border bg-muted/30 px-5 py-3">
                 <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Total Passivos</span>
                 <span className="text-base font-bold tabular-nums text-foreground">
                   {formatCurrency(passivos?.total ?? 0)}
+                </span>
+              </div>
+
+              {/* PATRIMÔNIO LÍQUIDO — plug group that closes the balance sheet */}
+              <div className="flex items-center gap-3 border-t border-border px-5 py-4">
+                <span
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-muted-foreground"
+                >
+                  <Wallet className="h-4 w-4" />
+                </span>
+                <span className="font-semibold">Patrimônio Líquido</span>
+                <span
+                  className="ml-auto text-sm font-bold tabular-nums"
+                  style={{ color: isPositive ? '#059669' : 'var(--destructive)' }}
+                >
+                  {formatCurrency(patrimonioLiquido)}
+                </span>
+              </div>
+
+              <div className="divide-y divide-border px-5">
+                <div className="flex items-center gap-3 py-3">
+                  <span
+                    className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground"
+                  >
+                    <TrendingUp className="h-3.5 w-3.5" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium">Superávit/Déficit Acumulado</p>
+                    <p className="text-xs text-muted-foreground">Resultado acumulado (Ativos − Passivos)</p>
+                  </div>
+                  <span
+                    className="tabular-nums text-sm font-semibold"
+                    style={{ color: isPositive ? '#059669' : 'var(--destructive)' }}
+                  >
+                    {formatCurrency(patrimonioLiquido)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Grand total — must equal Total Ativos */}
+              <div className="flex items-center justify-between border-t border-border bg-muted/30 px-5 py-3">
+                <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Total Passivo + PL</span>
+                <span className="text-base font-bold tabular-nums text-foreground">
+                  {formatCurrency((passivos?.total ?? 0) + patrimonioLiquido)}
                 </span>
               </div>
             </div>
