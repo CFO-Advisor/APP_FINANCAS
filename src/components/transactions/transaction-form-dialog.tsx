@@ -93,7 +93,11 @@ export function TransactionFormDialog({
   const activeGroups = getCategoryGroups(form.type)
   const customCats = getCustomCats(form.type)
 
-  useEffect(() => {
+  // Reset the form whenever the dialog opens/closes or the target transaction changes.
+  // Done during render (not an effect) — https://react.dev/learn/you-might-not-need-an-effect
+  const [lastSync, setLastSync] = useState<{ transaction: Transaction | null | undefined; open: boolean }>({ transaction, open })
+  if (lastSync.transaction !== transaction || lastSync.open !== open) {
+    setLastSync({ transaction, open })
     setShowNewCat(false)
     setNewCatName('')
     if (transaction) {
@@ -111,7 +115,7 @@ export function TransactionFormDialog({
       setBankId('none')
       setCreditCardId('none')
     }
-  }, [transaction, open])
+  }
 
   useEffect(() => {
     if (showNewCat) setTimeout(() => newCatInputRef.current?.focus(), 50)

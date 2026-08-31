@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -54,26 +54,33 @@ export function DebtFormDialog({ open, onOpenChange, debt, onSuccess }: DebtForm
   const [form, setForm] = useState(emptyForm)
   const [saving, setSaving] = useState(false)
 
-  useEffect(() => {
-    if (!open) return
-    if (debt) {
-      setForm({
-        group_type: debt.group_type,
-        category: debt.category,
-        description: debt.description,
-        total_amount: String(debt.total_amount),
-        monthly_amount: String(debt.monthly_amount),
-        installments_total: debt.installments_total != null ? String(debt.installments_total) : '',
-        installments_paid:  debt.installments_paid  != null ? String(debt.installments_paid)  : '',
-        due_day:    debt.due_day   != null ? String(debt.due_day)   : '',
-        start_date: debt.start_date ?? '',
-        status: debt.status,
-        notes:  debt.notes ?? '',
-      })
-    } else {
-      setForm({ ...emptyForm, category: DEBT_GROUP_DEFS[0].categories[0] })
+  // Reset the form whenever the dialog opens/closes or the target debt changes.
+  // Done during render (not an effect) — https://react.dev/learn/you-might-not-need-an-effect
+  // Mirrors the original effect's `if (!open) return` guard: the sync is tracked
+  // on every open/debt change, but the form is only actually reset while open.
+  const [lastSync, setLastSync] = useState<{ open: boolean; debt: Debt | null }>({ open, debt })
+  if (lastSync.open !== open || lastSync.debt !== debt) {
+    setLastSync({ open, debt })
+    if (open) {
+      if (debt) {
+        setForm({
+          group_type: debt.group_type,
+          category: debt.category,
+          description: debt.description,
+          total_amount: String(debt.total_amount),
+          monthly_amount: String(debt.monthly_amount),
+          installments_total: debt.installments_total != null ? String(debt.installments_total) : '',
+          installments_paid:  debt.installments_paid  != null ? String(debt.installments_paid)  : '',
+          due_day:    debt.due_day   != null ? String(debt.due_day)   : '',
+          start_date: debt.start_date ?? '',
+          status: debt.status,
+          notes:  debt.notes ?? '',
+        })
+      } else {
+        setForm({ ...emptyForm, category: DEBT_GROUP_DEFS[0].categories[0] })
+      }
     }
-  }, [open, debt])
+  }
 
   const groupDef = DEBT_GROUP_DEFS.find((g) => g.key === form.group_type)!
 
