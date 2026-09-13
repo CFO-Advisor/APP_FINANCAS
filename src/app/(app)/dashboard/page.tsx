@@ -41,6 +41,7 @@ export default function DashboardPage() {
   const [debtsData, setDebtsData] = useState<Pick<Debt, 'group_type' | 'total_amount' | 'monthly_amount' | 'installments_paid' | 'status'>[]>([])
   const [previousSummary, setPreviousSummary] = useState<DashboardSummary>({ totalIncome: 0, totalExpense: 0, totalInvestment: 0, balance: 0 })
   const [loading, setLoading] = useState(true)
+  const [updatedAt, setUpdatedAt] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<ViewMode>('monthly')
   const [month, setMonth] = useState(new Date().getMonth() + 1)
   const [year, setYear] = useState(currentYear)
@@ -154,6 +155,7 @@ export default function DashboardPage() {
     if (!assetsRes.error && assetsRes.data) setAssetsData(assetsRes.data as Pick<Asset, 'group_type' | 'value'>[])
     if (!debtsRes.error && debtsRes.data) setDebtsData(debtsRes.data as Pick<Debt, 'group_type' | 'total_amount' | 'monthly_amount' | 'installments_paid' | 'status'>[])
 
+    setUpdatedAt(new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }))
     setLoading(false)
     }
 
@@ -256,6 +258,7 @@ export default function DashboardPage() {
           <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
           <p className="text-sm text-muted-foreground">
             Resumo financeiro de {periodLabel}
+            {updatedAt && <span className="text-muted-foreground/70"> · atualizado às {updatedAt}</span>}
           </p>
         </div>
 
