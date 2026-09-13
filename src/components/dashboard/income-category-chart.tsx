@@ -3,6 +3,7 @@
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatCurrency } from '@/lib/csv-export'
+import { summarizeDonutData } from '@/components/dashboard/donut-summary'
 
 interface IncomeCategoryChartProps {
   data: { name: string; value: number }[]
@@ -57,6 +58,8 @@ export function IncomeCategoryChart({ data }: IncomeCategoryChartProps) {
     color: INCOME_COLORS[i % INCOME_COLORS.length],
   }))
 
+  const slices = summarizeDonutData(dataWithColors)
+
   return (
     <Card className="shadow-sm">
       <CardHeader>
@@ -70,7 +73,7 @@ export function IncomeCategoryChart({ data }: IncomeCategoryChartProps) {
           <ResponsiveContainer width="100%" height={280}>
             <PieChart>
               <Pie
-                data={dataWithColors}
+                data={slices}
                 cx="50%"
                 cy="50%"
                 innerRadius={72}
@@ -79,7 +82,7 @@ export function IncomeCategoryChart({ data }: IncomeCategoryChartProps) {
                 dataKey="value"
                 nameKey="name"
               >
-                {dataWithColors.map((entry, index) => (
+                {slices.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} strokeWidth={0} />
                 ))}
               </Pie>

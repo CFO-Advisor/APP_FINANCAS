@@ -31,6 +31,17 @@ const YEARS = Array.from({ length: 6 }, (_, i) => currentYear - i)
 
 type ViewMode = 'monthly' | 'yearly'
 
+/** Dias já decorridos do período selecionado (mês ou ano), limitados a hoje. */
+function daysElapsedInPeriod(viewMode: ViewMode, month: number, year: number): number {
+  const today = new Date()
+  const start = viewMode === 'yearly' ? new Date(year, 0, 1) : new Date(year, month - 1, 1)
+  const lastDay = viewMode === 'yearly' ? 31 : new Date(year, month, 0).getDate()
+  const end = viewMode === 'yearly' ? new Date(year, 11, 31) : new Date(year, month - 1, lastDay)
+  if (today < start) return 0
+  const effectiveEnd = today < end ? today : end
+  return Math.floor((effectiveEnd.getTime() - start.getTime()) / 86_400_000) + 1
+}
+
 export default function DashboardPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [budgets, setBudgets] = useState<Budget[]>([])
@@ -173,6 +184,13 @@ export default function DashboardPage() {
     },
     { totalIncome: 0, totalExpense: 0, totalInvestment: 0, balance: 0 }
   )
+
+  const daysElapsed = daysElapsedInPeriod(viewMode, month, year)
+  const dailyAvg = {
+    income: daysElapsed > 0 ? summary.totalIncome / daysElapsed : 0,
+    expense: daysElapsed > 0 ? summary.totalExpense / daysElapsed : 0,
+    investment: daysElapsed > 0 ? summary.totalInvestment / daysElapsed : 0,
+  }
 
   const categoryTotals: CategoryTotal[] = Object.entries(
     transactions
@@ -339,7 +357,7 @@ export default function DashboardPage() {
           ))}
         </div>
       ) : (
-        <SummaryCards summary={summary} previous={previousSummary} trendLabel={trendLabel} />
+        <SummaryCards summary={summary} previous={previousSummary} trendLabel={trendLabel} dailyAvg={dailyAvg} />
       )}
 
       {/* Three donut charts side by side */}

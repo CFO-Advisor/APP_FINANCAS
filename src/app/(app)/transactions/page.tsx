@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 import { Plus, FileDown, Loader2, Upload } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { TransactionFilters } from '@/components/transactions/transaction-filters'
@@ -59,6 +59,7 @@ export default function TransactionsPage() {
 
   const [reloadKey, setReloadKey] = useState(0)
   const fetchTransactions = () => setReloadKey((k) => k + 1)
+  const urlTypeApplied = useRef(false)
 
   useEffect(() => {
     let ignore = false
@@ -66,6 +67,14 @@ export default function TransactionsPage() {
     async function load() {
       setLoading(true)
       const supabase = createClient()
+
+      // Filtro de tipo vindo da URL (cards do dashboard → /transactions?type=expense),
+      // aplicado uma única vez para não sobrescrever a escolha manual do usuário.
+      if (!urlTypeApplied.current) {
+        const t = new URLSearchParams(window.location.search).get('type')
+        if (t === 'income' || t === 'expense' || t === 'investment' || t === 'credit_card_payment') setType(t)
+        urlTypeApplied.current = true
+      }
 
       const startDate = `${year}-${String(month).padStart(2, '0')}-01`
       const lastDay = new Date(year, month, 0).getDate()

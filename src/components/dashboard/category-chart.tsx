@@ -3,6 +3,7 @@
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatCurrency } from '@/lib/csv-export'
+import { summarizeDonutData } from '@/components/dashboard/donut-summary'
 import type { CategoryTotal } from '@/lib/types'
 
 interface CategoryChartProps {
@@ -47,6 +48,7 @@ export function CategoryChart({ data }: CategoryChartProps) {
   }
 
   const total = data.reduce((s, d) => s + d.value, 0)
+  const slices = summarizeDonutData(data)
 
   return (
     <Card className="shadow-sm">
@@ -61,7 +63,7 @@ export function CategoryChart({ data }: CategoryChartProps) {
           <ResponsiveContainer width="100%" height={280}>
             <PieChart>
               <Pie
-                data={data}
+                data={slices}
                 cx="50%"
                 cy="50%"
                 innerRadius={72}
@@ -70,7 +72,7 @@ export function CategoryChart({ data }: CategoryChartProps) {
                 dataKey="value"
                 nameKey="name"
               >
-                {data.map((entry, index) => (
+                {slices.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} strokeWidth={0} />
                 ))}
               </Pie>

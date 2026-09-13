@@ -3,6 +3,7 @@
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatCurrency } from '@/lib/csv-export'
+import { summarizeDonutData } from '@/components/dashboard/donut-summary'
 import type { CategoryTotal } from '@/lib/types'
 
 interface InvestmentCategoryChartProps {
@@ -31,6 +32,7 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Toolti
 
 export function InvestmentCategoryChart({ data }: InvestmentCategoryChartProps) {
   const total = data.reduce((s, d) => s + d.value, 0)
+  const slices = summarizeDonutData(data)
 
   if (data.length === 0) {
     return (
@@ -61,7 +63,7 @@ export function InvestmentCategoryChart({ data }: InvestmentCategoryChartProps) 
           <ResponsiveContainer width="100%" height={280}>
             <PieChart>
               <Pie
-                data={data}
+                data={slices}
                 cx="50%"
                 cy="50%"
                 innerRadius={72}
@@ -70,7 +72,7 @@ export function InvestmentCategoryChart({ data }: InvestmentCategoryChartProps) 
                 dataKey="value"
                 nameKey="name"
               >
-                {data.map((entry, index) => (
+                {slices.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} strokeWidth={0} />
                 ))}
               </Pie>
