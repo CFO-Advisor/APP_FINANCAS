@@ -45,7 +45,7 @@ export function DashboardAlerts({ cards, budgetItems }: DashboardAlertsProps) {
   return (
     <div
       className="rounded-lg border-l-4 bg-card px-4 py-3"
-      style={{ borderLeftColor: hasHigh ? 'var(--destructive)' : '#d97706' }}
+      style={{ borderLeftColor: hasHigh ? 'var(--destructive)' : 'var(--warning)' }}
     >
       <div className="space-y-1.5">
         {alerts.slice(0, 4).map((alert) => (
@@ -56,7 +56,7 @@ export function DashboardAlerts({ cards, budgetItems }: DashboardAlertsProps) {
           >
             <AlertCircle
               className="h-3.5 w-3.5 shrink-0"
-              style={{ color: alert.severity === 'high' ? 'var(--destructive)' : '#d97706' }}
+              style={{ color: alert.severity === 'high' ? 'var(--destructive)' : 'var(--warning)' }}
             />
             {alert.text}
           </Link>

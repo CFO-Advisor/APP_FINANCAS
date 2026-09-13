@@ -104,7 +104,7 @@ export function BankBalanceWidget({ banks }: BankBalanceWidgetProps) {
           )}
           <div>
             <p className="text-xs text-muted-foreground">Saldo Total</p>
-            <p className="text-2xl font-bold" style={{ color: totalBalance >= 0 ? '#059669' : 'var(--destructive)' }}>
+            <p className="text-2xl font-semibold tracking-tight" style={{ color: totalBalance >= 0 ? 'var(--positive)' : 'var(--destructive)' }}>
               {formatCurrency(totalBalance)}
             </p>
             <p className="text-xs text-muted-foreground">{banks.length} conta{banks.length !== 1 ? 's' : ''}</p>
@@ -121,7 +121,7 @@ export function BankBalanceWidget({ banks }: BankBalanceWidgetProps) {
                 <div className="mb-1 flex items-center gap-2 text-xs">
                   <BankIcon name={bank.name} color={bank.color} size="xs" />
                   <span className="flex-1 truncate font-medium">{bank.name}</span>
-                  <span className="shrink-0 font-semibold" style={{ color: negative ? 'var(--destructive)' : '#059669' }}>
+                  <span className="shrink-0 font-semibold" style={{ color: negative ? 'var(--destructive)' : 'var(--positive)' }}>
                     {formatCurrency(bank.balance)}
                   </span>
                 </div>

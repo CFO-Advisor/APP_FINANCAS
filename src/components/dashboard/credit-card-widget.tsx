@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { CreditCard, AlertCircle } from 'lucide-react'
+import { CreditCard, AlertCircle, ArrowRight } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { CreditCardIcon } from '@/components/credit-cards/credit-card-icon'
@@ -44,8 +44,8 @@ export function CreditCardWidget({ cards }: CreditCardWidgetProps) {
           Cartões de Crédito
         </CardTitle>
         <Link href="/credit-cards">
-          <Button variant="ghost" size="sm" className="text-xs" style={{ color: 'var(--primary)' }}>
-            Ver todos →
+          <Button variant="ghost" size="sm" className="flex items-center gap-1 text-primary">
+            Ver todos <ArrowRight className="h-3 w-3" />
           </Button>
         </Link>
       </CardHeader>
@@ -83,7 +83,7 @@ export function CreditCardWidget({ cards }: CreditCardWidgetProps) {
                         className="h-1.5 rounded-full transition-all"
                         style={{
                           width: `${Math.min(card.utilizationPct, 100)}%`,
-                          backgroundColor: card.utilizationPct > 80 ? 'var(--destructive)' : card.utilizationPct > 50 ? '#d97706' : 'var(--primary)',
+                          backgroundColor: card.utilizationPct > 80 ? 'var(--destructive)' : card.utilizationPct > 50 ? 'var(--warning)' : 'var(--primary)',
                         }}
                       />
                     </div>
@@ -93,11 +93,11 @@ export function CreditCardWidget({ cards }: CreditCardWidgetProps) {
                   </div>
                   <div className="mt-0.5 flex items-center gap-1">
                     {(isDueSoon || isOverdue) && (
-                      <AlertCircle className="h-3 w-3" style={{ color: isOverdue ? 'var(--destructive)' : '#d97706' }} />
+                      <AlertCircle className="h-3 w-3" style={{ color: isOverdue ? 'var(--destructive)' : 'var(--warning)' }} />
                     )}
                     <p
                       className="text-xs"
-                      style={{ color: isOverdue ? 'var(--destructive)' : isDueSoon ? '#d97706' : undefined, fontWeight: (isOverdue || isDueSoon) ? 500 : undefined }}
+                      style={{ color: isOverdue ? 'var(--destructive)' : isDueSoon ? 'var(--warning)' : undefined, fontWeight: (isOverdue || isDueSoon) ? 500 : undefined }}
                     >
                       Vence {format(dueDate, "dd 'de' MMM", { locale: ptBR })}
                       {isDueSoon && !isOverdue && ` (${daysUntilDue}d)`}

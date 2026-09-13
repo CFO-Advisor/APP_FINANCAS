@@ -22,7 +22,7 @@ function TrendBadge({ value, prevValue, upIsGood, trendLabel }: { value: number;
   const pct = ((value - prevValue) / Math.abs(prevValue)) * 100
   const isUp = pct > 0
   const isGood = pct === 0 ? null : isUp === upIsGood
-  const color = isGood === null ? undefined : isGood ? '#059669' : 'var(--destructive)'
+  const color = isGood === null ? undefined : isGood ? 'var(--positive)' : 'var(--destructive)'
   const Icon = isUp ? ArrowUpRight : ArrowDownRight
 
   return (
@@ -52,7 +52,7 @@ export function SummaryCards({
       value: summary.balance,
       prevValue: previous?.balance ?? 0,
       icon: Wallet,
-      valueColor: summary.balance >= 0 ? '#059669' : 'var(--destructive)',
+      valueColor: summary.balance >= 0 ? 'var(--positive)' : 'var(--destructive)',
       upIsGood: true,
     },
   ]
@@ -62,14 +62,16 @@ export function SummaryCards({
       {cards.map((card) => (
         <div
           key={card.title}
-          className="rounded-xl border border-border bg-card px-5 py-5 transition-colors duration-200 hover:border-foreground/20"
+          className="group rounded-xl border border-border bg-card px-5 py-5 transition-all duration-200 hover:border-foreground/25 hover:bg-card/70"
         >
-          <p className="mb-2.5 flex items-center gap-1.5 text-[0.7rem] font-medium uppercase tracking-[0.08em] text-muted-foreground">
-            <card.icon className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />
-            {card.title}
+          <p className="mb-3 flex items-center gap-2 text-[0.7rem] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+            <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-muted text-foreground/70 transition-colors duration-200 group-hover:bg-muted-foreground/10">
+              <card.icon className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />
+            </span>
+            <span className="truncate">{card.title}</span>
           </p>
           <p
-            className="text-[1.75rem] font-semibold leading-none tracking-tight tabular-nums text-foreground"
+            className="kpi-value text-[1.65rem] font-medium leading-none tracking-[-0.03em] text-foreground"
             style={card.valueColor ? { color: card.valueColor } : undefined}
           >
             {formatCurrency(card.value)}

@@ -253,7 +253,7 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Dashboard</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
           <p className="text-sm text-muted-foreground">
             Resumo financeiro de {periodLabel}
           </p>
@@ -402,8 +402,8 @@ export default function DashboardPage() {
               <div className="text-right">
                 <p className="text-xs text-muted-foreground">Patrimônio Líquido</p>
                 <p
-                  className="text-lg font-bold tabular-nums"
-                  style={{ color: patrimonioLiquido >= 0 ? '#059669' : 'var(--destructive)' }}
+                  className="text-lg font-semibold tracking-tight tabular-nums"
+                  style={{ color: patrimonioLiquido >= 0 ? 'var(--positive)' : 'var(--destructive)' }}
                 >
                   {formatCurrency(patrimonioLiquido)}
                 </p>
@@ -426,7 +426,7 @@ export default function DashboardPage() {
               <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-muted">
                 <div
                   className="h-full"
-                  style={{ width: `${(totalAtivos / (totalAtivos + totalPassivos)) * 100}%`, backgroundColor: '#059669' }}
+                  style={{ width: `${(totalAtivos / (totalAtivos + totalPassivos)) * 100}%`, backgroundColor: 'var(--positive)' }}
                 />
                 <div
                   className="h-full"
@@ -440,7 +440,7 @@ export default function DashboardPage() {
           <div className="grid divide-y divide-border sm:grid-cols-2 sm:divide-x sm:divide-y-0">
             {/* Ativos */}
             <div className="px-5 py-4">
-              <p className="mb-3 text-[0.65rem] font-bold uppercase tracking-widest" style={{ color: '#059669' }}>
+              <p className="mb-3 text-[0.65rem] font-bold uppercase tracking-widest" style={{ color: 'var(--positive)' }}>
                 Ativos
               </p>
               <div className="space-y-2.5">
@@ -461,7 +461,7 @@ export default function DashboardPage() {
               </div>
               <div className="mt-3 flex justify-between border-t border-border pt-2.5">
                 <span className="text-[0.65rem] font-bold uppercase tracking-widest text-muted-foreground">Total</span>
-                <span className="text-sm font-bold tabular-nums" style={{ color: '#059669' }}>{formatCurrency(totalAtivos)}</span>
+                <span className="text-sm font-semibold tabular-nums" style={{ color: 'var(--positive)' }}>{formatCurrency(totalAtivos)}</span>
               </div>
             </div>
 

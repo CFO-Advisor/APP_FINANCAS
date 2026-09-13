@@ -50,6 +50,8 @@ export function IncomeCategoryChart({ data }: IncomeCategoryChartProps) {
     )
   }
 
+  const total = data.reduce((s, d) => s + d.value, 0)
+
   const dataWithColors = data.map((item, i) => ({
     ...item,
     color: INCOME_COLORS[i % INCOME_COLORS.length],
@@ -64,30 +66,40 @@ export function IncomeCategoryChart({ data }: IncomeCategoryChartProps) {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={280}>
-          <PieChart>
-            <Pie
-              data={dataWithColors}
-              cx="50%"
-              cy="50%"
-              innerRadius={72}
-              outerRadius={105}
-              paddingAngle={2}
-              dataKey="value"
-              nameKey="name"
-            >
-              {dataWithColors.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.color} strokeWidth={0} />
-              ))}
-            </Pie>
-            <Tooltip content={<CustomTooltip />} />
-            <Legend
-              formatter={(value) => (
-                <span className="text-xs text-muted-foreground">{value}</span>
-              )}
-            />
-          </PieChart>
-        </ResponsiveContainer>
+        <div className="relative">
+          <ResponsiveContainer width="100%" height={280}>
+            <PieChart>
+              <Pie
+                data={dataWithColors}
+                cx="50%"
+                cy="50%"
+                innerRadius={72}
+                outerRadius={105}
+                paddingAngle={2}
+                dataKey="value"
+                nameKey="name"
+              >
+                {dataWithColors.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} strokeWidth={0} />
+                ))}
+              </Pie>
+              <Tooltip content={<CustomTooltip />} />
+              <Legend
+                formatter={(value) => (
+                  <span className="text-xs text-muted-foreground">{value}</span>
+                )}
+              />
+            </PieChart>
+          </ResponsiveContainer>
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+            <div className="text-center">
+              <p className="text-[0.6rem] font-medium uppercase tracking-widest text-muted-foreground">Total</p>
+              <p className="text-lg font-semibold tracking-tight tabular-nums text-foreground">
+                {formatCurrency(total)}
+              </p>
+            </div>
+          </div>
+        </div>
       </CardContent>
     </Card>
   )
