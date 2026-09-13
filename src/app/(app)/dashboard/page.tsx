@@ -391,7 +391,7 @@ export default function DashboardPage() {
       {loading ? (
         <div className="h-56 animate-pulse rounded-xl border border-border bg-card" />
       ) : (
-        <div className="overflow-hidden rounded-xl border border-border bg-card">
+        <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-border px-5 py-4">
             <div>

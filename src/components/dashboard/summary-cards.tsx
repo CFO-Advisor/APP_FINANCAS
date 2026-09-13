@@ -7,6 +7,8 @@ interface KpiCard {
   value: number
   prevValue: number
   icon: LucideIcon
+  /** Cor semântica do chip do ícone — acentua o card. */
+  chipColor: string
   /** Only set when the value itself carries a positive/negative signal (e.g. balance). */
   valueColor?: string
   /** For this KPI, does an increase mean things are better (true) or worse (false)? */
@@ -44,14 +46,15 @@ export function SummaryCards({
   trendLabel?: string
 }) {
   const cards: KpiCard[] = [
-    { title: 'Receitas', value: summary.totalIncome, prevValue: previous?.totalIncome ?? 0, icon: TrendingUp, upIsGood: true },
-    { title: 'Despesas', value: summary.totalExpense, prevValue: previous?.totalExpense ?? 0, icon: TrendingDown, upIsGood: false },
-    { title: 'Investimentos', value: summary.totalInvestment, prevValue: previous?.totalInvestment ?? 0, icon: BarChart3, upIsGood: true },
+    { title: 'Receitas', value: summary.totalIncome, prevValue: previous?.totalIncome ?? 0, icon: TrendingUp, chipColor: 'var(--positive)', upIsGood: true },
+    { title: 'Despesas', value: summary.totalExpense, prevValue: previous?.totalExpense ?? 0, icon: TrendingDown, chipColor: 'var(--destructive)', upIsGood: false },
+    { title: 'Investimentos', value: summary.totalInvestment, prevValue: previous?.totalInvestment ?? 0, icon: BarChart3, chipColor: 'var(--primary)', upIsGood: true },
     {
       title: 'Saldo',
       value: summary.balance,
       prevValue: previous?.balance ?? 0,
       icon: Wallet,
+      chipColor: summary.balance >= 0 ? 'var(--positive)' : 'var(--destructive)',
       valueColor: summary.balance >= 0 ? 'var(--positive)' : 'var(--destructive)',
       upIsGood: true,
     },
@@ -62,16 +65,22 @@ export function SummaryCards({
       {cards.map((card) => (
         <div
           key={card.title}
-          className="group rounded-xl border border-border bg-card px-5 py-5 transition-all duration-200 hover:border-foreground/25 hover:bg-card/70"
+          className="group rounded-xl border border-border bg-card px-5 py-5 shadow-sm transition-all duration-200 hover:border-foreground/25 hover:shadow-md"
         >
           <p className="mb-3 flex items-center gap-2 text-[0.7rem] font-medium uppercase tracking-[0.08em] text-muted-foreground">
-            <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-muted text-foreground/70 transition-colors duration-200 group-hover:bg-muted-foreground/10">
+            <span
+              className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-all duration-200 group-hover:scale-105"
+              style={{
+                backgroundColor: `color-mix(in srgb, ${card.chipColor} 12%, transparent)`,
+                color: card.chipColor,
+              }}
+            >
               <card.icon className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />
             </span>
             <span className="truncate">{card.title}</span>
           </p>
           <p
-            className="kpi-value text-[1.65rem] font-medium leading-none tracking-[-0.03em] text-foreground"
+            className="kpi-value text-[1.8rem] font-semibold leading-none tracking-[-0.03em] text-foreground"
             style={card.valueColor ? { color: card.valueColor } : undefined}
           >
             {formatCurrency(card.value)}

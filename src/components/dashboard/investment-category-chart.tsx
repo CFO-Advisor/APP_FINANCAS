@@ -85,7 +85,7 @@ export function InvestmentCategoryChart({ data }: InvestmentCategoryChartProps) 
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
             <div className="text-center">
               <p className="text-[0.6rem] font-medium uppercase tracking-widest text-muted-foreground">Total</p>
-              <p className="text-lg font-semibold tracking-tight tabular-nums text-foreground">
+              <p className="text-lg font-semibold tracking-tight tabular-nums" style={{ color: 'var(--primary)' }}>
                 {formatCurrency(total)}
               </p>
             </div>
