@@ -249,7 +249,7 @@ export default function DashboardPage() {
   const trendLabel = viewMode === 'yearly' ? 'ano anterior' : 'mês anterior'
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" aria-busy={loading}>
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -261,10 +261,15 @@ export default function DashboardPage() {
 
         <div className="flex items-center gap-2 flex-wrap">
           {/* View mode toggle */}
-          <div className="flex overflow-hidden rounded-lg border border-border text-sm font-medium">
+          <div
+            role="group"
+            aria-label="Período de visualização"
+            className="flex overflow-hidden rounded-lg border border-border text-sm font-medium"
+          >
             <button
               type="button"
               onClick={() => setViewMode('monthly')}
+              aria-pressed={viewMode === 'monthly'}
               className={`px-3 py-1.5 transition-colors ${
                 viewMode === 'monthly'
                   ? 'bg-primary text-primary-foreground'
@@ -276,6 +281,7 @@ export default function DashboardPage() {
             <button
               type="button"
               onClick={() => setViewMode('yearly')}
+              aria-pressed={viewMode === 'yearly'}
               className={`px-3 py-1.5 transition-colors border-l border-border ${
                 viewMode === 'yearly'
                   ? 'bg-primary text-primary-foreground'

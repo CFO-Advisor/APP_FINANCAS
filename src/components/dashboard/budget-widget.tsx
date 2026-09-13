@@ -70,6 +70,10 @@ function Section({
 
 export function BudgetWidget({ expenseItems, incomeItems }: BudgetWidgetProps) {
   const hasData = expenseItems.length > 0 || incomeItems.length > 0
+  const totalBudgeted = expenseItems.reduce((s, i) => s + i.budgeted, 0)
+  const totalActual = expenseItems.reduce((s, i) => s + i.actual, 0)
+  const overallPct = totalBudgeted > 0 ? (totalActual / totalBudgeted) * 100 : 0
+  const overallColor = overallPct > 100 ? 'var(--destructive)' : overallPct > 80 ? 'var(--warning)' : 'var(--positive)'
 
   return (
     <Card className="shadow-sm">
@@ -95,6 +99,23 @@ export function BudgetWidget({ expenseItems, incomeItems }: BudgetWidgetProps) {
           </div>
         ) : (
           <div className="space-y-5">
+            {totalBudgeted > 0 && (
+              <div>
+                <div className="mb-1 flex items-baseline justify-between text-xs">
+                  <span className="text-muted-foreground">Orçamento de despesas</span>
+                  <span className="font-medium text-foreground">
+                    {formatCurrency(totalActual)} / {formatCurrency(totalBudgeted)}
+                    <span className="ml-1 text-muted-foreground">({Math.round(overallPct)}%)</span>
+                  </span>
+                </div>
+                <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{ width: `${Math.min(overallPct, 100)}%, backgroundColor: overallColor` }}
+                  />
+                </div>
+              </div>
+            )}
             <Section title="Despesas" items={expenseItems} />
             <Section title="Receitas" items={incomeItems} green />
           </div>

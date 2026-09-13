@@ -57,7 +57,7 @@ export function InvestmentCategoryChart({ data }: InvestmentCategoryChartProps) 
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="relative">
+        <div className="relative" role="img" aria-label="Distribuição de investimentos por categoria">
           <ResponsiveContainer width="100%" height={280}>
             <PieChart>
               <Pie

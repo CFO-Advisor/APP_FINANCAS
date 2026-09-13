@@ -66,7 +66,7 @@ export function IncomeCategoryChart({ data }: IncomeCategoryChartProps) {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="relative">
+        <div className="relative" role="img" aria-label="Distribuição de receitas por categoria">
           <ResponsiveContainer width="100%" height={280}>
             <PieChart>
               <Pie
