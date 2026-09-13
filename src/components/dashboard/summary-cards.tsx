@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { TrendingUp, TrendingDown, Wallet, BarChart3, ArrowUpRight, ArrowDownRight, type LucideIcon } from 'lucide-react'
+import { TrendingUp, TrendingDown, Wallet, BarChart3, CalendarDays, ArrowUpRight, ArrowDownRight, type LucideIcon } from 'lucide-react'
 import { formatCurrency } from '@/lib/csv-export'
 import type { DashboardSummary } from '@/lib/types'
 
@@ -16,8 +16,10 @@ interface KpiCard {
   upIsGood: boolean
   /** Destino de detalhe ao clicar no card. */
   href: string
-  /** Média diária do período (fluxos de receita/despesa/investimento). */
-  dailyAvg?: number
+  /** Linha de contexto curta abaixo do valor (ex.: denominador da média). */
+  note?: string
+  /** True para métricas derivadas que não comparam com o período anterior. */
+  noTrend?: boolean
 }
 
 function TrendBadge({ value, prevValue, upIsGood, trendLabel }: { value: number; prevValue: number; upIsGood: boolean; trendLabel: string }) {
@@ -45,17 +47,21 @@ export function SummaryCards({
   summary,
   previous,
   trendLabel = 'período anterior',
-  dailyAvg,
+  expenseDailyAvg,
+  periodDays,
 }: {
   summary: DashboardSummary
   previous?: DashboardSummary
   trendLabel?: string
-  dailyAvg?: { income?: number; expense?: number; investment?: number }
+  /** Média diária de despesas do período (card dedicado). */
+  expenseDailyAvg?: number
+  /** Total de dias do período selecionado, usado como denominador da média. */
+  periodDays?: number
 }) {
   const cards: KpiCard[] = [
-    { title: 'Receitas', value: summary.totalIncome, prevValue: previous?.totalIncome ?? 0, icon: TrendingUp, chipColor: 'var(--positive)', upIsGood: true, href: '/transactions?type=income', dailyAvg: dailyAvg?.income },
-    { title: 'Despesas', value: summary.totalExpense, prevValue: previous?.totalExpense ?? 0, icon: TrendingDown, chipColor: 'var(--destructive)', upIsGood: false, href: '/transactions?type=expense', dailyAvg: dailyAvg?.expense },
-    { title: 'Investimentos', value: summary.totalInvestment, prevValue: previous?.totalInvestment ?? 0, icon: BarChart3, chipColor: 'var(--primary)', upIsGood: true, href: '/investments', dailyAvg: dailyAvg?.investment },
+    { title: 'Receitas', value: summary.totalIncome, prevValue: previous?.totalIncome ?? 0, icon: TrendingUp, chipColor: 'var(--positive)', upIsGood: true, href: '/transactions?type=income' },
+    { title: 'Despesas', value: summary.totalExpense, prevValue: previous?.totalExpense ?? 0, icon: TrendingDown, chipColor: 'var(--destructive)', upIsGood: false, href: '/transactions?type=expense' },
+    { title: 'Investimentos', value: summary.totalInvestment, prevValue: previous?.totalInvestment ?? 0, icon: BarChart3, chipColor: 'var(--primary)', upIsGood: true, href: '/investments' },
     {
       title: 'Saldo',
       value: summary.balance,
@@ -68,8 +74,22 @@ export function SummaryCards({
     },
   ]
 
+  if (expenseDailyAvg !== undefined) {
+    cards.push({
+      title: 'Média diária de gastos',
+      value: expenseDailyAvg,
+      prevValue: 0,
+      icon: CalendarDays,
+      chipColor: 'var(--destructive)',
+      upIsGood: true,
+      href: '/transactions?type=expense',
+      noTrend: true,
+      note: `sobre ${periodDays ?? 0} dias do período`,
+    })
+  }
+
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
       {cards.map((card) => (
         <Link
           key={card.title}
@@ -99,12 +119,10 @@ export function SummaryCards({
           >
             {formatCurrency(card.value)}
           </p>
-          {card.dailyAvg !== undefined && (
-            <p className="mt-1 text-xs text-muted-foreground tabular-nums">
-              média/dia · {formatCurrency(card.dailyAvg)}
-            </p>
+          {card.note && (
+            <p className="mt-1 text-xs text-muted-foreground">{card.note}</p>
           )}
-          {previous && (
+          {previous && !card.noTrend && (
             <TrendBadge value={card.value} prevValue={card.prevValue} upIsGood={card.upIsGood} trendLabel={trendLabel} />
           )}
         </Link>

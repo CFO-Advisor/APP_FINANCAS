@@ -31,15 +31,13 @@ const YEARS = Array.from({ length: 6 }, (_, i) => currentYear - i)
 
 type ViewMode = 'monthly' | 'yearly'
 
-/** Dias já decorridos do período selecionado (mês ou ano), limitados a hoje. */
-function daysElapsedInPeriod(viewMode: ViewMode, month: number, year: number): number {
-  const today = new Date()
-  const start = viewMode === 'yearly' ? new Date(year, 0, 1) : new Date(year, month - 1, 1)
-  const lastDay = viewMode === 'yearly' ? 31 : new Date(year, month, 0).getDate()
-  const end = viewMode === 'yearly' ? new Date(year, 11, 31) : new Date(year, month - 1, lastDay)
-  if (today < start) return 0
-  const effectiveEnd = today < end ? today : end
-  return Math.floor((effectiveEnd.getTime() - start.getTime()) / 86_400_000) + 1
+/** Total de dias do período selecionado (mês: 28-31; ano: 365/366 conforme bissexto). */
+function totalDaysInPeriod(viewMode: ViewMode, month: number, year: number): number {
+  if (viewMode === 'yearly') {
+    const isLeap = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0
+    return isLeap ? 366 : 365
+  }
+  return new Date(year, month, 0).getDate()
 }
 
 export default function DashboardPage() {
@@ -185,12 +183,8 @@ export default function DashboardPage() {
     { totalIncome: 0, totalExpense: 0, totalInvestment: 0, balance: 0 }
   )
 
-  const daysElapsed = daysElapsedInPeriod(viewMode, month, year)
-  const dailyAvg = {
-    income: daysElapsed > 0 ? summary.totalIncome / daysElapsed : 0,
-    expense: daysElapsed > 0 ? summary.totalExpense / daysElapsed : 0,
-    investment: daysElapsed > 0 ? summary.totalInvestment / daysElapsed : 0,
-  }
+  const totalDays = totalDaysInPeriod(viewMode, month, year)
+  const expenseDailyAvg = totalDays > 0 ? summary.totalExpense / totalDays : 0
 
   const categoryTotals: CategoryTotal[] = Object.entries(
     transactions
@@ -351,13 +345,13 @@ export default function DashboardPage() {
 
       {/* Summary Cards */}
       {loading ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {[1, 2, 3, 4].map((i) => (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+          {[1, 2, 3, 4, 5].map((i) => (
             <div key={i} className="h-28 animate-pulse rounded-lg bg-card border border-border" />
           ))}
         </div>
       ) : (
-        <SummaryCards summary={summary} previous={previousSummary} trendLabel={trendLabel} dailyAvg={dailyAvg} />
+        <SummaryCards summary={summary} previous={previousSummary} trendLabel={trendLabel} expenseDailyAvg={expenseDailyAvg} periodDays={totalDays} />
       )}
 
       {/* Three donut charts side by side */}
