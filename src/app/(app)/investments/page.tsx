@@ -22,6 +22,7 @@ import {
   SelectTrigger,
 } from '@/components/ui/select'
 import { createClient } from '@/lib/supabase/client'
+import { CarteiraPanel } from '@/components/carteira-panel'
 import { MONTHS, CATEGORY_COLORS } from '@/lib/constants'
 import { formatCurrency } from '@/lib/csv-export'
 import { toError } from '@/lib/utils'
@@ -229,6 +230,8 @@ export default function InvestmentsPage() {
           </Select>
         </div>
       </div>
+
+      <CarteiraPanel />
 
       {loading ? (
         <div className="space-y-4">
