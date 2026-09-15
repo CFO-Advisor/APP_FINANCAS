@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback } from 'react'
 import { toast } from 'sonner'
 import {
-  Upload, FileText, CheckCircle2, AlertCircle, Loader2, X, ChevronRight, ChevronLeft, FileDown,
+  Upload, FileText, CheckCircle2, AlertCircle, Loader2, X, ChevronRight, ChevronLeft, FileDown, Sparkles,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -34,6 +34,7 @@ import {
 } from '@/lib/import/parsers'
 import { extractStatementLines } from '@/lib/import/pdf'
 import { downloadImportTemplate } from '@/lib/excel-export'
+import { CATEGORIES } from '@/lib/constants'
 import type { Bank, CreditCard } from '@/lib/types'
 
 type Step = 'upload' | 'configure' | 'preview' | 'done'
@@ -75,6 +76,8 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
   const [loading, setLoading] = useState(false)
   const [importedCount, setImportedCount] = useState(0)
   const [errorCount, setErrorCount] = useState(0)
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiApplied, setAiApplied] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -87,6 +90,8 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
     setLoading(false)
     setImportedCount(0)
     setErrorCount(0)
+    setAiLoading(false)
+    setAiApplied(false)
   }
 
   function handleClose() {
@@ -169,6 +174,57 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
     const parsed = mapCSVRows(file.csvRows, fieldMap as CSVFieldMap)
     setFile((prev) => prev ? { ...prev, parsed } : prev)
     setStep('preview')
+  }
+
+  // Chama a rota server-side /api/ai/classify em lotes e aplica as categorias
+  // da IA sobre as linhas válidas. Best-effort: se falhar, mantém as regras.
+  async function runAiClassification() {
+    if (!file || aiLoading) return
+    const valid = file.parsed.filter((r) => !r.error)
+    if (valid.length === 0) return
+    setAiLoading(true)
+    try {
+      const BATCH = 120
+      const merged = new Map<number, string>()
+      for (let i = 0; i < valid.length; i += BATCH) {
+        const slice = valid.slice(i, i + BATCH)
+        const res = await fetch('/api/ai/classify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            items: slice.map((r, j) => ({ index: j, text: `${r.description} (${r.type === 'income' ? 'receita' : 'despesa'}, R$ ${r.amount.toFixed(2)})`, type: r.type })),
+          }),
+        })
+        if (!res.ok) break
+        const data = await res.json()
+        for (const [idx, cat] of Object.entries(data.categories ?? {})) {
+          merged.set(i + Number(idx), cat as string)
+        }
+      }
+      if (merged.size > 0) {
+        setFile((prev) => {
+          if (!prev) return prev
+          let vi = -1
+          return {
+            ...prev,
+            parsed: prev.parsed.map((r) => {
+              if (r.error) return r
+              vi++
+              const cat = merged.get(vi)
+              return cat ? { ...r, category: cat } : r
+            }),
+          }
+        })
+        setAiApplied(true)
+        toast.success(`IA classificou ${merged.size} transaç${merged.size !== 1 ? 'ões' : 'ão'}.`)
+      } else {
+        toast.info('IA indisponível agora — mantida a classificação por regras.')
+      }
+    } catch {
+      toast.info('IA indisponível agora — mantida a classificação por regras.')
+    } finally {
+      setAiLoading(false)
+    }
   }
 
   async function handleImport() {
@@ -347,7 +403,7 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
             {/* Preview of first row */}
             {file.csvRows[0] && (
               <div className="rounded-lg bg-muted/40 p-3 text-xs">
-                <p className="mb-1 font-medium text-muted-foreground">Prévia da 1ª linha:</p>
+                <p className="mb-1 font-medium text-muted-foreground">Prévia da 1ª linha — você pode recategorizar qualquer linha na próxima tela:</p>
                 <div className="flex flex-wrap gap-2">
                   {['date', 'description', 'amount', 'type'].map((field) => {
                     const col = fieldMap[field as keyof CSVFieldMap]
@@ -368,7 +424,7 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
         {/* Step: Preview */}
         {step === 'preview' && file && (
           <div className="space-y-3">
-            <div className="flex items-center gap-4 text-sm">
+            <div className="flex flex-wrap items-center gap-4 text-sm">
               <span className="flex items-center gap-1.5 text-emerald-600">
                 <CheckCircle2 className="h-4 w-4" />
                 {validCount} válida(s)
@@ -379,6 +435,16 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
                   {errorRows.length} erro(s)
                 </span>
               )}
+              <Button
+                variant="outline"
+                size="sm"
+                className="ml-auto gap-1.5 text-xs"
+                onClick={runAiClassification}
+                disabled={aiLoading || validCount === 0}
+              >
+                {aiLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                {aiLoading ? 'Classificando...' : aiApplied ? 'Reclassificar com IA' : 'Classificar com IA'}
+              </Button>
             </div>
 
             <div className="max-h-72 overflow-y-auto rounded-lg border border-border">
@@ -398,7 +464,26 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
                     <tr key={i} className={`border-t border-border ${row.error ? 'bg-destructive/5' : ''}`}>
                       <td className="px-3 py-1.5 text-muted-foreground">{row.date || '—'}</td>
                       <td className="max-w-[200px] truncate px-3 py-1.5">{row.description}</td>
-                      <td className="max-w-[130px] truncate px-3 py-1.5 text-muted-foreground">{row.error ? '—' : row.category}</td>
+                      <td className="max-w-[130px] px-3 py-1.5">
+                        {row.error ? '—' : (
+                          <Select
+                            value={row.category}
+                            onValueChange={(v) => setFile((prev) => {
+                              if (!prev) return prev
+                              return { ...prev, parsed: prev.parsed.map((r, j) => j === i ? { ...r, category: v ?? 'Outros' } : r) }
+                            })}
+                          >
+                            <SelectTrigger className="h-6 w-full border-none bg-transparent px-1 text-xs shadow-none hover:bg-muted/60">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="max-h-64">
+                              {CATEGORIES.map((c) => (
+                                <SelectItem key={c} value={c} className="text-xs">{c}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      </td>
                       <td className={`px-3 py-1.5 text-right font-medium tabular-nums ${row.type === 'income' ? 'text-emerald-600' : 'text-destructive'}`}>
                         {row.error ? '—' : `R$ ${row.amount.toFixed(2)}`}
                       </td>
