@@ -17,9 +17,9 @@ export interface AllowedModel {
 }
 
 const DEFAULT_MODELS: AllowedModel[] = [
-  { provider: 'omniroute', model: 'auto', label: 'OmniRoute — Automático (recomendado)' },
+  { provider: 'omniroute', model: 'free-1m', label: 'OmniRoute — Free 1M (grátis, recomendado)' },
+  { provider: 'omniroute', model: 'auto', label: 'OmniRoute — Automático' },
   { provider: 'omniroute', model: 'auto/best-coding', label: 'OmniRoute — Melhor para código' },
-  { provider: 'omniroute', model: 'free-1m', label: 'OmniRoute — Free 1M (grátis)' },
 ]
 
 export function getAllowedModels(): AllowedModel[] {
