@@ -198,40 +198,55 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
     if (valid.length === 0) return
     setAiLoading(true)
     try {
-      const BATCH = 120
-      const merged = new Map<number, string>()
-      for (let i = 0; i < valid.length; i += BATCH) {
-        const slice = valid.slice(i, i + BATCH)
+      // Eficiência: deduplica por descrição normalizada (lowercase). Extratos
+      // reais têm poucas descrições únicas (ex.: 334 linhas → 90 únicas), então
+      // a IA classifica só as únicas e o resultado é replicado nas repetidas —
+      // mesmo resultado com uma fração dos tokens.
+      const descToCat = new Map<string, string>()
+      const uniqItems: { key: string; text: string; type: string }[] = []
+      for (const r of valid) {
+        const key = r.description.trim().toLowerCase()
+        if (!key || descToCat.has(key)) continue
+        uniqItems.push({ key, text: `${r.description} (${r.type === 'income' ? 'receita' : 'despesa'})`, type: r.type })
+        descToCat.set(key, '') // reserva a vaga
+      }
+
+      const BATCH = 100
+      for (let i = 0; i < uniqItems.length; i += BATCH) {
+        const slice = uniqItems.slice(i, i + BATCH)
         const res = await fetch('/api/ai/classify', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             model: typeof window !== 'undefined' ? localStorage.getItem(AI_MODEL_PREF_KEY) ?? undefined : undefined,
-            items: slice.map((r, j) => ({ index: j, text: `${r.description} (${r.type === 'income' ? 'receita' : 'despesa'}, R$ ${r.amount.toFixed(2)})`, type: r.type })),
+            items: slice.map((u, j) => ({ index: j, text: u.text, type: u.type })),
           }),
         })
         if (!res.ok) break
         const data = await res.json()
         for (const [idx, cat] of Object.entries(data.categories ?? {})) {
-          merged.set(i + Number(idx), cat as string)
+          const u = slice[Number(idx)]
+          if (u) descToCat.set(u.key, cat as string)
         }
       }
-      if (merged.size > 0) {
-        setFile((prev) => {
-          if (!prev) return prev
-          let vi = -1
-          return {
-            ...prev,
-            parsed: prev.parsed.map((r) => {
-              if (r.error) return r
-              vi++
-              const cat = merged.get(vi)
-              return cat ? { ...r, category: cat } : r
-            }),
-          }
-        })
+
+      // Aplica: replica a categoria da descrição única em todas as linhas
+      let applied = 0
+      setFile((prev) => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          parsed: prev.parsed.map((r) => {
+            if (r.error) return r
+            const cat = descToCat.get(r.description.trim().toLowerCase())
+            if (cat) { applied++; return { ...r, category: cat } }
+            return r
+          }),
+        }
+      })
+      if (applied > 0) {
         setAiApplied(true)
-        toast.success(`IA classificou ${merged.size} transaç${merged.size !== 1 ? 'ões' : 'ão'}.`)
+        toast.success(`IA classificou ${applied} transaç${applied !== 1 ? 'ões' : 'ão'} (${uniqItems.length} descrições únicas).`)
       } else {
         toast.info('IA indisponível agora — mantida a classificação por regras.')
       }
