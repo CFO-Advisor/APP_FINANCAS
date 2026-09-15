@@ -34,6 +34,7 @@ export const APP_ROUTES: { href: string; label: string; description: string }[] 
 
 const SYSTEM_PROMPT = `Você é o assistente financeiro do app CFO Advisor Finanças Pessoais.
 Ajuda o usuário a usar o app, responde perguntas financeiras e pré-preenche formulários.
+Data de hoje: ${new Date().toISOString().slice(0, 10)} (use esta data quando o usuário disser "hoje").
 
 Você PODE responder com:
 1. Mensagem em texto (markdown simples) para o usuário.
@@ -111,20 +112,46 @@ export async function POST(req: NextRequest) {
     const data = await resp.json()
     const content: string = data?.choices?.[0]?.message?.content ?? ''
 
-    // Extrai ação JSON se existir (o modelo pode aninhar texto + JSON)
+    // Extrai ação JSON se existir. O modelo pode devolver o JSON dentro de
+    // blocos ```json ...``` e o objeto tem aninhamento (payload) — usa um
+    // scanner de chaves balanceadas em vez de regex guloso.
     let action: Record<string, unknown> | null = null
-    const actionMatch = content.match(/\{\s*"acao"\s*:\s*"[^"]+"\s*(,[\s\S]*?)?\}/)
-    if (actionMatch) {
+    let actionSpan: [number, number] | null = null
+    function tryParseAction(jsonStr: string): Record<string, unknown> | null {
       try {
-        const parsed = JSON.parse(actionMatch[0])
-        if (parsed.acao === 'navegar' && APP_ROUTES.some((r) => r.href === parsed.href)) {
-          action = parsed
-        } else if (parsed.acao === 'abrir_transacao' && parsed.payload && typeof parsed.payload === 'object') {
-          action = parsed
-        }
-      } catch { /* ignora JSON malformado */ }
+        const parsed = JSON.parse(jsonStr)
+        if (parsed?.acao === 'navegar' && APP_ROUTES.some((r) => r.href === parsed.href)) return parsed
+        if (parsed?.acao === 'abrir_transacao' && parsed.payload && typeof parsed.payload === 'object') return parsed
+      } catch { /* não é a ação */ }
+      return null
     }
-    const cleanText = content.replace(actionMatch?.[0] ?? '', '').trim()
+    for (let i = content.indexOf('{'); i !== -1; i = content.indexOf('{', i + 1)) {
+      let depth = 0
+      let inStr = false
+      for (let j = i; j < content.length; j++) {
+        const ch = content[j]
+        if (inStr) {
+          if (ch === '\\') j++
+          else if (ch === '"') inStr = false
+          continue
+        }
+        if (ch === '"') inStr = true
+        else if (ch === '{') depth++
+        else if (ch === '}') {
+          depth--
+          if (depth === 0) {
+            const candidate = tryParseAction(content.slice(i, j + 1))
+            if (candidate) {
+              action = candidate
+              actionSpan = [i, j + 1]
+            }
+            i = j // continua procurando a partir do fim deste bloco
+            break
+          }
+        }
+      }
+    }
+    const cleanText = actionSpan ? (content.slice(0, actionSpan[0]) + content.slice(actionSpan[1])).replace(/```[a-z]*\s*|```/g, '').trim() : content.trim()
 
     return NextResponse.json({ reply: cleanText || (action ? 'Certo, abrindo…' : '…'), action, model: chosen })
   } catch {
