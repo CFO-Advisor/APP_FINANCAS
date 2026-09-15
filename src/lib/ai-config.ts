@@ -75,3 +75,22 @@ export function saveProLaboreMax(value: number): void {
 export function saveCustomRules(rules: CustomRule[]): void {
   try { localStorage.setItem(AI_RULES_KEY, JSON.stringify(rules)) } catch { /* ignore */ }
 }
+
+// Categorias personalizadas ficam no navegador (mesma chave usada na tela de
+// transações). O servidor não as conhece, então elas precisam ser enviadas
+// junto nas chamadas de classificação.
+const CUSTOM_CAT_KEY = 'financas_custom_categories_v3'
+
+export function readCustomCategories(): string[] {
+  if (typeof window === 'undefined') return []
+  try {
+    const raw = localStorage.getItem(CUSTOM_CAT_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw) as { expense?: string[]; income?: string[]; investment?: string[] }
+    return [...(parsed.expense ?? []), ...(parsed.income ?? []), ...(parsed.investment ?? [])].filter(
+      (c) => typeof c === 'string' && c.trim(),
+    )
+  } catch {
+    return []
+  }
+}

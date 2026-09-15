@@ -18,6 +18,7 @@ import {
   AI_MODEL_KEY,
   DEFAULT_PROL_ABORE_MAX,
   readAiPrefs,
+  readCustomCategories,
   saveHolderNames,
   saveProLaboreMax,
   saveCustomRules,
@@ -49,12 +50,15 @@ export default function AiSettingsPage() {
   const [proLaboreMax, setProLaboreMax] = useState<number>(DEFAULT_PROL_ABORE_MAX)
   // Regras por emissor: "se a descrição contiver X → categoria Y"
   const [rules, setRules] = useState<CustomRule[]>([])
+  // Categorias criadas pelo usuário (localStorage) — também podem ser usadas
+  const [customCats, setCustomCats] = useState<string[]>([])
 
   useEffect(() => {
     const prefs = readAiPrefs()
     setHolderInput(prefs.holderNames.join(', '))
     setProLaboreMax(prefs.proLaboreMax)
     setRules(prefs.rules)
+    setCustomCats(readCustomCategories())
     load()
   }, [])
 
@@ -245,7 +249,7 @@ export default function AiSettingsPage() {
                     >
                       <SelectTrigger className="w-[42%]"><SelectValue /></SelectTrigger>
                       <SelectContent className="max-h-60">
-                        {[...CATEGORIES, TRANSFER_CATEGORY].map((c) => (
+                        {[...new Set([...CATEGORIES, ...customCats, TRANSFER_CATEGORY])].map((c) => (
                           <SelectItem key={c} value={c}>{c}</SelectItem>
                         ))}
                       </SelectContent>

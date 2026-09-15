@@ -255,6 +255,7 @@ export default function TransactionsPage() {
         banks={banks}
         creditCards={creditCards}
         onSuccess={fetchTransactions}
+        customCategories={[...customCategories.expense, ...customCategories.income, ...customCategories.investment]}
       />
     </div>
   )

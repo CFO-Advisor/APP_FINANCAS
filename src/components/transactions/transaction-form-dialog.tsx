@@ -234,6 +234,11 @@ export function TransactionFormDialog({
           holderNames: prefs.holderNames,
           proLaboreMax: prefs.proLaboreMax,
           customRules: prefs.rules,
+          customCategories: [...new Set([
+            ...customExpenseCategories,
+            ...customIncomeCategories,
+            ...customInvestmentCategories,
+          ])],
           items: [{ index: 0, text: desc, type: form.type, amount: form.amount > 0 ? form.amount : undefined }],
         }),
       })

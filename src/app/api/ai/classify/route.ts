@@ -42,6 +42,8 @@ export async function POST(req: NextRequest) {
   let holderNames: string[] = []
   let proLaboreMax = 10000
   const customRules: { match: string; category: string }[] = []
+  // Categorias personalizadas do usuário (criadas no app, vivem no navegador)
+  const customCategories: string[] = []
   try {
     const body = await req.json()
     items = Array.isArray(body.items) ? body.items.slice(0, MAX_BATCH) : []
@@ -54,13 +56,25 @@ export async function POST(req: NextRequest) {
         .map((n: string) => n.trim())
     }
     if (typeof body.proLaboreMax === 'number' && body.proLaboreMax > 0) proLaboreMax = body.proLaboreMax
-    // Regras por emissor: só aceita categoria da lista oficial e texto útil
+    // Categorias personalizadas: texto curto e sem quebra de linha (evita
+    // injeção no prompt); entram na lista permitida junto das oficiais.
+    if (Array.isArray(body.customCategories)) {
+      for (const raw of body.customCategories) {
+        if (customCategories.length >= 60) break
+        if (typeof raw !== 'string') continue
+        const c = raw.trim()
+        if (!c || c.length > 40 || /[\r\n]/.test(c) || customCategories.includes(c)) continue
+        customCategories.push(c)
+      }
+    }
+    // Regras por emissor: só aceita categoria da lista permitida e texto útil
+    const allowedNow = [...new Set([...AI_CATEGORIES, ...customCategories])]
     if (Array.isArray(body.customRules)) {
       for (const raw of body.customRules) {
         if (customRules.length >= 30) break
         if (!raw || typeof raw.match !== 'string' || typeof raw.category !== 'string') continue
         const match = raw.match.trim()
-        if (match.length < 2 || !AI_CATEGORIES.includes(raw.category)) continue
+        if (match.length < 2 || !allowedNow.includes(raw.category)) continue
         customRules.push({ match, category: raw.category })
       }
     }
@@ -89,6 +103,9 @@ REGRAS DO TITULAR (aplicar ANTES das regras gerais, nesta ordem de prioridade):
 ${holderNames.length > 0 ? `3) Se a descrição citar o PRÓPRIO TITULAR (${holderNames.join(', ')}) → é movimentação entre contas do mesmo titular: use "Transferência" (vale para entrada E saída).
 ` : ''}Nunca use "Transferência" fora do caso 3. Em especial, "Pagamento Fatura - <nome do titular>" continua sendo "Fatura Cartão", NÃO transferência.`
 
+  // Lista permitida desta chamada: oficiais + categorias do usuário
+  const allowedCategories = [...new Set([...AI_CATEGORIES, ...customCategories])]
+
   // Regras do usuário (por emissor) têm prioridade máxima, pois são a
   // configuração explícita dele no Config. IA.
   const customRulesBlock = customRules.length > 0
@@ -99,7 +116,7 @@ ${holderNames.length > 0 ? `3) Se a descrição citar o PRÓPRIO TITULAR (${hold
 Para cada transação, escolha EXATAMENTE UMA categoria da lista permitida, considerando o tipo (receita/despesa/investimento).
 
 Categorias permitidas:
-${AI_CATEGORIES.join(', ')}
+${allowedCategories.join(', ')}
 ${customRulesBlock}${titularRules}
 
 Regras:
@@ -141,7 +158,7 @@ ${items.map((i) => `${i.index}. [${i.type}] ${i.text}${typeof i.amount === 'numb
 
     const parsed = JSON.parse(jsonMatch[0])
     const categories: Record<number, string> = {}
-    const valid = new Set(AI_CATEGORIES)
+    const valid = new Set(allowedCategories)
     for (const r of parsed?.resultados ?? []) {
       if (typeof r?.index === 'number' && typeof r?.categoria === 'string' && valid.has(r.categoria)) {
         categories[r.index] = r.categoria

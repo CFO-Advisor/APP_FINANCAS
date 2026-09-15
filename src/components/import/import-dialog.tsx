@@ -52,6 +52,9 @@ interface ImportDialogProps {
   // abre com este arquivo, ele é processado automaticamente como se tivesse
   // sido selecionado no próprio upload.
   pendingFile?: File | null
+  // Categorias personalizadas (criadas pelo usuário, vivem no localStorage).
+  // O servidor não as conhece, então vão junto para a IA poder usá-las.
+  customCategories?: string[]
 }
 
 interface FileState {
@@ -74,7 +77,7 @@ async function readTextFile(f: File): Promise<string> {
 
 const CHUNK_SIZE = 100
 
-export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSuccess, pendingFile }: ImportDialogProps) {
+export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSuccess, pendingFile, customCategories = [] }: ImportDialogProps) {
   const [step, setStep] = useState<Step>('upload')
   const [file, setFile] = useState<FileState | null>(null)
   const [fieldMap, setFieldMap] = useState<CSVFieldMap>({ date: '', description: '', amount: '' })
@@ -246,6 +249,7 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
               holderNames: prefs.holderNames,
               proLaboreMax: prefs.proLaboreMax,
               customRules: prefs.rules,
+            customCategories,
               items: slice.map((u, j) => ({ index: j, text: u.text, type: u.type, amount: u.amount })),
             }),
           })
