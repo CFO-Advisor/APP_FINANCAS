@@ -20,8 +20,12 @@ export interface CSVFieldMap {
 // ── Number parsing ──────────────────────────────────────────────────────────
 
 export function parseBRNumber(str: string): number {
-  const s = str.trim().replace(/\s/g, '')
+  let s = str.trim().replace(/\s/g, '')
   if (!s) return NaN
+
+  // Extratos em PDF costumam marcar débito como (1.234,56)
+  let sign = 1
+  if (s.startsWith('(') && s.endsWith(')')) { sign = -1; s = s.slice(1, -1) }
 
   const lastComma = s.lastIndexOf(',')
   const lastDot = s.lastIndexOf('.')
@@ -34,7 +38,8 @@ export function parseBRNumber(str: string): number {
     // US/ISO: 1,234.56 or plain 1234.56
     normalized = s.replace(/,/g, '')
   }
-  return parseFloat(normalized)
+  const n = parseFloat(normalized)
+  return isNaN(n) ? NaN : n * sign
 }
 
 // ── Date parsing ────────────────────────────────────────────────────────────
@@ -60,7 +65,8 @@ export function parseAnyDate(str: string): string | null {
   // BR dd/MM/yyyy or dd/MM/yy
   const br = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/)
   if (br) {
-    let [, d, m, y] = br
+    const [, d, m, yy] = br
+    let y = yy
     if (y.length === 2) y = (+y < 50 ? '20' : '19') + y
     const dd = d.padStart(2, '0')
     const mm = m.padStart(2, '0')
@@ -136,7 +142,10 @@ export function parseCSVContent(content: string, delimiter?: string): { headers:
 const DATE_HINTS = ['data', 'date', 'dt', 'vencimento', 'competencia', 'lancamento']
 const DESC_HINTS = ['descri', 'hist', 'memo', 'narr', 'detalhe', 'observ', 'descr', 'description', 'historico']
 const AMT_HINTS = ['valor', 'amount', 'vlr', 'vl', 'quantia', 'total', 'debito', 'credito', 'value']
-const TYPE_HINTS = ['tipo', 'type', 'natureza', 'tp', 'movimento']
+// Sinal de receita/despesa (ex.: Inter "tipoOperacao" = C/D) — mais confiável
+// que o filtro genérico de "tipo" (ex.: "tipoTransacao" = PIX, IMPOSTO, JUROS).
+const OP_HINTS = ['operacao', 'movimento', 'dc', 'd-c', 'sinal', 'fluxo']
+const TYPE_HINTS = ['tipo', 'type', 'natureza', 'tp']
 
 function matchHint(header: string, hints: string[]): boolean {
   const h = header.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '')
@@ -145,6 +154,12 @@ function matchHint(header: string, hints: string[]): boolean {
 
 export function guessFieldMap(headers: string[]): Partial<CSVFieldMap> {
   const map: Partial<CSVFieldMap> = {}
+  // Coluna de operação (C/D) primeiro: é o sinal confiável de receita/despesa.
+  // Senão o filtro genérico de "tipo" pega "tipoTransacao" (PIX/JUROS/…) e tudo
+  // vira receita (bug dos extratos do Inter).
+  for (const h of headers) {
+    if (matchHint(h, OP_HINTS)) { map.type = h; break }
+  }
   for (const h of headers) {
     if (!map.date && matchHint(h, DATE_HINTS)) map.date = h
     else if (!map.description && matchHint(h, DESC_HINTS)) map.description = h
@@ -298,6 +313,53 @@ export function parseOFXContent(content: string, defaultCategory = 'Outros'): Pa
 
       results.push({ date, description: memo, amount: Math.abs(amount), type, category: defaultCategory })
     }
+  }
+
+  return results
+}
+
+// ── PDF parsing (texto extraído por pdfjs — melhor esforço) ─────────────────
+
+export function parsePDFLines(lines: string[], defaultCategory = 'Outros'): ParsedTransaction[] {
+  const results: ParsedTransaction[] = []
+
+  for (const raw of lines) {
+    const line = raw.trim()
+    if (!line) continue
+
+    const tokens = line.split(/\s+/)
+
+    // Data: primeiro token que pareça data
+    let date = ''
+    let dateIdx = -1
+    for (let i = 0; i < tokens.length; i++) {
+      const d = parseAnyDate(tokens[i])
+      if (d) { date = d; dateIdx = i; break }
+    }
+    if (!date) continue
+
+    // Valor: último token numérico que não seja a data. Ignora inteiros puros
+    // (nº de página, doc, etc.) — valor de extrato tem casas decimais ("," ou ".").
+    let amountS = NaN
+    let amtIdx = -1
+    for (let i = tokens.length - 1; i >= 0; i--) {
+      if (i === dateIdx) continue
+      const t = tokens[i]
+      if (!t.includes(',') && !t.includes('.')) continue
+      const v = parseBRNumber(t)
+      if (!isNaN(v) && v !== 0) { amountS = v; amtIdx = i; break }
+    }
+    if (isNaN(amountS)) continue
+
+    const description = tokens.filter((_, i) => i !== dateIdx && i !== amtIdx).join(' ').trim() || 'Sem descrição'
+
+    results.push({
+      date,
+      description,
+      amount: Math.abs(amountS),
+      type: amountS < 0 ? 'expense' : 'income',
+      category: defaultCategory,
+    })
   }
 
   return results

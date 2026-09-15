@@ -28,9 +28,11 @@ import {
   guessFieldMap,
   mapCSVRows,
   parseOFXContent,
+  parsePDFLines,
   type ParsedTransaction,
   type CSVFieldMap,
 } from '@/lib/import/parsers'
+import { extractStatementLines } from '@/lib/import/pdf'
 import { downloadImportTemplate } from '@/lib/excel-export'
 import type { Bank, CreditCard } from '@/lib/types'
 
@@ -46,10 +48,20 @@ interface ImportDialogProps {
 
 interface FileState {
   name: string
-  format: 'csv' | 'ofx'
+  format: 'csv' | 'ofx' | 'pdf'
   csvHeaders: string[]
   csvRows: Record<string, string>[]
   parsed: ParsedTransaction[]
+}
+
+// Extratos bancários brasileiros costumam vir em ISO-8859-1/windows-1252.
+// TextDecoder UTF-8 estrito lança para não-UTF-8 → cai no windows-1252.
+const utf8 = new TextDecoder('utf-8', { fatal: true })
+const latin1 = new TextDecoder('windows-1252')
+async function readTextFile(f: File): Promise<string> {
+  const buf = await f.arrayBuffer()
+  try { return utf8.decode(buf) }
+  catch { return latin1.decode(buf) }
 }
 
 const CHUNK_SIZE = 100
@@ -86,9 +98,15 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
     const ext = f.name.split('.').pop()?.toLowerCase()
 
     if (ext === 'ofx') {
-      const content = await f.text()
+      const content = await readTextFile(f)
       const parsed = parseOFXContent(content)
       setFile({ name: f.name, format: 'ofx', csvHeaders: [], csvRows: [], parsed })
+      setStep('preview')
+    } else if (ext === 'pdf') {
+      const buffer = await f.arrayBuffer()
+      const lines = await extractStatementLines(buffer)
+      const parsed = parsePDFLines(lines)
+      setFile({ name: f.name, format: 'pdf', csvHeaders: [], csvRows: [], parsed })
       setStep('preview')
     } else if (ext === 'xlsx' || ext === 'xls') {
       const buffer = await f.arrayBuffer()
@@ -103,7 +121,7 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
       setFile({ name: f.name, format: 'csv', csvHeaders: headers, csvRows: rows, parsed: [] })
       setStep('configure')
     } else {
-      const content = await f.text()
+      const content = await readTextFile(f)
       const { headers, rows } = parseCSVContent(content)
       const guessed = guessFieldMap(headers)
       setFieldMap({
@@ -211,7 +229,7 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
             </div>
 
             <p className="text-sm text-muted-foreground">
-              Suporta <strong>Excel (.xlsx)</strong>, <strong>CSV</strong>, <strong>TXT</strong> e <strong>OFX</strong>.
+              Suporta <strong>Excel (.xlsx)</strong>, <strong>CSV</strong>, <strong>TXT</strong>, <strong>OFX</strong> e <strong>PDF</strong> (extração simples).
             </p>
             <div
               className={`flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed p-10 transition-colors cursor-pointer ${
@@ -225,13 +243,13 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
               <Upload className="h-10 w-10 text-muted-foreground" />
               <div className="text-center">
                 <p className="font-medium">Clique ou arraste o arquivo aqui</p>
-                <p className="mt-1 text-xs text-muted-foreground">XLSX, CSV, TXT, OFX — até 10 MB</p>
+                <p className="mt-1 text-xs text-muted-foreground">XLSX, CSV, TXT, OFX, PDF — até 10 MB</p>
               </div>
             </div>
             <input
               ref={inputRef}
               type="file"
-              accept=".xlsx,.xls,.csv,.txt,.ofx"
+              accept=".xlsx,.xls,.csv,.txt,.ofx,.pdf"
               className="hidden"
               onChange={handleFileInput}
             />
@@ -433,7 +451,7 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
             <>
               <Button
                 variant="outline"
-                onClick={() => setStep(file?.format === 'ofx' ? 'upload' : 'configure')}
+                onClick={() => setStep(file?.format === 'csv' ? 'configure' : 'upload')}
                 disabled={loading}
               >
                 <ChevronLeft className="mr-1 h-4 w-4" />
