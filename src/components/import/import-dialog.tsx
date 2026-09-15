@@ -34,18 +34,8 @@ import {
 } from '@/lib/import/parsers'
 import { extractStatementLines } from '@/lib/import/pdf'
 import { downloadImportTemplate } from '@/lib/excel-export'
-import { CATEGORIES, EXPENSE_CATEGORIES, INCOME_CATEGORIES, INVESTMENT_CATEGORIES, TRANSFER_CATEGORY } from '@/lib/constants'
+import { CATEGORIES, EXPENSE_CATEGORIES, INCOME_CATEGORIES, INVESTMENT_CATEGORIES, TRANSFER_CATEGORY, categoryToType } from '@/lib/constants'
 import type { TransactionType } from '@/lib/types'
-
-// Categoria → tipo: quando o usuário troca a categoria no preview, o tipo
-// acompanha (ex.: "Terreno" é investimento → vira investimento;
-// "Transferência" → vira transferência entre contas).
-function categoryToType(cat: string): TransactionType {
-  if (cat === TRANSFER_CATEGORY) return 'transfer'
-  if (INVESTMENT_CATEGORIES.includes(cat)) return 'investment'
-  if (INCOME_CATEGORIES.includes(cat)) return 'income'
-  return 'expense'
-}
 import { AI_MODEL_PREF_KEY } from '@/components/layout/assistant-panel'
 import { readAiPrefs } from '@/lib/ai-config'
 import type { Bank, CreditCard } from '@/lib/types'

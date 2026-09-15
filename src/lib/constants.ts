@@ -88,6 +88,15 @@ export const CATEGORIES = [...new Set([...EXPENSE_CATEGORIES, ...INCOME_CATEGORI
 // receita, despesa nem investimento. Usa esta categoria fixa.
 export const TRANSFER_CATEGORY = 'Transferência'
 
+// Categoria e tipo andam juntos: ao escolher a categoria, o tipo acompanha
+// (ex.: "Terreno" é investimento; "Transferência" é movimentação entre contas).
+export function categoryToType(cat: string): TransactionType {
+  if (cat === TRANSFER_CATEGORY) return 'transfer'
+  if (INVESTMENT_CATEGORIES.includes(cat)) return 'investment'
+  if (INCOME_CATEGORIES.includes(cat)) return 'income'
+  return 'expense'
+}
+
 // Baseline palette: #6c63ff #43e97b #ff6584 #f7971e #38f9d7 #a78bfa #fbbf24
 export const CATEGORY_COLORS: Record<string, string> = {
   // Despesas — Alimentação (pink-red)
@@ -234,7 +243,7 @@ export const CARD_BRAND_COLORS: Record<CardBrand, string> = {
 }
 
 import { Banknote, FileText, AlertCircle, Package2, ScrollText, type LucideIcon } from 'lucide-react'
-import type { AssetGroupType, DebtGroupType } from './types'
+import type { AssetGroupType, DebtGroupType, TransactionType } from './types'
 
 export interface AssetGroupDef {
   key: AssetGroupType

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { toast } from 'sonner'
-import { Loader2, Plus, X, CreditCard } from 'lucide-react'
+import { Loader2, Plus, X, CreditCard, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -30,7 +30,9 @@ import {
   INCOME_CATEGORY_GROUPS,
   INVESTMENT_CATEGORY_GROUPS,
   TRANSFER_CATEGORY,
+  categoryToType,
 } from '@/lib/constants'
+import { readAiPrefs } from '@/lib/ai-config'
 import { toError } from '@/lib/utils'
 import { BankIcon } from '@/components/banks/bank-icon'
 import type { Transaction, TransactionFormData, Bank, CreditCard as CreditCardType, TransactionType } from '@/lib/types'
@@ -88,6 +90,7 @@ export function TransactionFormDialog({
   // Apenas para type='transfer': conta de DESTINO (bankId é a de origem)
   const [transferBankId, setTransferBankId] = useState<string>('none')
   const [showNewCat, setShowNewCat] = useState(false)
+  const [classifying, setClassifying] = useState(false)
   const [newCatName, setNewCatName] = useState('')
   const newCatInputRef = useRef<HTMLInputElement>(null)
 
@@ -212,6 +215,39 @@ export function TransactionFormDialog({
   function handleCancelNewCategory() {
     setShowNewCat(false)
     setNewCatName('')
+  }
+
+  // Sugere a categoria a partir da descrição usando a mesma IA/regras do
+  // Config. IA (titular → Transferência; CFO Advisor → Pró-labore/Dividendos).
+  // Só preenche o formulário — o usuário confirma em "Adicionar".
+  async function handleAiClassify() {
+    const desc = form.description.trim()
+    if (!desc) { toast.error('Descreva a transação antes de classificar.'); return }
+    setClassifying(true)
+    try {
+      const prefs = readAiPrefs()
+      const res = await fetch('/api/ai/classify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: prefs.model,
+          holderNames: prefs.holderNames,
+          proLaboreMax: prefs.proLaboreMax,
+          items: [{ index: 0, text: desc, type: form.type, amount: form.amount > 0 ? form.amount : undefined }],
+        }),
+      })
+      if (!res.ok) throw new Error('IA indisponível agora.')
+      const data = await res.json()
+      const cat: string | undefined = data.categories?.[0]
+      if (!cat) { toast.info('A IA não sugeriu uma categoria para esta descrição.'); return }
+      setShowNewCat(false)
+      setForm((prev) => ({ ...prev, category: cat, type: categoryToType(cat) }))
+      toast.success(`Categoria sugerida: ${cat}`)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Falha ao classificar.')
+    } finally {
+      setClassifying(false)
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -411,7 +447,19 @@ export function TransactionFormDialog({
           {/* Categoria (transferências entre contas não têm categoria de gasto) */}
           {form.type !== 'transfer' && (
           <div className="space-y-1.5">
-            <Label>Categoria</Label>
+            <div className="flex items-center justify-between">
+              <Label>Categoria</Label>
+              <button
+                type="button"
+                onClick={handleAiClassify}
+                disabled={classifying || !form.description.trim()}
+                title="Sugerir categoria pela descrição"
+                className="flex items-center gap-1 text-xs font-medium text-primary transition-colors hover:text-primary/80 disabled:opacity-50"
+              >
+                {classifying ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                Classificar com IA
+              </button>
+            </div>
             <Select
               value={showNewCat ? NEW_CAT_VALUE : form.category}
               onValueChange={handleCategoryChange}
