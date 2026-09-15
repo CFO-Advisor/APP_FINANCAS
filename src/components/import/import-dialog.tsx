@@ -47,6 +47,7 @@ function categoryToType(cat: string): TransactionType {
   return 'expense'
 }
 import { AI_MODEL_PREF_KEY } from '@/components/layout/assistant-panel'
+import { readAiPrefs } from '@/lib/ai-config'
 import type { Bank, CreditCard } from '@/lib/types'
 
 type Step = 'upload' | 'configure' | 'preview' | 'done'
@@ -212,18 +213,23 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
     if (valid.length === 0) return
     setAiLoading(true)
     try {
-      // Eficiência: deduplica por descrição normalizada (lowercase). Extratos
-      // reais têm poucas descrições únicas (ex.: 334 linhas → 90 únicas), então
-      // a IA classifica só as únicas e o resultado é replicado nas repetidas —
-      // mesmo resultado com uma fração dos tokens.
-      const descToCat = new Map<string, string>()
-      const uniqItems: { key: string; text: string; type: string }[] = []
+      // Eficiência: deduplica por descrição + valor. Extratos reais repetem muito
+      // as mesmas combinações (334 linhas → ~90 únicas), então a IA classifica só
+      // as únicas e o resultado é replicado. O valor entra na chave porque as
+      // regras do titular (pró-labore x dividendos) dependem dele.
+      const itemKey = (r: { description: string; amount: number }) =>
+        `${r.description.trim().toLowerCase()}|${r.amount.toFixed(2)}`
+      const keyToCat = new Map<string, string>()
+      const uniqItems: { key: string; text: string; type: string; amount: number }[] = []
       for (const r of valid) {
-        const key = r.description.trim().toLowerCase()
-        if (!key || descToCat.has(key)) continue
-        uniqItems.push({ key, text: `${r.description} (${r.type === 'income' ? 'receita' : 'despesa'})`, type: r.type })
-        descToCat.set(key, '') // reserva a vaga
+        const key = itemKey(r)
+        if (keyToCat.has(key)) continue
+        uniqItems.push({ key, text: r.description, type: r.type, amount: r.amount })
+        keyToCat.set(key, '') // reserva a vaga
       }
+
+      // Regras do titular vêm do Config. IA (nomes + limite de pró-labore)
+      const prefs = readAiPrefs()
 
       const BATCH = 100
       for (let i = 0; i < uniqItems.length; i += BATCH) {
@@ -232,15 +238,17 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            model: typeof window !== 'undefined' ? localStorage.getItem(AI_MODEL_PREF_KEY) ?? undefined : undefined,
-            items: slice.map((u, j) => ({ index: j, text: u.text, type: u.type })),
+            model: prefs.model ?? (typeof window !== 'undefined' ? localStorage.getItem(AI_MODEL_PREF_KEY) ?? undefined : undefined),
+            holderNames: prefs.holderNames,
+            proLaboreMax: prefs.proLaboreMax,
+            items: slice.map((u, j) => ({ index: j, text: u.text, type: u.type, amount: u.amount })),
           }),
         })
         if (!res.ok) break
         const data = await res.json()
         for (const [idx, cat] of Object.entries(data.categories ?? {})) {
           const u = slice[Number(idx)]
-          if (u) descToCat.set(u.key, cat as string)
+          if (u) keyToCat.set(u.key, cat as string)
         }
       }
 
@@ -252,8 +260,13 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
           ...prev,
           parsed: prev.parsed.map((r) => {
             if (r.error) return r
-            const cat = descToCat.get(r.description.trim().toLowerCase())
-            if (cat) { applied++; return { ...r, category: cat } }
+            const cat = keyToCat.get(itemKey(r))
+            if (cat) {
+              applied++
+              // A categoria manda no tipo: Transferência vira type 'transfer'
+              // (o preview então pede as contas de origem e destino)
+              return { ...r, category: cat, type: categoryToType(cat) }
+            }
             return r
           }),
         }

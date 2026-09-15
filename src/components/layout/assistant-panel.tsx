@@ -7,6 +7,7 @@ import { Sparkles, X, SendHorizontal, Loader2, Bot, ChevronRight, Paperclip } fr
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { extractStatementLines } from '@/lib/import/pdf'
+import { AI_MODEL_KEY } from '@/lib/ai-config'
 
 // Painel do assistente de IA (retrátil, lado direito).
 // Chat via /api/ai/assistant (chave/modelo ficam no servidor).
@@ -17,7 +18,7 @@ import { extractStatementLines } from '@/lib/import/pdf'
 
 export const AI_PREFILL_EVENT = 'ai:prefill-transaction'
 export const AI_PREFILL_STORAGE = 'ai_pending_prefill'
-export const AI_MODEL_PREF_KEY = 'financas_ai_model'
+export const AI_MODEL_PREF_KEY = AI_MODEL_KEY
 export const AI_OPEN_IMPORT_EVENT = 'ai:open-import'
 
 // Arquivo pendente de importação (CSV/XLSX/OFX) escolhido no assistente.

@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { CATEGORIES } from '@/lib/constants'
+import { CATEGORIES, TRANSFER_CATEGORY } from '@/lib/constants'
+
+// Categorias que a IA pode devolver. Inclui "Transferência", que só deve ser
+// usada quando a descrição apontar para o próprio titular (regra abaixo).
+const AI_CATEGORIES = [...CATEGORIES, TRANSFER_CATEGORY]
 
 // Classificação de categorias por IA para importação de extratos.
 // Boas práticas aplicadas:
@@ -19,6 +23,7 @@ interface ClassifyItem {
   index: number
   text: string
   type: 'income' | 'expense' | 'investment'
+  amount?: number
 }
 
 export async function POST(req: NextRequest) {
@@ -34,10 +39,20 @@ export async function POST(req: NextRequest) {
 
   let items: ClassifyItem[]
   let model: string | undefined
+  let holderNames: string[] = []
+  let proLaboreMax = 10000
   try {
     const body = await req.json()
     items = Array.isArray(body.items) ? body.items.slice(0, MAX_BATCH) : []
     model = typeof body.model === 'string' ? body.model : undefined
+    // Regras do titular (configuradas em Config. IA)
+    if (Array.isArray(body.holderNames)) {
+      holderNames = body.holderNames
+        .filter((n: unknown) => typeof n === 'string' && n.trim().length > 2)
+        .slice(0, 5)
+        .map((n: string) => n.trim())
+    }
+    if (typeof body.proLaboreMax === 'number' && body.proLaboreMax > 0) proLaboreMax = body.proLaboreMax
   } catch {
     return NextResponse.json({ error: 'Payload inválido.' }, { status: 400 })
   }
@@ -51,11 +66,24 @@ export async function POST(req: NextRequest) {
     ?? process.env.AI_MODEL
     ?? 'auto'
 
+  // Regras personalizadas do titular: entradas/saídas com o próprio nome são
+  // transferência entre contas; recebimentos da CFO Advisor são pró-labore
+  // (valor pequeno) ou dividendos (valor grande).
+  const titularRules = `
+REGRAS DO TITULAR (aplicar ANTES das regras gerais, nesta ordem de prioridade):
+1) Pagamento de fatura de cartão (descrição contém "pagamento fatura", "fatura cartão", "pgto fatura") → "Fatura Cartão".
+2) RECEBIMENTO vindo de "CFO ADVISOR" (ou "CFO Advisor", "Cfoadvisor"):
+   - valor <= R$ ${proLaboreMax.toFixed(2)} → "Pró-labore"
+   - valor > R$ ${proLaboreMax.toFixed(2)} → "Dividendos"
+${holderNames.length > 0 ? `3) Se a descrição citar o PRÓPRIO TITULAR (${holderNames.join(', ')}) → é movimentação entre contas do mesmo titular: use "Transferência" (vale para entrada E saída).
+` : ''}Nunca use "Transferência" fora do caso 3. Em especial, "Pagamento Fatura - <nome do titular>" continua sendo "Fatura Cartão", NÃO transferência.`
+
   const prompt = `Você é um classificador de transações financeiras de extratos bancários brasileiros.
 Para cada transação, escolha EXATAMENTE UMA categoria da lista permitida, considerando o tipo (receita/despesa/investimento).
 
 Categorias permitidas:
-${CATEGORIES.join(', ')}
+${AI_CATEGORIES.join(', ')}
+${titularRules}
 
 Regras:
 - Responda APENAS um objeto JSON válido, sem markdown, sem comentários.
@@ -64,7 +92,7 @@ Regras:
 - Nunca invente categorias fora da lista.
 
 Transações:
-${items.map((i) => `${i.index}. [${i.type}] ${i.text}`).join('\n')}`
+${items.map((i) => `${i.index}. [${i.type}] ${i.text}${typeof i.amount === 'number' ? ` | R$ ${i.amount.toFixed(2)}` : ''}`).join('\n')}`
 
   try {
     const resp = await fetch(`${baseUrl.replace(/\/+$/, '')}/chat/completions`, {
@@ -96,7 +124,7 @@ ${items.map((i) => `${i.index}. [${i.type}] ${i.text}`).join('\n')}`
 
     const parsed = JSON.parse(jsonMatch[0])
     const categories: Record<number, string> = {}
-    const valid = new Set(CATEGORIES)
+    const valid = new Set(AI_CATEGORIES)
     for (const r of parsed?.resultados ?? []) {
       if (typeof r?.index === 'number' && typeof r?.categoria === 'string' && valid.has(r.categoria)) {
         categories[r.index] = r.categoria

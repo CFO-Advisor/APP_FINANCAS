@@ -40,7 +40,7 @@ export const EXPENSE_CATEGORY_GROUPS = [
 export const INCOME_CATEGORY_GROUPS = [
   {
     label: '💼 Trabalho',
-    categories: ['Salário', 'Freelance', 'Bônus', 'Comissão', '13º Salário'],
+    categories: ['Salário', 'Pró-labore', 'Freelance', 'Bônus', 'Comissão', '13º Salário'],
   },
   {
     label: '💰 Rendimentos',
