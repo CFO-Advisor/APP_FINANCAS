@@ -34,12 +34,14 @@ import {
 } from '@/lib/import/parsers'
 import { extractStatementLines } from '@/lib/import/pdf'
 import { downloadImportTemplate } from '@/lib/excel-export'
-import { CATEGORIES, EXPENSE_CATEGORIES, INCOME_CATEGORIES, INVESTMENT_CATEGORIES } from '@/lib/constants'
+import { CATEGORIES, EXPENSE_CATEGORIES, INCOME_CATEGORIES, INVESTMENT_CATEGORIES, TRANSFER_CATEGORY } from '@/lib/constants'
 import type { TransactionType } from '@/lib/types'
 
 // Categoria → tipo: quando o usuário troca a categoria no preview, o tipo
-// acompanha (ex.: "Terreno" é investimento → vira investimento).
+// acompanha (ex.: "Terreno" é investimento → vira investimento;
+// "Transferência" → vira transferência entre contas).
 function categoryToType(cat: string): TransactionType {
+  if (cat === TRANSFER_CATEGORY) return 'transfer'
   if (INVESTMENT_CATEGORIES.includes(cat)) return 'investment'
   if (INCOME_CATEGORIES.includes(cat)) return 'income'
   return 'expense'
@@ -86,6 +88,8 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
   const [file, setFile] = useState<FileState | null>(null)
   const [fieldMap, setFieldMap] = useState<CSVFieldMap>({ date: '', description: '', amount: '' })
   const [bankId, setBankId] = useState<string>('none')
+  // Conta de destino das linhas marcadas como Transferência
+  const [transferDestId, setTransferDestId] = useState<string>('none')
   const [creditCardId, setCreditCardId] = useState<string>('none')
   const [loading, setLoading] = useState(false)
   const [importedCount, setImportedCount] = useState(0)
@@ -100,6 +104,7 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
     setFile(null)
     setFieldMap({ date: '', description: '', amount: '' })
     setBankId('none')
+    setTransferDestId('none')
     setCreditCardId('none')
     setLoading(false)
     setImportedCount(0)
@@ -279,20 +284,35 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
     const resolvedBankId = bankId === 'none' ? null : bankId
     const resolvedCardId = creditCardId === 'none' ? null : creditCardId
     const finalBankId = resolvedCardId ? null : resolvedBankId
+
+    // Transferências: exigem as duas contas (mesmo titular) e não vêm de cartão
+    const transferCount = validRows.filter((r) => r.type === 'transfer').length
+    if (transferCount > 0) {
+      if (resolvedCardId) { toast.error('Transferências não podem ser importadas como despesa de cartão.'); setLoading(false); return }
+      if (!resolvedBankId) { toast.error('Selecione a conta de ORIGEM das transferências.'); setLoading(false); return }
+      if (transferDestId === 'none') { toast.error('Selecione a conta de DESTINO das transferências.'); setLoading(false); return }
+      if (resolvedBankId === transferDestId) { toast.error('A conta de destino deve ser diferente da origem.'); setLoading(false); return }
+    }
+
     let imported = 0
     let errors = 0
 
     for (let i = 0; i < validRows.length; i += CHUNK_SIZE) {
-      const chunk = validRows.slice(i, i + CHUNK_SIZE).map((r) => ({
-        user_id: user.id,
-        description: r.description,
-        amount: r.amount,
-        date: r.date,
-        type: resolvedCardId ? 'expense' : r.type, // card imports are always expenses
-        category: r.category,
-        bank_id: finalBankId,
-        credit_card_id: resolvedCardId,
-      }))
+      const chunk = validRows.slice(i, i + CHUNK_SIZE).map((r) => {
+        const isTransfer = r.type === 'transfer'
+        return {
+          user_id: user.id,
+          description: r.description,
+          amount: r.amount,
+          date: r.date,
+          // card imports are always expenses; transferência é tipo próprio
+          type: isTransfer ? 'transfer' : (resolvedCardId ? 'expense' : r.type),
+          category: isTransfer ? TRANSFER_CATEGORY : r.category,
+          bank_id: isTransfer ? resolvedBankId : finalBankId,
+          credit_card_id: isTransfer ? null : resolvedCardId,
+          transfer_bank_id: isTransfer ? transferDestId : null,
+        }
+      })
       const { error } = await supabase.from('transactions').insert(chunk)
       if (error) errors += chunk.length
       else imported += chunk.length
@@ -307,6 +327,8 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
 
   const validCount = file?.parsed.filter((r) => !r.error).length ?? 0
   const errorRows = file?.parsed.filter((r) => r.error) ?? []
+  // Linhas marcadas como Transferência: exigem conta de origem + destino
+  const transferRowsCount = file?.parsed.filter((r) => !r.error && r.type === 'transfer').length ?? 0
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -486,6 +508,40 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
               </Button>
             </div>
 
+            {transferRowsCount > 0 && (
+              <div className="space-y-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3">
+                <p className="text-xs font-medium text-amber-600">
+                  {transferRowsCount} lançamento(s) marcado(s) como Transferência — informe as contas (mesmo titular):
+                </p>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Conta de origem (saída)</Label>
+                    <Select value={bankId} onValueChange={(v) => { if (v) { setBankId(v); if (v === transferDestId) setTransferDestId('none') } }}>
+                      <SelectTrigger className="w-full"><SelectValue placeholder="Selecionar conta..." /></SelectTrigger>
+                      <SelectContent className="max-h-52 overflow-y-auto">
+                        <SelectItem value="none">— Selecionar conta</SelectItem>
+                        {banks.map((b) => (
+                          <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Conta de destino (entrada)</Label>
+                    <Select value={transferDestId} onValueChange={(v) => { if (v) setTransferDestId(v) }}>
+                      <SelectTrigger className="w-full"><SelectValue placeholder="Selecionar conta..." /></SelectTrigger>
+                      <SelectContent className="max-h-52 overflow-y-auto">
+                        <SelectItem value="none">— Selecionar conta</SelectItem>
+                        {banks.filter((b) => b.id !== bankId).map((b) => (
+                          <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="max-h-72 overflow-y-auto rounded-lg border border-border">
               <table className="w-full text-xs">
                 <thead className="sticky top-0 bg-muted/80 backdrop-blur">
@@ -517,7 +573,7 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent className="max-h-64">
-                              {CATEGORIES.map((c) => (
+                              {[...CATEGORIES, TRANSFER_CATEGORY].map((c) => (
                                 <SelectItem key={c} value={c} className="text-xs">{c}</SelectItem>
                               ))}
                             </SelectContent>
@@ -528,7 +584,7 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
                         {row.error ? '—' : `R$ ${row.amount.toFixed(2)}`}
                       </td>
                       <td className="px-3 py-1.5 text-muted-foreground">
-                        {row.type === 'income' ? 'Receita' : row.type === 'investment' ? 'Investimento' : row.type === 'credit_card_payment' ? 'Pagto. Fatura' : 'Despesa'}
+                        {row.type === 'income' ? 'Receita' : row.type === 'investment' ? 'Investimento' : row.type === 'credit_card_payment' ? 'Pagto. Fatura' : row.type === 'transfer' ? 'Transferência' : 'Despesa'}
                       </td>
                       <td className="px-3 py-1.5">
                         {row.error && (
