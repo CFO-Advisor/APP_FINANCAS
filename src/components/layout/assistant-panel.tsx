@@ -3,9 +3,10 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { Sparkles, X, SendHorizontal, Loader2, Bot, ChevronRight } from 'lucide-react'
+import { Sparkles, X, SendHorizontal, Loader2, Bot, ChevronRight, Paperclip } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { extractStatementLines } from '@/lib/import/pdf'
 
 // Painel do assistente de IA (retrátil, lado direito).
 // Chat via /api/ai/assistant (chave/modelo ficam no servidor).
@@ -17,6 +18,16 @@ import { cn } from '@/lib/utils'
 export const AI_PREFILL_EVENT = 'ai:prefill-transaction'
 export const AI_PREFILL_STORAGE = 'ai_pending_prefill'
 export const AI_MODEL_PREF_KEY = 'financas_ai_model'
+export const AI_OPEN_IMPORT_EVENT = 'ai:open-import'
+
+// Arquivo pendente de importação (CSV/XLSX/OFX) escolhido no assistente.
+// Vive em memória (o painel persiste entre rotas por estar no layout).
+let pendingImportFile: File | null = null
+export function consumePendingImportFile(): File | null {
+  const f = pendingImportFile
+  pendingImportFile = null
+  return f
+}
 
 interface Msg {
   role: 'user' | 'assistant'
@@ -45,6 +56,8 @@ export function AssistantPanel() {
   const router = useRouter()
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [analyzing, setAnalyzing] = useState(false)
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight })
@@ -93,6 +106,65 @@ export function AssistantPanel() {
       setMessages([...next, { role: 'assistant', content: `⚠️ ${msg}` }])
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Anexo: CSV/XLSX/OFX → abre o diálogo de importação na página de transações.
+  // PDF/foto → IA extrai e classifica a transação e abre o formulário pré-preenchido.
+  async function handleAttachment(f: File) {
+    if (analyzing) return
+    const ext = f.name.split('.').pop()?.toLowerCase() ?? ''
+    try {
+      if (['csv', 'txt', 'xlsx', 'xls', 'ofx'].includes(ext)) {
+        pendingImportFile = f
+        router.push('/transactions')
+        window.dispatchEvent(new CustomEvent(AI_OPEN_IMPORT_EVENT))
+        setMessages((prev) => [...prev, { role: 'assistant', content: `📎 Arquivo ${f.name} recebido — abrindo a importação de extrato…` }])
+        return
+      }
+      // PDF ou imagem → análise por IA
+      setAnalyzing(true)
+      setMessages((prev) => [...prev, { role: 'assistant', content: `📎 Analisando ${f.name}…` }])
+      let payload: Record<string, unknown>
+      const model = typeof window !== 'undefined' ? localStorage.getItem(AI_MODEL_PREF_KEY) ?? undefined : undefined
+      if (ext === 'pdf') {
+        const buffer = await f.arrayBuffer()
+        const lines = await extractStatementLines(buffer)
+        const res = await fetch('/api/ai/document', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: lines.join('\n'), model }),
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error ?? 'Falha na análise.')
+        payload = data.payload
+      } else if (f.type.startsWith('image/')) {
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const r = new FileReader()
+          r.onload = () => resolve(String(r.result))
+          r.onerror = () => reject(new Error('Falha ao ler a imagem.'))
+          r.readAsDataURL(f)
+        })
+        const res = await fetch('/api/ai/document', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageBase64: dataUrl.split(',')[1], mime: f.type, model }),
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error ?? 'Falha na análise.')
+        payload = data.payload
+      } else {
+        throw new Error('Formato não suportado. Envie CSV, PDF ou foto.')
+      }
+      const fmt = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(payload.amount ?? 0))
+      setMessages((prev) => [...prev, { role: 'assistant', content: `✅ Documento lido:\n• ${payload.description || '—'}\n• ${fmt}\n• Categoria: ${payload.category || 'a escolher'}\nAbrindo o formulário para você confirmar…` }])
+      try { sessionStorage.setItem(AI_PREFILL_STORAGE, JSON.stringify(payload)) } catch { /* ignore */ }
+      router.push('/transactions')
+      window.dispatchEvent(new CustomEvent(AI_PREFILL_EVENT, { detail: payload }))
+    } catch (e) {
+      setMessages((prev) => [...prev, { role: 'assistant', content: `⚠️ ${e instanceof Error ? e.message : 'Falha inesperada.'}` }])
+    } finally {
+      setAnalyzing(false)
     }
   }
 
@@ -183,7 +255,27 @@ export function AssistantPanel() {
 
         {/* Input */}
         <div className="shrink-0 border-t border-border p-3">
+          {analyzing && (
+            <div className="mb-2 flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-1.5 text-xs text-muted-foreground">
+              <Loader2 className="h-3 w-3 animate-spin" /> Analisando documento…
+            </div>
+          )}
           <div className="flex items-end gap-2">
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".csv,.txt,.xlsx,.xls,.ofx,.pdf,image/*"
+              className="hidden"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleAttachment(f); e.target.value = '' }}
+            />
+            <button
+              onClick={() => fileRef.current?.click()}
+              disabled={analyzing}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-50"
+              title="Anexar extrato CSV ou documento/foto de despesa"
+            >
+              <Paperclip className="h-4 w-4" />
+            </button>
             <textarea
               ref={inputRef}
               value={input}

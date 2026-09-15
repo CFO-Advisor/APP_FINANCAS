@@ -7,7 +7,7 @@ import { TransactionFilters } from '@/components/transactions/transaction-filter
 import { TransactionFormDialog } from '@/components/transactions/transaction-form-dialog'
 import { TransactionTable } from '@/components/transactions/transaction-table'
 import { ImportDialog } from '@/components/import/import-dialog'
-import { AI_PREFILL_EVENT, AI_PREFILL_STORAGE } from '@/components/layout/assistant-panel'
+import { AI_PREFILL_EVENT, AI_PREFILL_STORAGE, AI_OPEN_IMPORT_EVENT, consumePendingImportFile } from '@/components/layout/assistant-panel'
 import { createClient } from '@/lib/supabase/client'
 import { exportToCSV } from '@/lib/csv-export'
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, INVESTMENT_CATEGORIES } from '@/lib/constants'
@@ -26,6 +26,7 @@ export default function TransactionsPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<Transaction | null>(null)
   const [aiPrefill, setAiPrefill] = useState<Parameters<typeof TransactionFormDialog>[0]['prefill']>(null)
+  const [aiImportFile, setAiImportFile] = useState<File | null>(null)
   const [importOpen, setImportOpen] = useState(false)
   const [customCategories, setCustomCategories] = useState<CustomCategories>(() => {
     if (typeof window === 'undefined') return { expense: [], income: [], investment: [] }
@@ -136,6 +137,13 @@ export default function TransactionsPage() {
       setDialogOpen(true)
     }
     window.addEventListener(AI_PREFILL_EVENT, onPrefill)
+    // Assistente IA: arquivo de extrato anexado no painel → abre o import
+    function onOpenImport() {
+      const f = consumePendingImportFile()
+      if (f) setAiImportFile(f)
+      setImportOpen(true)
+    }
+    window.addEventListener(AI_OPEN_IMPORT_EVENT, onOpenImport)
     try {
       const stored = sessionStorage.getItem(AI_PREFILL_STORAGE)
       if (stored) {
@@ -146,7 +154,10 @@ export default function TransactionsPage() {
         setDialogOpen(true)
       }
     } catch { /* ignore */ }
-    return () => window.removeEventListener(AI_PREFILL_EVENT, onPrefill)
+    return () => {
+      window.removeEventListener(AI_PREFILL_EVENT, onPrefill)
+      window.removeEventListener(AI_OPEN_IMPORT_EVENT, onOpenImport)
+    }
   }, [])
 
   function handleDialogClose(open: boolean) {
@@ -239,6 +250,7 @@ export default function TransactionsPage() {
       {/* Import Dialog */}
       <ImportDialog
         open={importOpen}
+        pendingFile={aiImportFile}
         onOpenChange={setImportOpen}
         banks={banks}
         creditCards={creditCards}

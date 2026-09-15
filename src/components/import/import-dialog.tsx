@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { toast } from 'sonner'
 import {
   Upload, FileText, CheckCircle2, AlertCircle, Loader2, X, ChevronRight, ChevronLeft, FileDown, Sparkles,
@@ -46,6 +46,10 @@ interface ImportDialogProps {
   banks: Bank[]
   creditCards?: CreditCard[]
   onSuccess: () => void
+  // Arquivo anexado pelo assistente de IA (painel direito): quando o dialog
+  // abre com este arquivo, ele é processado automaticamente como se tivesse
+  // sido selecionado no próprio upload.
+  pendingFile?: File | null
 }
 
 interface FileState {
@@ -68,7 +72,7 @@ async function readTextFile(f: File): Promise<string> {
 
 const CHUNK_SIZE = 100
 
-export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSuccess }: ImportDialogProps) {
+export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSuccess, pendingFile }: ImportDialogProps) {
   const [step, setStep] = useState<Step>('upload')
   const [file, setFile] = useState<FileState | null>(null)
   const [fieldMap, setFieldMap] = useState<CSVFieldMap>({ date: '', description: '', amount: '' })
@@ -159,6 +163,15 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
     const f = e.target.files?.[0]
     if (f) processFile(f)
   }
+
+  // Arquivo anexado via assistente de IA: processa automaticamente quando o
+  // diálogo abre com um pendingFile.
+  useEffect(() => {
+    if (open && pendingFile) {
+      processFile(pendingFile)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, pendingFile])
 
   function handleDrop(e: React.DragEvent) {
     e.preventDefault()
