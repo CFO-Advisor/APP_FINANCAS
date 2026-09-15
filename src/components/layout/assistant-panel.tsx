@@ -1,0 +1,209 @@
+'use client'
+
+import { useState, useRef, useEffect, useCallback } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
+import { toast } from 'sonner'
+import { Sparkles, X, SendHorizontal, Loader2, Bot, ChevronRight } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+
+// Painel do assistente de IA (retrátil, lado direito).
+// Chat via /api/ai/assistant (chave/modelo ficam no servidor).
+// Ações do agente:
+// - navegar → router.push (whitelist validada no servidor)
+// - abrir_transacao → navega p/ /transactions e publica evento que abre o
+//   formulário pré-preenchido; o usuário confere e salva manualmente.
+
+export const AI_PREFILL_EVENT = 'ai:prefill-transaction'
+export const AI_PREFILL_STORAGE = 'ai_pending_prefill'
+export const AI_MODEL_PREF_KEY = 'financas_ai_model'
+
+interface Msg {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+interface AiAction {
+  acao: string
+  href?: string
+  payload?: Record<string, unknown>
+}
+
+const SUGGESTIONS = [
+  'Quero lançar uma despesa de R$ 50 de almoço',
+  'Onde cadastro um cartão de crédito?',
+  'Como importar um extrato do banco Inter?',
+  'O que tem no meu balanço patrimonial?',
+]
+
+export function AssistantPanel() {
+  const [open, setOpen] = useState(false)
+  const [messages, setMessages] = useState<Msg[]>([])
+  const [input, setInput] = useState('')
+  const [loading, setLoading] = useState(false)
+  const pathname = usePathname()
+  const router = useRouter()
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight })
+  }, [messages, loading])
+
+  useEffect(() => {
+    if (open) setTimeout(() => inputRef.current?.focus(), 100)
+  }, [open])
+
+  const runAction = useCallback((action: AiAction) => {
+    if (action.acao === 'navegar' && action.href) {
+      router.push(action.href)
+    } else if (action.acao === 'abrir_transacao' && action.payload) {
+      // Guarda o prefill e navega; a página de transações pega no mount.
+      try { sessionStorage.setItem(AI_PREFILL_STORAGE, JSON.stringify(action.payload)) } catch { /* ignore */ }
+      router.push('/transactions')
+      window.dispatchEvent(new CustomEvent(AI_PREFILL_EVENT, { detail: action.payload }))
+    }
+  }, [router])
+
+  async function send(text?: string) {
+    const content = (text ?? input).trim()
+    if (!content || loading) return
+    setInput('')
+    const next: Msg[] = [...messages, { role: 'user', content }]
+    setMessages(next)
+    setLoading(true)
+    try {
+      const res = await fetch('/api/ai/assistant', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: typeof window !== 'undefined' ? localStorage.getItem(AI_MODEL_PREF_KEY) ?? undefined : undefined,
+          messages: next.map((m) => (m.role === 'user' ? { role: m.role, content: m.content, page: pathname } : { role: m.role, content: m.content })),
+        }),
+      })
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}))
+        throw new Error(e.error ?? `HTTP ${res.status}`)
+      }
+      const data = await res.json()
+      setMessages([...next, { role: 'assistant', content: data.reply ?? '…' }])
+      if (data.action) runAction(data.action)
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Falha inesperada.'
+      setMessages([...next, { role: 'assistant', content: `⚠️ ${msg}` }])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <>
+      {/* Botão flutuante para abrir */}
+      {!open && (
+        <button
+          onClick={() => setOpen(true)}
+          className="fixed bottom-5 right-5 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105"
+          title="Assistente IA"
+        >
+          <Sparkles className="h-5 w-5" />
+        </button>
+      )}
+
+      {/* Painel retrátil */}
+      <aside
+        className={cn(
+          'fixed inset-y-0 right-0 z-50 flex w-[min(92vw,380px)] flex-col border-l border-border bg-sidebar shadow-2xl transition-transform duration-300 ease-in-out',
+          open ? 'translate-x-0' : 'translate-x-full'
+        )}
+      >
+        {/* Header */}
+        <div className="flex h-14 shrink-0 items-center justify-between border-b border-border px-4">
+          <div className="flex items-center gap-2">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/15 text-primary">
+              <Bot className="h-4 w-4" />
+            </span>
+            <div>
+              <p className="text-sm font-semibold leading-none">Assistente IA</p>
+              <p className="mt-0.5 text-[10px] text-muted-foreground">CFO Advisor Finanças</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setOpen(false)}
+            className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            title="Fechar"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Mensagens */}
+        <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto p-4">
+          {messages.length === 0 && (
+            <div className="space-y-3 pt-6 text-center">
+              <Sparkles className="mx-auto h-8 w-8 text-primary/60" />
+              <p className="text-sm text-muted-foreground">
+                Pergunte qualquer coisa sobre o app, ou peça para lançar uma transação.
+              </p>
+              <div className="space-y-1.5 pt-2 text-left">
+                {SUGGESTIONS.map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => send(s)}
+                    className="flex w-full items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+                  >
+                    <ChevronRight className="h-3 w-3 shrink-0 text-primary/70" />
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          {messages.map((m, i) => (
+            <div key={i} className={cn('flex', m.role === 'user' ? 'justify-end' : 'justify-start')}>
+              <div
+                className={cn(
+                  'max-w-[85%] whitespace-pre-wrap rounded-2xl px-3.5 py-2 text-sm leading-relaxed',
+                  m.role === 'user'
+                    ? 'rounded-br-sm bg-primary text-primary-foreground'
+                    : 'rounded-bl-sm bg-card text-card-foreground border border-border'
+                )}
+              >
+                {m.content}
+              </div>
+            </div>
+          ))}
+          {loading && (
+            <div className="flex justify-start">
+              <div className="flex items-center gap-2 rounded-2xl rounded-bl-sm border border-border bg-card px-3.5 py-2 text-sm text-muted-foreground">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Pensando…
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Input */}
+        <div className="shrink-0 border-t border-border p-3">
+          <div className="flex items-end gap-2">
+            <textarea
+              ref={inputRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() }
+              }}
+              rows={1}
+              placeholder="Ex.: lançar receita de R$ 5.000 de freelance"
+              className="max-h-28 flex-1 resize-none rounded-lg border border-border bg-card px-3 py-2 text-sm outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-primary/50"
+            />
+            <Button size="icon" className="h-9 w-9 shrink-0" onClick={() => send()} disabled={loading || !input.trim()}>
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <SendHorizontal className="h-4 w-4" />}
+            </Button>
+          </div>
+          <p className="mt-1.5 text-[10px] text-muted-foreground">
+            Pode navegar e pré-preencher formulários. Transações são salvas só após sua confirmação.
+          </p>
+        </div>
+      </aside>
+    </>
+  )
+}

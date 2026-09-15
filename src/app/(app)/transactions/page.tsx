@@ -7,6 +7,7 @@ import { TransactionFilters } from '@/components/transactions/transaction-filter
 import { TransactionFormDialog } from '@/components/transactions/transaction-form-dialog'
 import { TransactionTable } from '@/components/transactions/transaction-table'
 import { ImportDialog } from '@/components/import/import-dialog'
+import { AI_PREFILL_EVENT, AI_PREFILL_STORAGE } from '@/components/layout/assistant-panel'
 import { createClient } from '@/lib/supabase/client'
 import { exportToCSV } from '@/lib/csv-export'
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, INVESTMENT_CATEGORIES } from '@/lib/constants'
@@ -24,6 +25,7 @@ export default function TransactionsPage() {
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<Transaction | null>(null)
+  const [aiPrefill, setAiPrefill] = useState<Parameters<typeof TransactionFormDialog>[0]['prefill']>(null)
   const [importOpen, setImportOpen] = useState(false)
   const [customCategories, setCustomCategories] = useState<CustomCategories>(() => {
     if (typeof window === 'undefined') return { expense: [], income: [], investment: [] }
@@ -118,9 +120,34 @@ export default function TransactionsPage() {
   }
 
   function handleAdd() {
+    setAiPrefill(null)
     setEditTarget(null)
     setDialogOpen(true)
   }
+
+  // Assistente IA: evento de prefill (painel aberto) ou sessionStorage
+  // (quando o assistente navega até esta página a partir de outra)
+  useEffect(() => {
+    function onPrefill(e: Event) {
+      const detail = (e as CustomEvent).detail
+      if (!detail) return
+      setAiPrefill(detail)
+      setEditTarget(null)
+      setDialogOpen(true)
+    }
+    window.addEventListener(AI_PREFILL_EVENT, onPrefill)
+    try {
+      const stored = sessionStorage.getItem(AI_PREFILL_STORAGE)
+      if (stored) {
+        sessionStorage.removeItem(AI_PREFILL_STORAGE)
+        const detail = JSON.parse(stored)
+        setAiPrefill(detail)
+        setEditTarget(null)
+        setDialogOpen(true)
+      }
+    } catch { /* ignore */ }
+    return () => window.removeEventListener(AI_PREFILL_EVENT, onPrefill)
+  }, [])
 
   function handleDialogClose(open: boolean) {
     setDialogOpen(open)
@@ -199,6 +226,7 @@ export default function TransactionsPage() {
         open={dialogOpen}
         onOpenChange={handleDialogClose}
         transaction={editTarget}
+        prefill={aiPrefill}
         onSuccess={fetchTransactions}
         customExpenseCategories={customCategories.expense}
         customIncomeCategories={customCategories.income}

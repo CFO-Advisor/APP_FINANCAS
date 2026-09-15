@@ -1,4 +1,5 @@
 import { AppSidebar } from '@/components/layout/app-sidebar'
+import { AssistantPanel } from '@/components/layout/assistant-panel'
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -13,6 +14,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           {children}
         </div>
       </main>
+
+      {/* Assistente de IA retrátil (lado direito) */}
+      <AssistantPanel />
     </div>
   )
 }

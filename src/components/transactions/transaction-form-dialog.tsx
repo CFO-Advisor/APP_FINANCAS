@@ -48,6 +48,9 @@ interface TransactionFormDialogProps {
   onAddCategory: (name: string, type: TransactionType) => void
   banks: Bank[]
   creditCards: CreditCardType[]
+  // Pré-preenchimento vindo do assistente de IA: ao mudar (com dialog fechado→aberto),
+  // aplica os campos informados. O usuário ainda confere e salva manualmente.
+  prefill?: { type?: TransactionType; description?: string; amount?: number; category?: string; date?: string } | null
 }
 
 const defaultForm: TransactionFormData = {
@@ -75,6 +78,7 @@ export function TransactionFormDialog({
   onAddCategory,
   banks,
   creditCards,
+  prefill,
 }: TransactionFormDialogProps) {
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState<TransactionFormData>(defaultForm)
@@ -110,6 +114,21 @@ export function TransactionFormDialog({
       })
       setBankId(transaction.bank_id ?? 'none')
       setCreditCardId(transaction.credit_card_id ?? 'none')
+    } else if (prefill && open) {
+      // Pré-preenchimento do assistente de IA — merges sobre os defaults;
+      // categoria inválida para o tipo cai no primeiro grupo válido.
+      const pType = (prefill.type ?? 'expense') as TransactionType
+      const groups = getCategoryGroups(pType)
+      const allAvailable = [...groups.flatMap((g) => g.categories), ...getCustomCats(pType)]
+      setForm({
+        description: prefill.description ?? '',
+        amount: prefill.amount && prefill.amount > 0 ? prefill.amount : 0,
+        date: prefill.date ?? format(new Date(), 'yyyy-MM-dd'),
+        type: pType,
+        category: prefill.category && allAvailable.includes(prefill.category) ? prefill.category : groups[0].categories[0],
+      })
+      setBankId('none')
+      setCreditCardId('none')
     } else {
       setForm(defaultForm)
       setBankId('none')
