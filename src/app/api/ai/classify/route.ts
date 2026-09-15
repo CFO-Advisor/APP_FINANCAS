@@ -16,7 +16,7 @@ const AI_CATEGORIES = [...CATEGORIES, TRANSFER_CATEGORY]
 
 export const dynamic = 'force-dynamic'
 
-const TIMEOUT_MS = 25000
+const TIMEOUT_MS = 60000
 const MAX_BATCH = 120 // linhas por request; cliente pagina acima disso
 
 interface ClassifyItem {

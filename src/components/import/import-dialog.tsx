@@ -87,6 +87,8 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
   const [errorCount, setErrorCount] = useState(0)
   const [aiLoading, setAiLoading] = useState(false)
   const [aiApplied, setAiApplied] = useState(false)
+  // Progresso da classificação por lotes (mostra X/Y na tela)
+  const [aiProgress, setAiProgress] = useState<{ done: number; total: number } | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -102,6 +104,7 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
     setErrorCount(0)
     setAiLoading(false)
     setAiApplied(false)
+    setAiProgress(null)
   }
 
   function handleClose() {
@@ -221,26 +224,47 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
       // Regras do titular vêm do Config. IA (nomes + limite de pró-labore)
       const prefs = readAiPrefs()
 
-      const BATCH = 100
-      for (let i = 0; i < uniqItems.length; i += BATCH) {
-        const slice = uniqItems.slice(i, i + BATCH)
-        const res = await fetch('/api/ai/classify', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model: prefs.model ?? (typeof window !== 'undefined' ? localStorage.getItem(AI_MODEL_PREF_KEY) ?? undefined : undefined),
-            holderNames: prefs.holderNames,
-            proLaboreMax: prefs.proLaboreMax,
-            customRules: prefs.rules,
-            items: slice.map((u, j) => ({ index: j, text: u.text, type: u.type, amount: u.amount })),
-          }),
-        })
-        if (!res.ok) break
-        const data = await res.json()
-        for (const [idx, cat] of Object.entries(data.categories ?? {})) {
-          const u = slice[Number(idx)]
-          if (u) keyToCat.set(u.key, cat as string)
+      // O modelo gratuito leva ~1s por item: um lote grande estoura o timeout
+      // da rota e abortava tudo. Lotes de 10 (~11s) concluem com folga; alguns
+      // rodam em paralelo para o total não ficar longo, e uma falha de lote não
+      // interrompe os demais (as regras locais continuam valendo para eles).
+      const BATCH = 10
+      const CONCURRENCY = 3
+      const batches: typeof uniqItems[] = []
+      for (let i = 0; i < uniqItems.length; i += BATCH) batches.push(uniqItems.slice(i, i + BATCH))
+
+      let done = 0
+      setAiProgress({ done: 0, total: batches.length })
+
+      async function classifyBatch(slice: typeof uniqItems) {
+        try {
+          const res = await fetch('/api/ai/classify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              model: prefs.model ?? (typeof window !== 'undefined' ? localStorage.getItem(AI_MODEL_PREF_KEY) ?? undefined : undefined),
+              holderNames: prefs.holderNames,
+              proLaboreMax: prefs.proLaboreMax,
+              customRules: prefs.rules,
+              items: slice.map((u, j) => ({ index: j, text: u.text, type: u.type, amount: u.amount })),
+            }),
+          })
+          if (!res.ok) return
+          const data = await res.json()
+          for (const [idx, cat] of Object.entries(data.categories ?? {})) {
+            const u = slice[Number(idx)]
+            if (u) keyToCat.set(u.key, cat as string)
+          }
+        } catch {
+          // lote com falha: segue com os demais
+        } finally {
+          done++
+          setAiProgress({ done, total: batches.length })
         }
+      }
+
+      for (let i = 0; i < batches.length; i += CONCURRENCY) {
+        await Promise.all(batches.slice(i, i + CONCURRENCY).map(classifyBatch))
       }
 
       // Aplica: replica a categoria da descrição única em todas as linhas
@@ -508,7 +532,9 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
                 disabled={aiLoading || validCount === 0}
               >
                 {aiLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-                {aiLoading ? 'Classificando...' : aiApplied ? 'Reclassificar com IA' : 'Classificar com IA'}
+                {aiLoading
+                  ? aiProgress ? `Classificando ${aiProgress.done}/${aiProgress.total}...` : 'Classificando...'
+                  : aiApplied ? 'Reclassificar com IA' : 'Classificar com IA'}
               </Button>
             </div>
 
