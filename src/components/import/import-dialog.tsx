@@ -124,14 +124,28 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
       const content = await readTextFile(f)
       const { headers, rows } = parseCSVContent(content)
       const guessed = guessFieldMap(headers)
-      setFieldMap({
-        date: guessed.date ?? '',
-        description: guessed.description ?? '',
-        amount: guessed.amount ?? '',
-        type: guessed.type ?? '',
-      })
-      setFile({ name: f.name, format: 'csv', csvHeaders: headers, csvRows: rows, parsed: [] })
-      setStep('configure')
+      // Se o mapeamento obrigatório foi detectado automaticamente, pula direto
+      // pra prévia — o usuário não precisa escolher coluna nenhuna.
+      if (guessed.date && guessed.description && guessed.amount) {
+        const fm: CSVFieldMap = {
+          date: guessed.date,
+          description: guessed.description,
+          amount: guessed.amount,
+          type: guessed.type ?? '',
+        }
+        setFieldMap(fm)
+        setFile({ name: f.name, format: 'csv', csvHeaders: headers, csvRows: rows, parsed: mapCSVRows(rows, fm) })
+        setStep('preview')
+      } else {
+        setFieldMap({
+          date: guessed.date ?? '',
+          description: guessed.description ?? '',
+          amount: guessed.amount ?? '',
+          type: guessed.type ?? '',
+        })
+        setFile({ name: f.name, format: 'csv', csvHeaders: headers, csvRows: rows, parsed: [] })
+        setStep('configure')
+      }
     }
   }
 
@@ -373,6 +387,7 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
                   <tr>
                     <th className="px-3 py-2 text-left font-medium">Data</th>
                     <th className="px-3 py-2 text-left font-medium">Descrição</th>
+                    <th className="px-3 py-2 text-left font-medium">Categoria</th>
                     <th className="px-3 py-2 text-right font-medium">Valor</th>
                     <th className="px-3 py-2 text-left font-medium">Tipo</th>
                     <th className="px-3 py-2 text-left font-medium"></th>
@@ -383,6 +398,7 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
                     <tr key={i} className={`border-t border-border ${row.error ? 'bg-destructive/5' : ''}`}>
                       <td className="px-3 py-1.5 text-muted-foreground">{row.date || '—'}</td>
                       <td className="max-w-[200px] truncate px-3 py-1.5">{row.description}</td>
+                      <td className="max-w-[130px] truncate px-3 py-1.5 text-muted-foreground">{row.error ? '—' : row.category}</td>
                       <td className={`px-3 py-1.5 text-right font-medium tabular-nums ${row.type === 'income' ? 'text-emerald-600' : 'text-destructive'}`}>
                         {row.error ? '—' : `R$ ${row.amount.toFixed(2)}`}
                       </td>

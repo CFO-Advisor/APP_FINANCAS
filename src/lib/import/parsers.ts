@@ -193,6 +193,28 @@ export function guessFieldMap(headers: string[]): Partial<CSVFieldMap> {
   return map
 }
 
+// ── Categorização automática por palavra-chave (best-effort) ────────────────
+// Baseada em Histórico+Descrição do extrato (Inter e bancos BR em geral).
+const CATEGORY_RULES: [RegExp, string][] = [
+  [/\b(iof|imposto\b|impostos|tarifa|cip|cheque especial|juros)/i, 'Tarifas e Impostos'],
+  [/\b(pix enviado|transferencia enviada|ted enviada|doc enviado)/i, 'Transferências Enviadas'],
+  [/\b(pix recebido|transferencia recebida|ted recebida|deposito)/i, 'Transferências Recebidas'],
+  [/\b(pagamento fatura|fatura cart[aã]o)/i, 'Pagamento de Cartão'],
+  [/\b(salario|salario|proventos|folha)/i, 'Salário'],
+  [/\b(boleto|codigo de barras| concessiona|energia|luz|agua|c[eo]p e[lr]|amazo ?nas energia)/i, 'Contas e Boletos'],
+  [/\b(netflix|spotify|amazon prime|disney|hbo|max\b|youtube premium|icloud|google one|apple\.com)/i, 'Assinaturas'],
+  [/\b(uber|99 pop|i food|ifood|rappi|posto|shell|petrobras|ipiranga|combustivel)/i, 'Transporte e Alimentação'],
+  [/\b(estorno|reembolso|devolu)/i, 'Estornos'],
+  [/\b(resgate|aporte|rendimento|cdb|tesouro|fundo de invest)/i, 'Investimentos'],
+]
+
+export function guessCategory(text: string): string {
+  for (const [re, cat] of CATEGORY_RULES) {
+    if (re.test(text)) return cat
+  }
+  return 'Outros'
+}
+
 // ── CSV → ParsedTransaction ─────────────────────────────────────────────────
 
 export function mapCSVRows(
@@ -224,7 +246,7 @@ export function mapCSVRows(
       description: rawDesc || 'Sem descrição',
       amount: Math.abs(amount),
       type,
-      category: defaultCategory,
+      category: guessCategory(Object.values(row).join(' ')),
     }
   })
 }
