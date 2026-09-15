@@ -209,23 +209,58 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
     if (valid.length === 0) return
     setAiLoading(true)
     try {
-      // Eficiência: deduplica por descrição + valor. Extratos reais repetem muito
-      // as mesmas combinações (334 linhas → ~90 únicas), então a IA classifica só
-      // as únicas e o resultado é replicado. O valor entra na chave porque as
-      // regras do titular (pró-labore x dividendos) dependem dele.
+      // Duas etapas: primeiro as regras ensinadas no Config. IA aplicadas
+      // localmente (regras por emissor, fatura de cartão, CFO Advisor →
+      // pró-labore/dividendos, titular → transferência) — não gastam IA e
+      // valem para todas as linhas iguais; só o que sobrar vai para a IA,
+      // deduplicado por descrição + valor.
       const itemKey = (r: { description: string; amount: number }) =>
         `${r.description.trim().toLowerCase()}|${r.amount.toFixed(2)}`
       const keyToCat = new Map<string, string>()
-      const uniqItems: { key: string; text: string; type: string; amount: number }[] = []
-      for (const r of valid) {
-        const key = itemKey(r)
-        if (keyToCat.has(key)) continue
-        uniqItems.push({ key, text: r.description, type: r.type, amount: r.amount })
-        keyToCat.set(key, '') // reserva a vaga
+
+      // Regras do Config. IA (nomes do titular, limite de pró-labore, regras
+      // por emissor)
+      const prefs = readAiPrefs()
+
+      const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      const holderRe = prefs.holderNames.length
+        ? new RegExp(prefs.holderNames.map(escapeRe).join('|'), 'i')
+        : null
+      const faturaRe = /(pagamento\s*fatura|fatura\s*cart[aã]o|pgto\.?\s*fatura)/i
+      const cfoRe = /cfo\s*advisor|cfoadvisor/i
+      const localRules = prefs.rules.map((r) => ({ match: r.match.toLowerCase(), category: r.category }))
+
+      // Mesma ordem de prioridade do prompt no servidor: regras do usuário
+      // primeiro, depois fatura, CFO Advisor e nome do titular.
+      const classifyLocally = (r: { description: string; type: string; amount: number }): string | null => {
+        const descLower = r.description.toLowerCase()
+        for (const rule of localRules) {
+          if (descLower.includes(rule.match)) return rule.category
+        }
+        if (faturaRe.test(r.description)) return 'Fatura Cartão'
+        if (cfoRe.test(r.description) && r.type === 'income') {
+          return r.amount <= prefs.proLaboreMax ? 'Pró-labore' : 'Dividendos'
+        }
+        if (holderRe && holderRe.test(r.description)) return TRANSFER_CATEGORY
+        return null
       }
 
-      // Regras do titular vêm do Config. IA (nomes + limite de pró-labore)
-      const prefs = readAiPrefs()
+      const localKeys = new Set<string>()
+      const uniqItems: { key: string; text: string; type: string; amount: number }[] = []
+      const seen = new Set<string>()
+      for (const r of valid) {
+        const key = itemKey(r)
+        if (seen.has(key)) continue
+        seen.add(key)
+        const local = classifyLocally(r)
+        if (local) {
+          keyToCat.set(key, local)
+          localKeys.add(key)
+          continue
+        }
+        uniqItems.push({ key, text: r.description, type: r.type, amount: r.amount })
+        keyToCat.set(key, '') // reserva a vaga para a IA
+      }
 
       // O modelo gratuito leva ~1s por item: um lote grande estoura o timeout
       // da rota e abortava tudo. Lotes de 10 (~11s) concluem com folga; alguns
@@ -271,17 +306,22 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
         await Promise.all(batches.slice(i, i + CONCURRENCY).map(classifyBatch))
       }
 
-      // Aplica: replica a categoria da descrição única em todas as linhas
+      // Aplica: regras locais + resultados da IA, replicando nas linhas iguais
       let applied = 0
+      let byRules = 0
+      let byAi = 0
       setFile((prev) => {
         if (!prev) return prev
         return {
           ...prev,
           parsed: prev.parsed.map((r) => {
             if (r.error) return r
-            const cat = keyToCat.get(itemKey(r))
+            const key = itemKey(r)
+            const cat = keyToCat.get(key)
             if (cat) {
               applied++
+              if (localKeys.has(key)) byRules++
+              else byAi++
               // A categoria manda no tipo: Transferência vira type 'transfer'
               // (o preview então pede as contas de origem e destino)
               return { ...r, category: cat, type: categoryToType(cat) }
@@ -292,9 +332,10 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
       })
       if (applied > 0) {
         setAiApplied(true)
-        toast.success(`IA classificou ${applied} transaç${applied !== 1 ? 'ões' : 'ão'} (${uniqItems.length} descrições únicas).`)
+        const origem = [`${byRules} por regras do Config. IA`, byAi > 0 ? `${byAi} pela IA` : null].filter(Boolean).join(', ')
+        toast.success(`Classificadas ${applied} transaç${applied !== 1 ? 'ões' : 'ão'} — ${origem}.`)
       } else {
-        toast.info('IA indisponível agora — mantida a classificação por regras.')
+        toast.info('Nada foi classificado — IA indisponível e nenhuma regra do Config. IA aplicada.')
       }
     } catch {
       toast.info('IA indisponível agora — mantida a classificação por regras.')
