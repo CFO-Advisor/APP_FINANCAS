@@ -50,7 +50,7 @@ interface TransactionFormDialogProps {
   creditCards: CreditCardType[]
   // Pré-preenchimento vindo do assistente de IA: ao mudar (com dialog fechado→aberto),
   // aplica os campos informados. O usuário ainda confere e salva manualmente.
-  prefill?: { type?: TransactionType; description?: string; amount?: number; category?: string; date?: string } | null
+  prefill?: { type?: TransactionType; description?: string; amount?: number; category?: string; date?: string; bank?: string } | null
 }
 
 const defaultForm: TransactionFormData = {
@@ -127,7 +127,10 @@ export function TransactionFormDialog({
         type: pType,
         category: prefill.category && allAvailable.includes(prefill.category) ? prefill.category : groups[0].categories[0],
       })
-      setBankId('none')
+      // Banco: casa por nome (case-insensitive) com um dos bancos cadastrados
+      const wanted = (prefill.bank ?? '').trim().toLowerCase()
+      const match = wanted ? banks.find((b) => b.name.toLowerCase() === wanted || b.name.toLowerCase().includes(wanted)) : undefined
+      setBankId(match ? match.id : 'none')
       setCreditCardId('none')
     } else {
       setForm(defaultForm)

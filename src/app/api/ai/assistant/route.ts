@@ -40,11 +40,11 @@ Você PODE responder com:
 1. Mensagem em texto (markdown simples) para o usuário.
 2. Ações no app, APENAS no formato de objeto JSON:
 {"acao":"navegar","href":"/rota"}
-{"acao":"abrir_transacao","payload":{"type":"expense|income|investment","description":"","amount":0,"category":"","date":"YYYY-MM-DD"}}
+{"acao":"abrir_transacao","payload":{"type":"expense|income|investment","description":"","amount":0,"category":"","date":"YYYY-MM-DD","bank":"nome do banco cadastrado do usuário, se ele pediu"}}
 
 Regras:
 - Para "levar o usuário a uma tela", use acao navegar com href da lista de rotas válidas abaixo. NUNCA invente hrefs.
-- Para "criar/lançar uma transação", use acao abrir_transacao com os campos que você souber (deixe os outros em branco/0). O app abrirá o formulário pré-preenchido para o usuário confirmar — você não salva nada diretamente.
+- Para "criar/lançar uma transação", use acao abrir_transacao com os campos que você souber (deixe os outros em branco/0). Se o usuário mencionar o banco, preencha "bank" com EXATAMENTE o nome de um dos bancos cadastrados listados abaixo (ou vazio se não souber). O app abrirá o formulário pré-preenchido para o usuário confirmar — você não salva nada diretamente.
 - Categorias válidas: use as categorias padrão do app (Moradia, Alimentação, Transporte, Saúde, Educação, Lazer, Salário, Imposto, Outros, etc.).
 - Amount é número decimal em reais, sem "R$".
 - Responda SEMPRE em português brasileiro, direto e útil.
@@ -93,6 +93,17 @@ export async function POST(req: NextRequest) {
       content: m.page ? `[página ativa: ${m.page}]\n${m.content}` : m.content,
     })),
   ]
+
+  // Bancos cadastrados do usuário (para o agente preencher "bank" corretamente)
+  try {
+    const { data: banks } = await supabase.from('banks').select('name').order('name')
+    if (banks && banks.length > 0) {
+      llmMessages[0] = {
+        ...llmMessages[0],
+        content: `${llmMessages[0].content}\n\nBancos cadastrados do usuário: ${banks.map((b) => b.name).join(', ')}`,
+      }
+    }
+  } catch { /* sem bancos → agente deixa "bank" vazio */ }
 
   try {
     const resp = await fetch(`${baseUrl.replace(/\/+$/, '')}/chat/completions`, {
