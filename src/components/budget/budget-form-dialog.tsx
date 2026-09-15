@@ -58,7 +58,8 @@ export function BudgetFormDialog({
   if (lastSync.budget !== budget || lastSync.open !== open) {
     setLastSync({ budget, open })
     if (budget) {
-      setType(budget.type === 'investment' || budget.type === 'credit_card_payment' ? 'expense' : budget.type)
+      // Orçamento só cobre receita/despesa: tipos especiais caem em 'expense'
+      setType(budget.type === 'investment' || budget.type === 'credit_card_payment' || budget.type === 'transfer' ? 'expense' : budget.type)
       setCategory(budget.category)
       setAmount(budget.amount)
     } else {

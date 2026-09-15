@@ -88,7 +88,7 @@ export default function DashboardPage() {
         .order('date', { ascending: false }),
       supabase.from('budgets').select('*').eq('month', month).eq('year', year),
       supabase.from('banks').select('*').order('name'),
-      supabase.from('transactions').select('bank_id, type, amount, credit_card_id').not('bank_id', 'is', null),
+      supabase.from('transactions').select('bank_id, transfer_bank_id, type, amount, credit_card_id').not('bank_id', 'is', null),
       supabase.from('credit_cards').select('*').order('name'),
       supabase.from('transactions').select('*').not('credit_card_id', 'is', null),
       supabase.from('transactions').select('category, amount').eq('type', 'investment'),
@@ -121,19 +121,32 @@ export default function DashboardPage() {
 
     if (!banksRes.error && banksRes.data) {
       const rawBanks = banksRes.data as Bank[]
-      const allTx = (allTxRes.data ?? []) as Pick<Transaction, 'bank_id' | 'type' | 'amount' | 'credit_card_id'>[]
+      const allTx = (allTxRes.data ?? []) as Pick<Transaction, 'bank_id' | 'transfer_bank_id' | 'type' | 'amount' | 'credit_card_id'>[]
       const totals: Record<string, { income: number; expense: number }> = {}
+      // Transferências movem saldo entre contas, mas não são receita nem despesa
+      const transferOut: Record<string, number> = {}
+      const transferIn: Record<string, number> = {}
       for (const t of allTx) {
-        if (!t.bank_id) continue
         // skip card expenses (not yet debited from bank), but include payments (they ARE debited)
         if (t.credit_card_id && t.type !== 'credit_card_payment') continue
+        if (t.type === 'transfer') {
+          if (t.bank_id) transferOut[t.bank_id] = (transferOut[t.bank_id] ?? 0) + t.amount
+          if (t.transfer_bank_id) transferIn[t.transfer_bank_id] = (transferIn[t.transfer_bank_id] ?? 0) + t.amount
+          continue
+        }
+        if (!t.bank_id) continue
         if (!totals[t.bank_id]) totals[t.bank_id] = { income: 0, expense: 0 }
         if (t.type === 'income') totals[t.bank_id].income += t.amount
         else totals[t.bank_id].expense += t.amount
       }
       setBankBalances(rawBanks.map((b) => {
         const t = totals[b.id] ?? { income: 0, expense: 0 }
-        return { ...b, totalIncome: t.income, totalExpense: t.expense, balance: b.initial_balance + t.income - t.expense }
+        return {
+          ...b,
+          totalIncome: t.income,
+          totalExpense: t.expense,
+          balance: b.initial_balance + t.income - t.expense + (transferIn[b.id] ?? 0) - (transferOut[b.id] ?? 0),
+        }
       }))
     }
 
@@ -236,7 +249,7 @@ export default function DashboardPage() {
   const actualByCategory = useMemo(() => {
     const map: Record<string, { amount: number; type: 'expense' | 'income' }> = {}
     for (const t of transactions) {
-      if (t.type === 'investment' || t.type === 'credit_card_payment') continue
+      if (t.type === 'investment' || t.type === 'credit_card_payment' || t.type === 'transfer') continue
       if (!map[t.category]) map[t.category] = { amount: 0, type: t.type }
       map[t.category].amount += t.amount
     }

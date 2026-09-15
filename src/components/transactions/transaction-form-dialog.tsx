@@ -29,6 +29,7 @@ import {
   EXPENSE_CATEGORY_GROUPS,
   INCOME_CATEGORY_GROUPS,
   INVESTMENT_CATEGORY_GROUPS,
+  TRANSFER_CATEGORY,
 } from '@/lib/constants'
 import { toError } from '@/lib/utils'
 import { BankIcon } from '@/components/banks/bank-icon'
@@ -84,6 +85,8 @@ export function TransactionFormDialog({
   const [form, setForm] = useState<TransactionFormData>(defaultForm)
   const [bankId, setBankId] = useState<string>('none')
   const [creditCardId, setCreditCardId] = useState<string>('none')
+  // Apenas para type='transfer': conta de DESTINO (bankId é a de origem)
+  const [transferBankId, setTransferBankId] = useState<string>('none')
   const [showNewCat, setShowNewCat] = useState(false)
   const [newCatName, setNewCatName] = useState('')
   const newCatInputRef = useRef<HTMLInputElement>(null)
@@ -114,6 +117,7 @@ export function TransactionFormDialog({
       })
       setBankId(transaction.bank_id ?? 'none')
       setCreditCardId(transaction.credit_card_id ?? 'none')
+      setTransferBankId(transaction.transfer_bank_id ?? 'none')
     } else if (prefill && open) {
       // Pré-preenchimento do assistente de IA — merges sobre os defaults;
       // categoria inválida para o tipo cai no primeiro grupo válido.
@@ -125,17 +129,21 @@ export function TransactionFormDialog({
         amount: prefill.amount && prefill.amount > 0 ? prefill.amount : 0,
         date: prefill.date ?? format(new Date(), 'yyyy-MM-dd'),
         type: pType,
-        category: prefill.category && allAvailable.includes(prefill.category) ? prefill.category : groups[0].categories[0],
+        category: pType === 'transfer'
+          ? TRANSFER_CATEGORY
+          : prefill.category && allAvailable.includes(prefill.category) ? prefill.category : groups[0].categories[0],
       })
       // Banco: casa por nome (case-insensitive) com um dos bancos cadastrados
       const wanted = (prefill.bank ?? '').trim().toLowerCase()
       const match = wanted ? banks.find((b) => b.name.toLowerCase() === wanted || b.name.toLowerCase().includes(wanted)) : undefined
       setBankId(match ? match.id : 'none')
       setCreditCardId('none')
+      setTransferBankId('none')
     } else {
       setForm(defaultForm)
       setBankId('none')
       setCreditCardId('none')
+      setTransferBankId('none')
     }
   }
 
@@ -155,6 +163,17 @@ export function TransactionFormDialog({
         type: newType,
         category: 'Pagamento de Fatura',
         description: prev.description || 'Pagamento de Fatura',
+      }))
+      return
+    }
+    // Transferência: só contas bancárias, sem categoria de gasto
+    if (newType === 'transfer') {
+      setCreditCardId('none')
+      setForm((prev) => ({
+        ...prev,
+        type: newType,
+        category: TRANSFER_CATEGORY,
+        description: prev.description || 'Transferência entre contas',
       }))
       return
     }
@@ -218,6 +237,12 @@ export function TransactionFormDialog({
       if (bankId === 'none') { toast.error('Selecione o banco que fará o débito.'); return }
     }
 
+    if (form.type === 'transfer') {
+      if (bankId === 'none') { toast.error('Selecione a conta de origem.'); return }
+      if (transferBankId === 'none') { toast.error('Selecione a conta de destino.'); return }
+      if (bankId === transferBankId) { toast.error('A conta de destino deve ser diferente da origem.'); return }
+    }
+
     setLoading(true)
     const supabase = createClient()
 
@@ -228,7 +253,15 @@ export function TransactionFormDialog({
       const finalBankId = form.type === 'credit_card_payment'
         ? resolvedBankId
         : (resolvedCardId ? null : resolvedBankId)
-      const finalCategory = form.type === 'credit_card_payment' ? 'Pagamento de Fatura' : form.category
+      const finalCategory = form.type === 'credit_card_payment'
+        ? 'Pagamento de Fatura'
+        : form.type === 'transfer'
+        ? TRANSFER_CATEGORY
+        : form.category
+      // Destino só existe em transferência (bank_id é sempre a origem)
+      const finalTransferBankId = form.type === 'transfer'
+        ? (transferBankId === 'none' ? null : transferBankId)
+        : null
 
       if (transaction) {
         const { error } = await supabase
@@ -241,6 +274,7 @@ export function TransactionFormDialog({
             category: finalCategory,
             bank_id: finalBankId,
             credit_card_id: resolvedCardId,
+            transfer_bank_id: finalTransferBankId,
           })
           .eq('id', transaction.id)
 
@@ -259,6 +293,7 @@ export function TransactionFormDialog({
           category: finalCategory,
           bank_id: finalBankId,
           credit_card_id: resolvedCardId,
+          transfer_bank_id: finalTransferBankId,
         })
 
         if (error) throw error
@@ -292,6 +327,10 @@ export function TransactionFormDialog({
       active: 'border-sky-500 bg-sky-50 text-sky-600',
       label: 'Pg. Fatura',
     },
+    transfer: {
+      active: 'border-amber-500 bg-amber-50 text-amber-600',
+      label: 'Transferência',
+    },
   }
 
   const submitBtnClass =
@@ -299,6 +338,8 @@ export function TransactionFormDialog({
       ? 'bg-emerald-600 hover:bg-emerald-700'
       : form.type === 'investment'
       ? 'bg-primary hover:bg-primary/90'
+      : form.type === 'transfer'
+      ? 'bg-amber-600 hover:bg-amber-700'
       : form.type === 'credit_card_payment'
       ? 'bg-sky-600 hover:bg-sky-700'
       : ''
@@ -310,9 +351,9 @@ export function TransactionFormDialog({
           <DialogTitle>{transaction ? 'Editar Transação' : 'Nova Transação'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Tipo — 4 buttons */}
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {(['income', 'expense', 'investment', 'credit_card_payment'] as TransactionType[]).map((t) => (
+          {/* Tipo — 5 buttons */}
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {(['income', 'expense', 'investment', 'credit_card_payment', 'transfer'] as TransactionType[]).map((t) => (
               <button
                 key={t}
                 type="button"
@@ -367,7 +408,8 @@ export function TransactionFormDialog({
             />
           </div>
 
-          {/* Categoria */}
+          {/* Categoria (transferências entre contas não têm categoria de gasto) */}
+          {form.type !== 'transfer' && (
           <div className="space-y-1.5">
             <Label>Categoria</Label>
             <Select
@@ -436,6 +478,7 @@ export function TransactionFormDialog({
               </div>
             )}
           </div>
+          )}
 
           {/* Pagamento de fatura — cartão + banco obrigatórios */}
           {form.type === 'credit_card_payment' ? (
@@ -518,6 +561,84 @@ export function TransactionFormDialog({
                 )}
                 <p className="text-xs text-muted-foreground">O valor será debitado desta conta.</p>
               </div>
+            </>
+          ) : form.type === 'transfer' ? (
+            <>
+              {/* Transferência entre contas do mesmo titular: só contas, sem categoria */}
+              {banks.length < 2 ? (
+                <div className="flex items-center justify-between rounded-lg border border-dashed border-border px-3 py-2.5 text-sm text-muted-foreground">
+                  <span>Você precisa de pelo menos 2 contas cadastradas</span>
+                  <Link href="/banks" className="ml-2 shrink-0 text-xs font-medium text-primary hover:underline" onClick={() => onOpenChange(false)}>
+                    Cadastrar →
+                  </Link>
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-1.5">
+                    <Label>Conta de origem (saída) <span className="text-destructive">*</span></Label>
+                    <Select value={bankId} onValueChange={(v) => { if (v) { setBankId(v); if (v === transferBankId) setTransferBankId('none') } }}>
+                      <SelectTrigger className="w-full">
+                        <span className="flex flex-1 items-center gap-2 text-sm">
+                          {bankId === 'none' ? (
+                            <span className="text-muted-foreground">Selecionar conta...</span>
+                          ) : (
+                            <>
+                              <BankIcon name={banks.find((b) => b.id === bankId)?.name ?? ''} color={banks.find((b) => b.id === bankId)?.color ?? ''} size="xs" />
+                              {banks.find((b) => b.id === bankId)?.name}
+                            </>
+                          )}
+                        </span>
+                      </SelectTrigger>
+                      <SelectContent className="max-h-52 overflow-y-auto">
+                        <SelectItem value="none">— Selecionar conta</SelectItem>
+                        <SelectSeparator />
+                        {banks.map((b) => (
+                          <SelectItem key={b.id} value={b.id}>
+                            <span className="flex items-center gap-2">
+                              <BankIcon name={b.name} color={b.color} size="xs" />
+                              {b.name}
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label>Conta de destino (entrada) <span className="text-destructive">*</span></Label>
+                    <Select value={transferBankId} onValueChange={(v) => { if (v) setTransferBankId(v) }}>
+                      <SelectTrigger className="w-full">
+                        <span className="flex flex-1 items-center gap-2 text-sm">
+                          {transferBankId === 'none' ? (
+                            <span className="text-muted-foreground">Selecionar conta...</span>
+                          ) : (
+                            <>
+                              <BankIcon name={banks.find((b) => b.id === transferBankId)?.name ?? ''} color={banks.find((b) => b.id === transferBankId)?.color ?? ''} size="xs" />
+                              {banks.find((b) => b.id === transferBankId)?.name}
+                            </>
+                          )}
+                        </span>
+                      </SelectTrigger>
+                      <SelectContent className="max-h-52 overflow-y-auto">
+                        <SelectItem value="none">— Selecionar conta</SelectItem>
+                        <SelectSeparator />
+                        {banks.filter((b) => b.id !== bankId).map((b) => (
+                          <SelectItem key={b.id} value={b.id}>
+                            <span className="flex items-center gap-2">
+                              <BankIcon name={b.name} color={b.color} size="xs" />
+                              {b.name}
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <p className="text-xs text-muted-foreground">
+                    Movimentação entre contas do mesmo titular — não entra como receita nem despesa.
+                  </p>
+                </>
+              )}
             </>
           ) : (
             <>

@@ -84,6 +84,10 @@ export const INCOME_CATEGORIES = INCOME_CATEGORY_GROUPS.flatMap((g) => g.categor
 export const INVESTMENT_CATEGORIES = INVESTMENT_CATEGORY_GROUPS.flatMap((g) => g.categories)
 export const CATEGORIES = [...new Set([...EXPENSE_CATEGORIES, ...INCOME_CATEGORIES, ...INVESTMENT_CATEGORIES])]
 
+// Transferência entre contas do MESMO titular: tipo próprio, que não é
+// receita, despesa nem investimento. Usa esta categoria fixa.
+export const TRANSFER_CATEGORY = 'Transferência'
+
 // Baseline palette: #6c63ff #43e97b #ff6584 #f7971e #38f9d7 #a78bfa #fbbf24
 export const CATEGORY_COLORS: Record<string, string> = {
   // Despesas — Alimentação (pink-red)
@@ -131,6 +135,8 @@ export const CATEGORY_COLORS: Record<string, string> = {
   'Seguro': '#acb0b7',
   'Imposto': '#bebfc1',
   'Outros': '#8892a4',
+  // Movimentação interna entre contas (não entra nos totais)
+  'Transferência': '#64748b',
   // Receitas
   'Salário': '#43e97b',
   'Freelance': '#38f9d7',

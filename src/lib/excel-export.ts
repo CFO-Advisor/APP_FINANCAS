@@ -88,6 +88,7 @@ const TYPE_LABELS: Record<string, string> = {
   expense:             'Despesa',
   investment:          'Investimento',
   credit_card_payment: 'Pg. Fatura',
+  transfer:            'Transferência',
 }
 
 export function exportBankStatementToExcel(

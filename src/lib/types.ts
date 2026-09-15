@@ -1,4 +1,11 @@
-export type TransactionType = 'income' | 'expense' | 'investment' | 'credit_card_payment'
+// 'transfer' = movimentação entre contas do mesmo titular. Não é receita,
+// despesa nem investimento — fica fora de todos os totais do app.
+export type TransactionType =
+  | 'income'
+  | 'expense'
+  | 'investment'
+  | 'credit_card_payment'
+  | 'transfer'
 
 export type Category = string
 
@@ -12,6 +19,8 @@ export interface Transaction {
   category: Category
   bank_id: string | null
   credit_card_id: string | null
+  // Apenas para type='transfer': conta de destino (bank_id é a de origem)
+  transfer_bank_id: string | null
   created_at: string
 }
 

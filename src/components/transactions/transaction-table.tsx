@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Pencil, Trash2, AlertTriangle } from 'lucide-react'
+import { Pencil, Trash2, AlertTriangle, ArrowRight } from 'lucide-react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -113,6 +113,18 @@ export function TransactionTable({ transactions, onEdit, onDeleted, banks = [], 
                       <span className="inline-flex h-5 w-5 items-center justify-center rounded text-[9px] font-bold text-white" style={{ backgroundColor: cardMap.get(t.credit_card_id)!.color }}>C</span>
                       <span className="text-xs">{cardMap.get(t.credit_card_id)!.name}</span>
                     </span>
+                  ) : t.type === 'transfer' && t.bank_id && bankMap.has(t.bank_id) ? (
+                    <span className="flex items-center gap-1.5">
+                      <BankIcon name={bankMap.get(t.bank_id)!.name} color={bankMap.get(t.bank_id)!.color} size="xs" />
+                      <span className="text-xs">{bankMap.get(t.bank_id)!.name}</span>
+                      {t.transfer_bank_id && bankMap.has(t.transfer_bank_id) && (
+                        <>
+                          <ArrowRight className="h-3 w-3 shrink-0 text-muted-foreground" />
+                          <BankIcon name={bankMap.get(t.transfer_bank_id)!.name} color={bankMap.get(t.transfer_bank_id)!.color} size="xs" />
+                          <span className="text-xs">{bankMap.get(t.transfer_bank_id)!.name}</span>
+                        </>
+                      )}
+                    </span>
                   ) : t.bank_id && bankMap.has(t.bank_id) ? (
                     <span className="flex items-center gap-1.5">
                       <BankIcon name={bankMap.get(t.bank_id)!.name} color={bankMap.get(t.bank_id)!.color} size="xs" />
@@ -127,12 +139,13 @@ export function TransactionTable({ transactions, onEdit, onDeleted, banks = [], 
                     {t.type === 'income' ? 'Receita'
                       : t.type === 'investment' ? 'Investimento'
                       : t.type === 'credit_card_payment' ? 'Pg. Fatura'
+                      : t.type === 'transfer' ? 'Transferência'
                       : 'Despesa'}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">
                   <span className="font-semibold tabular-nums text-foreground">
-                    {t.type === 'income' ? '+' : '-'}
+                    {t.type === 'income' ? '+' : t.type === 'transfer' ? '' : '-'}
                     {formatCurrency(t.amount)}
                   </span>
                 </TableCell>

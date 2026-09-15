@@ -24,13 +24,14 @@ import { exportBankStatementToExcel } from '@/lib/excel-export'
 import type { Bank, BankBalance, Transaction } from '@/lib/types'
 
 // ── Extended transaction type for extrato ─────────────
-type BankTx = Pick<Transaction, 'id' | 'bank_id' | 'credit_card_id' | 'type' | 'amount' | 'date' | 'description' | 'category'>
+type BankTx = Pick<Transaction, 'id' | 'bank_id' | 'credit_card_id' | 'type' | 'amount' | 'date' | 'description' | 'category' | 'transfer_bank_id'>
 
 const TYPE_LABEL: Record<string, { label: string; color: string; sign: '+' | '-' }> = {
   income:               { label: 'Receita',     color: '#059669', sign: '+' },
   expense:              { label: 'Despesa',      color: 'var(--destructive)', sign: '-' },
   investment:           { label: 'Investimento', color: 'var(--primary)', sign: '-' },
   credit_card_payment:  { label: 'Pg. Fatura',   color: '#0284c7', sign: '-' },
+  transfer:             { label: 'Transferência', color: '#64748b', sign: '-' },
 }
 
 // ── Running balance computation ───────────────────────
@@ -40,15 +41,18 @@ function computeExtrato(
   startDate: string,
   endDate: string,
 ): { tx: BankTx; balanceAfter: number }[] {
+  // Transferências aparecem nas DUAS contas: saem da origem (bank_id) e
+  // entram no destino (transfer_bank_id).
   const bankTx = allTx
-    .filter((t) => t.bank_id === bank.id && !(t.credit_card_id && t.type !== 'credit_card_payment'))
+    .filter((t) => (t.bank_id === bank.id || t.transfer_bank_id === bank.id) && !(t.credit_card_id && t.type !== 'credit_card_payment'))
     .sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id))
 
   let balance = bank.initial_balance
   const result: { tx: BankTx; balanceAfter: number }[] = []
 
   for (const tx of bankTx) {
-    balance = tx.type === 'income' ? balance + tx.amount : balance - tx.amount
+    const isTransferIn = tx.type === 'transfer' && tx.transfer_bank_id === bank.id
+    balance = tx.type === 'income' || isTransferIn ? balance + tx.amount : balance - tx.amount
     const inRange = (!startDate || tx.date >= startDate) && (!endDate || tx.date <= endDate)
     if (inRange) result.push({ tx, balanceAfter: balance })
   }
@@ -82,7 +86,7 @@ export default function BanksPage() {
         supabase.from('banks').select('*').order('created_at'),
         supabase
           .from('transactions')
-          .select('id, bank_id, credit_card_id, type, amount, date, description, category')
+          .select('id, bank_id, transfer_bank_id, credit_card_id, type, amount, date, description, category')
           .not('bank_id', 'is', null)
           .order('date', { ascending: false }),
       ])
@@ -97,9 +101,17 @@ export default function BanksPage() {
       setAllBankTransactions(allTx)
 
       const totals: Record<string, { income: number; expense: number }> = {}
+      // Transferências movem saldo entre contas, mas não são receita nem despesa
+      const transferOut: Record<string, number> = {}
+      const transferIn: Record<string, number> = {}
       for (const t of allTx) {
-        if (!t.bank_id) continue
         if (t.credit_card_id && t.type !== 'credit_card_payment') continue
+        if (t.type === 'transfer') {
+          if (t.bank_id) transferOut[t.bank_id] = (transferOut[t.bank_id] ?? 0) + t.amount
+          if (t.transfer_bank_id) transferIn[t.transfer_bank_id] = (transferIn[t.transfer_bank_id] ?? 0) + t.amount
+          continue
+        }
+        if (!t.bank_id) continue
         if (!totals[t.bank_id]) totals[t.bank_id] = { income: 0, expense: 0 }
         if (t.type === 'income') totals[t.bank_id].income += t.amount
         else totals[t.bank_id].expense += t.amount
@@ -107,7 +119,12 @@ export default function BanksPage() {
 
       setBanks(rawBanks.map((b) => {
         const t = totals[b.id] ?? { income: 0, expense: 0 }
-        return { ...b, totalIncome: t.income, totalExpense: t.expense, balance: b.initial_balance + t.income - t.expense }
+        return {
+          ...b,
+          totalIncome: t.income,
+          totalExpense: t.expense,
+          balance: b.initial_balance + t.income - t.expense + (transferIn[b.id] ?? 0) - (transferOut[b.id] ?? 0),
+        }
       }))
       setLoading(false)
     }
@@ -387,6 +404,8 @@ function BankCard({ bank, allTx, expanded, filter, onToggle, onEdit, onDelete, o
               <div className="max-h-96 space-y-0.5 overflow-y-auto">
                 {extrato.map(({ tx, balanceAfter }) => {
                   const meta = TYPE_LABEL[tx.type] ?? { label: tx.type, color: '#8892a4', sign: '-' as const }
+                  // Do lado da conta de destino a transferência entra como crédito
+                  const sign = tx.type === 'transfer' && tx.transfer_bank_id === bank.id ? ('+' as const) : meta.sign
                   return (
                     <div
                       key={tx.id}
@@ -411,7 +430,7 @@ function BankCard({ bank, allTx, expanded, filter, onToggle, onEdit, onDelete, o
                       <span
                         className="shrink-0 text-right text-sm font-semibold tabular-nums text-foreground"
                       >
-                        {meta.sign}{formatCurrency(tx.amount)}
+                        {sign}{formatCurrency(tx.amount)}
                       </span>
 
                       {/* Running balance */}

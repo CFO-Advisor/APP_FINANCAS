@@ -114,6 +114,7 @@ export function TransactionFilters({
             <SelectItem value="expense">Despesas</SelectItem>
             <SelectItem value="investment">Investimentos</SelectItem>
             <SelectItem value="credit_card_payment">Pg. Fatura</SelectItem>
+            <SelectItem value="transfer">Transferências</SelectItem>
           </SelectContent>
         </Select>
 

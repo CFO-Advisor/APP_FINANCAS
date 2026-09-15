@@ -44,14 +44,14 @@ export default function BalancePage() {
       cardsRes,
     ] = await Promise.all([
       supabase.from('banks').select('*'),
-      supabase.from('transactions').select('bank_id, credit_card_id, type, amount, category'),
+      supabase.from('transactions').select('bank_id, transfer_bank_id, credit_card_id, type, amount, category'),
       supabase.from('investment_settings').select('initial_balance'),
       supabase.from('assets').select('group_type, value'),
       supabase.from('debts').select('*').neq('status', 'paid'),
       supabase.from('credit_cards').select('id, name'),
     ])
 
-    const allTx = (txRes.data ?? []) as Pick<Transaction, 'bank_id' | 'credit_card_id' | 'type' | 'amount' | 'category'>[]
+    const allTx = (txRes.data ?? []) as Pick<Transaction, 'bank_id' | 'transfer_bank_id' | 'credit_card_id' | 'type' | 'amount' | 'category'>[]
     const rawBanks = (banksRes.data ?? []) as Bank[]
     const allDebts = (debtsRes.data ?? []) as Debt[]
     const allAssets = (assetsRes.data ?? []) as Pick<Asset, 'group_type' | 'value'>[]
@@ -59,16 +59,24 @@ export default function BalancePage() {
 
     // ── 1. Bank balances ─────────────────────────────
     const bankTotals: Record<string, { income: number; expense: number }> = {}
+    // Transferências movem saldo entre contas, mas não são receita nem despesa
+    const transferOut: Record<string, number> = {}
+    const transferIn: Record<string, number> = {}
     for (const t of allTx) {
-      if (!t.bank_id) continue
       if (t.credit_card_id && t.type !== 'credit_card_payment') continue
+      if (t.type === 'transfer') {
+        if (t.bank_id) transferOut[t.bank_id] = (transferOut[t.bank_id] ?? 0) + t.amount
+        if (t.transfer_bank_id) transferIn[t.transfer_bank_id] = (transferIn[t.transfer_bank_id] ?? 0) + t.amount
+        continue
+      }
+      if (!t.bank_id) continue
       if (!bankTotals[t.bank_id]) bankTotals[t.bank_id] = { income: 0, expense: 0 }
       if (t.type === 'income') bankTotals[t.bank_id].income += t.amount
       else bankTotals[t.bank_id].expense += t.amount
     }
     const bankTotal = rawBanks.reduce((s, b) => {
       const t = bankTotals[b.id] ?? { income: 0, expense: 0 }
-      return s + b.initial_balance + t.income - t.expense
+      return s + b.initial_balance + t.income - t.expense + (transferIn[b.id] ?? 0) - (transferOut[b.id] ?? 0)
     }, 0)
 
     // ── 2. Investment total ──────────────────────────

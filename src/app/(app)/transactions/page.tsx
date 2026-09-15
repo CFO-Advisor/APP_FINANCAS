@@ -75,7 +75,7 @@ export default function TransactionsPage() {
       // aplicado uma única vez para não sobrescrever a escolha manual do usuário.
       if (!urlTypeApplied.current) {
         const t = new URLSearchParams(window.location.search).get('type')
-        if (t === 'income' || t === 'expense' || t === 'investment' || t === 'credit_card_payment') setType(t)
+        if (t === 'income' || t === 'expense' || t === 'investment' || t === 'credit_card_payment' || t === 'transfer') setType(t)
         urlTypeApplied.current = true
       }
 
