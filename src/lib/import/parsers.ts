@@ -123,10 +123,25 @@ export function parseCSVContent(content: string, delimiter?: string): { headers:
   if (lines.length === 0) return { headers: [], rows: [] }
 
   const delim = delimiter ?? detectDelimiter(content)
-  const headers = splitCSVLine(lines[0], delim).map((h) => h.replace(/^["']|["']$/g, '').trim())
+
+  // Alguns bancos (ex.: Inter PF) prefixam o arquivo com um preâmbulo
+  // ("Extrato Conta Corrente", "Conta ;38343800", "Período ;...", "Saldo ;-...")
+  // antes da linha de cabeçalho real. Procura, nas primeiras 15 linhas, a
+  // primeira que pareça um header de verdade: ≥2 colunas batendo nos hints
+  // de data E valor (as duas colunas obrigatórias do import).
+  let headerIdx = 0
+  for (let i = 0; i < Math.min(lines.length, 15); i++) {
+    const cols = splitCSVLine(lines[i], delim).map((h) => h.replace(/^["']|["']$/g, '').trim()).filter(Boolean)
+    if (cols.length < 2) continue
+    const hasDate = cols.some((c) => matchHint(c, DATE_HINTS))
+    const hasAmount = cols.some((c) => matchHint(c, AMT_HINTS))
+    if (hasDate && hasAmount) { headerIdx = i; break }
+  }
+
+  const headers = splitCSVLine(lines[headerIdx], delim).map((h) => h.replace(/^["']|["']$/g, '').trim())
   const rows: Record<string, string>[] = []
 
-  for (let i = 1; i < lines.length; i++) {
+  for (let i = headerIdx + 1; i < lines.length; i++) {
     const values = splitCSVLine(lines[i], delim)
     if (values.length < 2) continue
     const row: Record<string, string> = {}
@@ -159,6 +174,15 @@ export function guessFieldMap(headers: string[]): Partial<CSVFieldMap> {
   // vira receita (bug dos extratos do Inter).
   for (const h of headers) {
     if (matchHint(h, OP_HINTS)) { map.type = h; break }
+  }
+  for (const h of headers) {
+    if (!map.date && matchHint(h, DATE_HINTS)) map.date = h
+    else if (!map.amount && matchHint(h, AMT_HINTS)) map.amount = h
+  }
+  // Descrição: prioriza colunas "descri*" (Inter PF tem "Histórico"=tipo do
+  // lançamento e "Descrição"=favorecido — esta última é a que interessa)
+  for (const h of headers) {
+    if (!map.description && /descri/.test(h.toLowerCase())) map.description = h
   }
   for (const h of headers) {
     if (!map.date && matchHint(h, DATE_HINTS)) map.date = h
