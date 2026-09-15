@@ -233,6 +233,7 @@ export function TransactionFormDialog({
           model: prefs.model,
           holderNames: prefs.holderNames,
           proLaboreMax: prefs.proLaboreMax,
+          customRules: prefs.rules,
           items: [{ index: 0, text: desc, type: form.type, amount: form.amount > 0 ? form.amount : undefined }],
         }),
       })

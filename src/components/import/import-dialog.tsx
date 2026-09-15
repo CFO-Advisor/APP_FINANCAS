@@ -231,6 +231,7 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
             model: prefs.model ?? (typeof window !== 'undefined' ? localStorage.getItem(AI_MODEL_PREF_KEY) ?? undefined : undefined),
             holderNames: prefs.holderNames,
             proLaboreMax: prefs.proLaboreMax,
+            customRules: prefs.rules,
             items: slice.map((u, j) => ({ index: j, text: u.text, type: u.type, amount: u.amount })),
           }),
         })

@@ -41,6 +41,7 @@ export async function POST(req: NextRequest) {
   let model: string | undefined
   let holderNames: string[] = []
   let proLaboreMax = 10000
+  const customRules: { match: string; category: string }[] = []
   try {
     const body = await req.json()
     items = Array.isArray(body.items) ? body.items.slice(0, MAX_BATCH) : []
@@ -53,6 +54,16 @@ export async function POST(req: NextRequest) {
         .map((n: string) => n.trim())
     }
     if (typeof body.proLaboreMax === 'number' && body.proLaboreMax > 0) proLaboreMax = body.proLaboreMax
+    // Regras por emissor: só aceita categoria da lista oficial e texto útil
+    if (Array.isArray(body.customRules)) {
+      for (const raw of body.customRules) {
+        if (customRules.length >= 30) break
+        if (!raw || typeof raw.match !== 'string' || typeof raw.category !== 'string') continue
+        const match = raw.match.trim()
+        if (match.length < 2 || !AI_CATEGORIES.includes(raw.category)) continue
+        customRules.push({ match, category: raw.category })
+      }
+    }
   } catch {
     return NextResponse.json({ error: 'Payload inválido.' }, { status: 400 })
   }
@@ -78,12 +89,18 @@ REGRAS DO TITULAR (aplicar ANTES das regras gerais, nesta ordem de prioridade):
 ${holderNames.length > 0 ? `3) Se a descrição citar o PRÓPRIO TITULAR (${holderNames.join(', ')}) → é movimentação entre contas do mesmo titular: use "Transferência" (vale para entrada E saída).
 ` : ''}Nunca use "Transferência" fora do caso 3. Em especial, "Pagamento Fatura - <nome do titular>" continua sendo "Fatura Cartão", NÃO transferência.`
 
+  // Regras do usuário (por emissor) têm prioridade máxima, pois são a
+  // configuração explícita dele no Config. IA.
+  const customRulesBlock = customRules.length > 0
+    ? `\nREGRAS DO USUÁRIO (PRIORIDADE MÁXIMA — aplique antes de qualquer outra regra):\n${customRules.map((r, i) => `${i + 1}) Se a descrição contiver "${r.match}" → "${r.category}".`).join('\n')}\n`
+    : ''
+
   const prompt = `Você é um classificador de transações financeiras de extratos bancários brasileiros.
 Para cada transação, escolha EXATAMENTE UMA categoria da lista permitida, considerando o tipo (receita/despesa/investimento).
 
 Categorias permitidas:
 ${AI_CATEGORIES.join(', ')}
-${titularRules}
+${customRulesBlock}${titularRules}
 
 Regras:
 - Responda APENAS um objeto JSON válido, sem markdown, sem comentários.

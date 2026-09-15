@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { Sparkles, Loader2, ShieldCheck, RefreshCw } from 'lucide-react'
+import { Sparkles, Loader2, ShieldCheck, RefreshCw, Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -20,7 +20,10 @@ import {
   readAiPrefs,
   saveHolderNames,
   saveProLaboreMax,
+  saveCustomRules,
+  type CustomRule,
 } from '@/lib/ai-config'
+import { CATEGORIES, TRANSFER_CATEGORY } from '@/lib/constants'
 
 // Configuração de IA: o usuário escolhe provedor/modelo entre opções da
 // whitelist do servidor (/api/ai/models). A chave de API NUNCA aparece aqui —
@@ -44,11 +47,14 @@ export default function AiSettingsPage() {
   // Regras de classificação do titular (aplicadas pela IA na importação)
   const [holderInput, setHolderInput] = useState('')
   const [proLaboreMax, setProLaboreMax] = useState<number>(DEFAULT_PROL_ABORE_MAX)
+  // Regras por emissor: "se a descrição contiver X → categoria Y"
+  const [rules, setRules] = useState<CustomRule[]>([])
 
   useEffect(() => {
     const prefs = readAiPrefs()
     setHolderInput(prefs.holderNames.join(', '))
     setProLaboreMax(prefs.proLaboreMax)
+    setRules(prefs.rules)
     load()
   }, [])
 
@@ -58,6 +64,10 @@ export default function AiSettingsPage() {
     const max = Number.isFinite(proLaboreMax) && proLaboreMax > 0 ? proLaboreMax : DEFAULT_PROL_ABORE_MAX
     saveProLaboreMax(max)
     setProLaboreMax(max)
+    // Só grava regras com texto preenchido
+    const clean = rules.map((r) => ({ match: r.match.trim(), category: r.category })).filter((r) => r.match)
+    saveCustomRules(clean)
+    setRules(clean)
     toast.success('Regras de classificação salvas.')
   }
 
@@ -198,6 +208,62 @@ export default function AiSettingsPage() {
             <p className="text-xs text-muted-foreground">
               Recebimentos da <strong>CFO Advisor</strong> até esse valor entram como <strong>Pró-labore</strong>; acima dele, como <strong>Dividendos</strong>.
             </p>
+          </div>
+
+          <div className="space-y-2 border-t border-border pt-4">
+            <div className="flex items-center justify-between">
+              <Label>Regras por emissor</Label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-7 gap-1 text-xs"
+                onClick={() => setRules((prev) => [...prev, { match: '', category: CATEGORIES[0] }])}
+              >
+                <Plus className="h-3 w-3" /> Adicionar
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Quando a descrição contiver o texto, a IA usa a categoria escolhida (ex.:
+              <strong> Claro</strong> → Internet). Suas regras têm prioridade sobre as demais.
+            </p>
+            {rules.length === 0 ? (
+              <p className="text-xs italic text-muted-foreground">Nenhuma regra cadastrada.</p>
+            ) : (
+              <div className="space-y-2">
+                {rules.map((r, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <Input
+                      placeholder="Texto na descrição (ex.: Claro)"
+                      value={r.match}
+                      onChange={(e) => setRules((prev) => prev.map((x, j) => (j === i ? { ...x, match: e.target.value } : x)))}
+                      className="flex-1"
+                    />
+                    <Select
+                      value={r.category}
+                      onValueChange={(v) => { if (v) setRules((prev) => prev.map((x, j) => (j === i ? { ...x, category: v } : x))) }}
+                    >
+                      <SelectTrigger className="w-[42%]"><SelectValue /></SelectTrigger>
+                      <SelectContent className="max-h-60">
+                        {[...CATEGORIES, TRANSFER_CATEGORY].map((c) => (
+                          <SelectItem key={c} value={c}>{c}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+                      onClick={() => setRules((prev) => prev.filter((_, j) => j !== i))}
+                      title="Remover regra"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <Button size="sm" onClick={saveRules}>Salvar regras</Button>
