@@ -34,7 +34,16 @@ import {
 } from '@/lib/import/parsers'
 import { extractStatementLines } from '@/lib/import/pdf'
 import { downloadImportTemplate } from '@/lib/excel-export'
-import { CATEGORIES } from '@/lib/constants'
+import { CATEGORIES, EXPENSE_CATEGORIES, INCOME_CATEGORIES, INVESTMENT_CATEGORIES } from '@/lib/constants'
+import type { TransactionType } from '@/lib/types'
+
+// Categoria → tipo: quando o usuário troca a categoria no preview, o tipo
+// acompanha (ex.: "Terreno" é investimento → vira investimento).
+function categoryToType(cat: string): TransactionType {
+  if (INVESTMENT_CATEGORIES.includes(cat)) return 'investment'
+  if (INCOME_CATEGORIES.includes(cat)) return 'income'
+  return 'expense'
+}
 import { AI_MODEL_PREF_KEY } from '@/components/layout/assistant-panel'
 import type { Bank, CreditCard } from '@/lib/types'
 
@@ -500,7 +509,8 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
                             value={row.category}
                             onValueChange={(v) => setFile((prev) => {
                               if (!prev) return prev
-                              return { ...prev, parsed: prev.parsed.map((r, j) => j === i ? { ...r, category: v ?? 'Outros' } : r) }
+                              const cat = v ?? 'Outros'
+                              return { ...prev, parsed: prev.parsed.map((r, j) => j === i ? { ...r, category: cat, type: categoryToType(cat) } : r) }
                             })}
                           >
                             <SelectTrigger className="h-6 w-full border-none bg-transparent px-1 text-xs shadow-none hover:bg-muted/60">
@@ -518,7 +528,7 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
                         {row.error ? '—' : `R$ ${row.amount.toFixed(2)}`}
                       </td>
                       <td className="px-3 py-1.5 text-muted-foreground">
-                        {row.type === 'income' ? 'Receita' : 'Despesa'}
+                        {row.type === 'income' ? 'Receita' : row.type === 'investment' ? 'Investimento' : row.type === 'credit_card_payment' ? 'Pagto. Fatura' : 'Despesa'}
                       </td>
                       <td className="px-3 py-1.5">
                         {row.error && (
