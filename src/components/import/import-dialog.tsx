@@ -35,6 +35,7 @@ import {
 import { extractStatementLines } from '@/lib/import/pdf'
 import { downloadImportTemplate } from '@/lib/excel-export'
 import { CATEGORIES } from '@/lib/constants'
+import { AI_MODEL_PREF_KEY } from '@/components/layout/assistant-panel'
 import type { Bank, CreditCard } from '@/lib/types'
 
 type Step = 'upload' | 'configure' | 'preview' | 'done'
@@ -192,6 +193,7 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            model: typeof window !== 'undefined' ? localStorage.getItem(AI_MODEL_PREF_KEY) ?? undefined : undefined,
             items: slice.map((r, j) => ({ index: j, text: `${r.description} (${r.type === 'income' ? 'receita' : 'despesa'}, R$ ${r.amount.toFixed(2)})`, type: r.type })),
           }),
         })

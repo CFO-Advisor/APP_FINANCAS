@@ -28,19 +28,28 @@ export async function POST(req: NextRequest) {
 
   const apiKey = process.env.AI_API_KEY
   const baseUrl = process.env.AI_API_BASE
-  const model = process.env.AI_MODEL || 'auto'
   if (!apiKey || !baseUrl) {
     return NextResponse.json({ configured: false, categories: {} })
   }
 
   let items: ClassifyItem[]
+  let model: string | undefined
   try {
     const body = await req.json()
     items = Array.isArray(body.items) ? body.items.slice(0, MAX_BATCH) : []
+    model = typeof body.model === 'string' ? body.model : undefined
   } catch {
     return NextResponse.json({ error: 'Payload inválido.' }, { status: 400 })
   }
   if (items.length === 0) return NextResponse.json({ categories: {} })
+
+  // Modelo: só aceita se estiver na whitelist do servidor (Config. IA)
+  const { getAllowedModels } = await import('../models/route')
+  const allowed = getAllowedModels()
+  const chosen = allowed.find((m) => m.model === model)?.model
+    ?? allowed[0].model
+    ?? process.env.AI_MODEL
+    ?? 'auto'
 
   const prompt = `Você é um classificador de transações financeiras de extratos bancários brasileiros.
 Para cada transação, escolha EXATAMENTE UMA categoria da lista permitida, considerando o tipo (receita/despesa/investimento).
@@ -65,7 +74,7 @@ ${items.map((i) => `${i.index}. [${i.type}] ${i.text}`).join('\n')}`
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model,
+        model: chosen,
         messages: [
           { role: 'system', content: 'Você classifica transações bancárias brasileiras respondendo apenas JSON válido.' },
           { role: 'user', content: prompt },
