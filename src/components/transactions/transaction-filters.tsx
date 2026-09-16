@@ -127,7 +127,11 @@ export function TransactionFilters({
 
         <Select value={bank} onValueChange={(v) => { if (v !== null) onBankChange(v) }}>
           <SelectTrigger className="w-40 bg-card">
-            <SelectValue placeholder="Banco" />
+            {/* Rótulo explícito: o Radix pode mostrar o valor bruto (uuid) quando
+                o popup está fechado e o item não está montado */}
+            <span className="flex flex-1 text-left text-sm">
+              {bank === 'all' ? 'Todos os bancos' : banks.find((b) => b.id === bank)?.name ?? 'Banco'}
+            </span>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos os bancos</SelectItem>
