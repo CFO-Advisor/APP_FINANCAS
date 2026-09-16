@@ -169,8 +169,18 @@ export function AssistantPanel() {
           const alvo = nomeAlvo.toLowerCase()
           const { data: banks, error: qErr } = await supabase.from('banks').select('id, name').eq('user_id', user.id)
           if (qErr) throw qErr
-          const target = banks?.find((b) => b.name.toLowerCase() === alvo) ?? banks?.find((b) => b.name.toLowerCase().includes(alvo))
-          if (!target) { toast.error(`Não encontrei o banco "${nomeAlvo}".`); return }
+          const exact = banks?.filter((b) => b.name.toLowerCase() === alvo) ?? []
+          const candidates = exact.length > 0 ? exact : (banks ?? []).filter((b) => b.name.toLowerCase().includes(alvo))
+          if (candidates.length === 0) { toast.error(`Não encontrei o banco "${nomeAlvo}".`); return }
+          if (candidates.length > 1) {
+            // Ambíguo: mostra as opções no chat e pede para especificar — a
+            // próxima mensagem passa de novo pela IA, que já tem a lista.
+            const nomes = [...new Set(candidates.map((b) => b.name))]
+            const extra = nomes.length < candidates.length ? '\n⚠️ Há registros com nomes idênticos — renomeie um deles no formulário antes de editar pela IA.' : ''
+            setMessages((prev) => [...prev, { role: 'assistant', content: `Encontrei mais de um banco com "${nomeAlvo}":\n${nomes.map((n) => `• ${n}`).join('\n')}${extra}\nMe diz qual você quer editar.` }])
+            return
+          }
+          const target = candidates[0]
           const update: Record<string, unknown> = {}
           if (typeof action.novo_nome === 'string' && action.novo_nome.trim()) update.name = action.novo_nome.trim()
           if (action.tipo) update.type = action.tipo
@@ -195,8 +205,16 @@ export function AssistantPanel() {
           const alvo = nomeAlvo.toLowerCase()
           const { data: cards, error: qErr } = await supabase.from('credit_cards').select('id, name').eq('user_id', user.id)
           if (qErr) throw qErr
-          const target = cards?.find((c) => c.name.toLowerCase() === alvo) ?? cards?.find((c) => c.name.toLowerCase().includes(alvo))
-          if (!target) { toast.error(`Não encontrei o cartão "${nomeAlvo}".`); return }
+          const exact = cards?.filter((c) => c.name.toLowerCase() === alvo) ?? []
+          const candidates = exact.length > 0 ? exact : (cards ?? []).filter((c) => c.name.toLowerCase().includes(alvo))
+          if (candidates.length === 0) { toast.error(`Não encontrei o cartão "${nomeAlvo}".`); return }
+          if (candidates.length > 1) {
+            const nomes = [...new Set(candidates.map((c) => c.name))]
+            const extra = nomes.length < candidates.length ? '\n⚠️ Há registros com nomes idênticos — renomeie um deles no formulário antes de editar pela IA.' : ''
+            setMessages((prev) => [...prev, { role: 'assistant', content: `Encontrei mais de um cartão com "${nomeAlvo}":\n${nomes.map((n) => `• ${n}`).join('\n')}${extra}\nMe diz qual você quer editar.` }])
+            return
+          }
+          const target = candidates[0]
           const update: Record<string, unknown> = {}
           if (typeof action.novo_nome === 'string' && action.novo_nome.trim()) update.name = action.novo_nome.trim()
           if (action.bandeira) update.brand = action.bandeira
