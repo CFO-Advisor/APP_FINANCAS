@@ -118,6 +118,36 @@ function splitCSVLine(line: string, delimiter: string): string[] {
   return result
 }
 
+// Normaliza texto para comparação de nomes de coluna (minúsculo, sem acento)
+function norm(s: string): string {
+  return s.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '')
+}
+
+// C6 Bank (e similares): valores em duas colunas separadas — Entrada(R$)
+// (dinheiro entrando) e Saída(R$) (saindo). Normaliza para Data/Descrição/
+// Valor com sinal (entrada +, saída −), mesma convenção do PDF/Inter.
+function normalizeTwoAmountColumns(headers: string[], rows: Record<string, string>[]): { headers: string[]; rows: Record<string, string>[] } {
+  const titleCol = headers.find((h) => norm(h).startsWith('titulo'))
+  const descCol = headers.find((h) => norm(h).startsWith('descricao'))
+  const entradaCol = headers.find((h) => norm(h).startsWith('entrada'))
+  const saidaCol = headers.find((h) => norm(h).startsWith('saida'))
+  const dateCol = headers.find((h) => norm(h).includes('data lancamento')) ?? headers.find((h) => matchHint(h, DATE_HINTS)) ?? headers[0] ?? 'Data'
+
+  const newRows = rows.map((row) => {
+    const titulo = titleCol ? (row[titleCol] ?? '') : ''
+    const desc = descCol ? (row[descCol] ?? '') : ''
+    // Título vem sempre preenchido; Descrição às vezes traz o favorecido/
+    // estabelecimento. Combina quando a Descrição agrega informação.
+    const description = desc && desc.toLowerCase() !== titulo.toLowerCase() ? `${titulo} - ${desc}` : titulo
+    const entrada = parseBRNumber(entradaCol ? (row[entradaCol] ?? '') : '')
+    const saida = parseBRNumber(saidaCol ? (row[saidaCol] ?? '') : '')
+    const valor = !isNaN(entrada) && entrada > 0 ? entrada : !isNaN(saida) && saida > 0 ? -saida : 0
+    return { Data: row[dateCol] ?? '', 'Descrição': description, Valor: String(valor) }
+  })
+
+  return { headers: ['Data', 'Descrição', 'Valor'], rows: newRows }
+}
+
 export function parseCSVContent(content: string, delimiter?: string): { headers: string[]; rows: Record<string, string>[] } {
   const lines = content.split(/\r?\n/).filter((l) => l.trim())
   if (lines.length === 0) return { headers: [], rows: [] }
@@ -135,7 +165,9 @@ export function parseCSVContent(content: string, delimiter?: string): { headers:
     if (cols.length < 2) continue
     const hasDate = cols.some((c) => matchHint(c, DATE_HINTS))
     const hasAmount = cols.some((c) => matchHint(c, AMT_HINTS))
-    if (hasDate && hasAmount) { headerIdx = i; break }
+    // C6 Bank: valores em colunas separadas "Entrada(R$)"/"Saída(R$)"
+    const hasInOut = cols.some((c) => norm(c).startsWith('entrada')) && cols.some((c) => norm(c).startsWith('saida'))
+    if ((hasDate && hasAmount) || (hasDate && hasInOut)) { headerIdx = i; break }
   }
 
   const headers = splitCSVLine(lines[headerIdx], delim).map((h) => h.replace(/^["']|["']$/g, '').trim())
@@ -147,6 +179,11 @@ export function parseCSVContent(content: string, delimiter?: string): { headers:
     const row: Record<string, string> = {}
     headers.forEach((h, idx) => { row[h] = (values[idx] ?? '').replace(/^["']|["']$/g, '').trim() })
     rows.push(row)
+  }
+
+  // Header com Entrada/Saída separadas (C6) → normaliza para Valor com sinal
+  if (headers.some((h) => norm(h).startsWith('entrada')) && headers.some((h) => norm(h).startsWith('saida'))) {
+    return normalizeTwoAmountColumns(headers, rows)
   }
 
   return { headers, rows }
@@ -196,10 +233,10 @@ export function guessFieldMap(headers: string[]): Partial<CSVFieldMap> {
 // ── Categorização automática por palavra-chave (best-effort) ────────────────
 // Baseada em Histórico+Descrição do extrato (Inter e bancos BR em geral).
 const CATEGORY_RULES: [RegExp, string][] = [
-  [/\b(iof|imposto\b|impostos|tarifa|cip|cheque especial|juros)/i, 'Tarifas e Impostos'],
+  [/\b(iof|imposto\b|impostos|tarifa|cip|cheque especial|juros|seguro conta)/i, 'Tarifas e Impostos'],
   [/\b(pix enviado|transferencia enviada|ted enviada|doc enviado)/i, 'Transferências Enviadas'],
   [/\b(pix recebido|transferencia recebida|ted recebida|deposito)/i, 'Transferências Recebidas'],
-  [/\b(pagamento fatura|fatura cart[aã]o)/i, 'Pagamento de Cartão'],
+  [/\b(pagamento fatura|pgto\s+fat|pagto\s+fat|fatura cart[aã]o)/i, 'Pagamento de Cartão'],
   [/\b(salario|salario|proventos|folha)/i, 'Salário'],
   [/\b(boleto|codigo de barras| concessiona|energia|luz|agua|c[eo]p e[lr]|amazo ?nas energia)/i, 'Contas e Boletos'],
   [/\b(netflix|spotify|amazon prime|disney|hbo|max\b|youtube premium|icloud|google one|apple\.com)/i, 'Assinaturas'],

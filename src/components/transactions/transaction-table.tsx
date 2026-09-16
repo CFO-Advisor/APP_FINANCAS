@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Pencil, Trash2, AlertTriangle, ArrowRight } from 'lucide-react'
@@ -41,6 +41,58 @@ export function TransactionTable({ transactions, onEdit, onDeleted, banks = [], 
   const cardMap = new Map(creditCards.map((c) => [c.id, c]))
   const [deleteTarget, setDeleteTarget] = useState<Transaction | null>(null)
   const [deleting, setDeleting] = useState(false)
+  // Seleção para exclusão em massa
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [bulkOpen, setBulkOpen] = useState(false)
+  const [bulkDeleting, setBulkDeleting] = useState(false)
+
+  // Remove da seleção ids que saíram da lista (filtros, exclusão)
+  useEffect(() => {
+    setSelected((prev) => {
+      if (prev.size === 0) return prev
+      const ids = new Set(transactions.map((t) => t.id))
+      const next = new Set([...prev].filter((id) => ids.has(id)))
+      return next.size === prev.size ? prev : next
+    })
+  }, [transactions])
+
+  const allSelected = transactions.length > 0 && transactions.every((t) => selected.has(t.id))
+
+  function toggleAll() {
+    setSelected(allSelected ? new Set() : new Set(transactions.map((t) => t.id)))
+  }
+
+  function toggleOne(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  async function confirmBulkDelete() {
+    if (selected.size === 0) return
+    setBulkDeleting(true)
+
+    const supabase = createClient()
+    const { error } = await supabase
+      .from('transactions')
+      .delete()
+      .in('id', [...selected])
+
+    if (error) {
+      console.error(toError(error))
+      toast.error('Erro ao excluir transações.')
+    } else {
+      toast.success(`${selected.size} transação(ões) excluída(s).`)
+      onDeleted()
+      setSelected(new Set())
+    }
+
+    setBulkDeleting(false)
+    setBulkOpen(false)
+  }
 
   async function confirmDelete() {
     if (!deleteTarget) return
@@ -77,10 +129,31 @@ export function TransactionTable({ transactions, onEdit, onDeleted, banks = [], 
 
   return (
     <>
+      {selected.size > 0 && (
+        <div className="mb-3 flex flex-wrap items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-2.5">
+          <span className="text-sm font-medium">{selected.size} selecionada(s)</span>
+          <Button variant="destructive" size="sm" onClick={() => setBulkOpen(true)}>
+            <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+            Excluir selecionadas
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => setSelected(new Set())}>
+            Limpar seleção
+          </Button>
+        </div>
+      )}
       <div className="overflow-auto rounded-lg border bg-card shadow-sm">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/40">
+              <TableHead className="w-10 pr-0">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 cursor-pointer accent-[var(--primary)]"
+                  checked={allSelected}
+                  onChange={toggleAll}
+                  aria-label="Selecionar todas"
+                />
+              </TableHead>
               <TableHead>Data</TableHead>
               <TableHead>Descrição</TableHead>
               <TableHead className="hidden sm:table-cell">Categoria</TableHead>
@@ -93,6 +166,15 @@ export function TransactionTable({ transactions, onEdit, onDeleted, banks = [], 
           <TableBody>
             {transactions.map((t) => (
               <TableRow key={t.id} className="hover:bg-muted/40/50">
+                <TableCell className="w-10 pr-0">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 cursor-pointer accent-[var(--primary)]"
+                    checked={selected.has(t.id)}
+                    onChange={() => toggleOne(t.id)}
+                    aria-label={`Selecionar ${t.description}`}
+                  />
+                </TableCell>
                 <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                   {format(new Date(t.date + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR })}
                 </TableCell>
@@ -194,6 +276,29 @@ export function TransactionTable({ transactions, onEdit, onDeleted, banks = [], 
             </Button>
             <Button variant="destructive" onClick={confirmDelete} disabled={deleting}>
               {deleting ? 'Excluindo...' : 'Excluir'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk delete confirmation dialog */}
+      <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Excluir transações
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Tem certeza que deseja excluir <strong>{selected.size}</strong> transação(ões)? Esta ação não pode ser desfeita.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBulkOpen(false)} disabled={bulkDeleting}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={confirmBulkDelete} disabled={bulkDeleting}>
+              {bulkDeleting ? 'Excluindo...' : 'Excluir'}
             </Button>
           </DialogFooter>
         </DialogContent>
