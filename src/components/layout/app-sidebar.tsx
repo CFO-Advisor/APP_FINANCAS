@@ -166,10 +166,10 @@ export function AppSidebar() {
 
   return (
     <>
-      {/* ── Desktop sidebar (flex child, not fixed) ───────── */}
+      {/* ── Desktop sidebar (sticky: permanece visível ao rolar) ───────── */}
       <aside
         className={cn(
-          'relative hidden md:flex flex-col shrink-0 border-r border-border bg-sidebar transition-all duration-200',
+          'sticky top-0 hidden h-screen md:flex flex-col shrink-0 border-r border-border bg-sidebar transition-all duration-200',
           collapsed ? 'w-16' : 'w-60'
         )}
       >
