@@ -7,7 +7,7 @@ import { TransactionFilters } from '@/components/transactions/transaction-filter
 import { TransactionFormDialog } from '@/components/transactions/transaction-form-dialog'
 import { TransactionTable } from '@/components/transactions/transaction-table'
 import { ImportDialog } from '@/components/import/import-dialog'
-import { AI_PREFILL_EVENT, AI_PREFILL_STORAGE, AI_OPEN_IMPORT_EVENT, consumePendingImportFile } from '@/components/layout/assistant-panel'
+import { AI_PREFILL_EVENT, AI_PREFILL_STORAGE, AI_OPEN_IMPORT_EVENT, AI_CATEGORY_CREATED_EVENT, consumePendingImportFile } from '@/components/layout/assistant-panel'
 import { createClient } from '@/lib/supabase/client'
 import { exportToCSV } from '@/lib/csv-export'
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, INVESTMENT_CATEGORIES } from '@/lib/constants'
@@ -144,6 +144,14 @@ export default function TransactionsPage() {
       setImportOpen(true)
     }
     window.addEventListener(AI_OPEN_IMPORT_EVENT, onOpenImport)
+    // Assistente IA: categoria criada no painel → atualiza a lista viva
+    function onCategoryCreated(e: Event) {
+      const d = (e as CustomEvent).detail as { name?: string; type?: string } | undefined
+      if (!d?.name) return
+      const t = (d.type === 'income' || d.type === 'investment' ? d.type : 'expense') as TransactionType
+      handleAddCategory(d.name, t)
+    }
+    window.addEventListener(AI_CATEGORY_CREATED_EVENT, onCategoryCreated)
     try {
       const stored = sessionStorage.getItem(AI_PREFILL_STORAGE)
       if (stored) {
@@ -157,6 +165,7 @@ export default function TransactionsPage() {
     return () => {
       window.removeEventListener(AI_PREFILL_EVENT, onPrefill)
       window.removeEventListener(AI_OPEN_IMPORT_EVENT, onOpenImport)
+      window.removeEventListener(AI_CATEGORY_CREATED_EVENT, onCategoryCreated)
     }
   }, [])
 

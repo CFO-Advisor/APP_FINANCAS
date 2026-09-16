@@ -1,6 +1,8 @@
 // Preferências de IA do usuário (localStorage).
 // A chave da API NUNCA fica aqui — só preferências não sensíveis.
 
+import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, INVESTMENT_CATEGORIES } from './constants'
+
 export const AI_MODEL_KEY = 'financas_ai_model'
 export const AI_HOLDER_NAMES_KEY = 'financas_holder_names'
 export const AI_PROL_ABORE_MAX_KEY = 'financas_prolabore_max'
@@ -93,4 +95,36 @@ export function readCustomCategories(): string[] {
   } catch {
     return []
   }
+}
+
+// Cria uma categoria personalizada (mesma estrutura da tela de Transações).
+// Não duplica categoria oficial nem existente no mesmo tipo.
+export type AddCategoryResult = 'created' | 'exists' | 'invalid'
+
+export function addCustomCategory(name: string, tipo: 'expense' | 'income' | 'investment'): AddCategoryResult {
+  const clean = name.trim()
+  if (clean.length < 2 || clean.length > 40 || /[\r\n]/.test(clean)) return 'invalid'
+  if (typeof window === 'undefined') return 'invalid'
+  const bucket = tipo === 'income' ? 'income' : tipo === 'investment' ? 'investment' : 'expense'
+  const official = bucket === 'income' ? INCOME_CATEGORIES : bucket === 'investment' ? INVESTMENT_CATEGORIES : EXPENSE_CATEGORIES
+  let cats: { expense: string[]; income: string[]; investment: string[] } = { expense: [], income: [], investment: [] }
+  try {
+    const raw = localStorage.getItem(CUSTOM_CAT_KEY)
+    if (raw) {
+      const parsed = JSON.parse(raw) as { expense?: unknown; income?: unknown; investment?: unknown }
+      const pick = (v: unknown) => (Array.isArray(v) ? v.filter((c): c is string => typeof c === 'string') : [])
+      cats = { expense: pick(parsed.expense), income: pick(parsed.income), investment: pick(parsed.investment) }
+    }
+  } catch {
+    // segue com listas vazias
+  }
+  if (official.includes(clean)) return 'exists'
+  if (cats[bucket].some((c) => c.toLowerCase() === clean.toLowerCase())) return 'exists'
+  cats[bucket].push(clean)
+  try {
+    localStorage.setItem(CUSTOM_CAT_KEY, JSON.stringify(cats))
+  } catch {
+    return 'invalid'
+  }
+  return 'created'
 }

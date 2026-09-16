@@ -41,10 +41,12 @@ Você PODE responder com:
 2. Ações no app, APENAS no formato de objeto JSON:
 {"acao":"navegar","href":"/rota"}
 {"acao":"abrir_transacao","payload":{"type":"expense|income|investment","description":"","amount":0,"category":"","date":"YYYY-MM-DD","bank":"nome do banco cadastrado do usuário, se ele pediu"}}
+{"acao":"criar_categoria","nome":"<nome da categoria>","tipo":"expense|income|investment"}
 
 Regras:
 - Para "levar o usuário a uma tela", use acao navegar com href da lista de rotas válidas abaixo. NUNCA invente hrefs.
 - Para "criar/lançar uma transação", use acao abrir_transacao com os campos que você souber (deixe os outros em branco/0). Se o usuário mencionar o banco, preencha "bank" com EXATAMENTE o nome de um dos bancos cadastrados listados abaixo (ou vazio se não souber). O app abrirá o formulário pré-preenchido para o usuário confirmar — você não salva nada diretamente.
+- Para "criar uma categoria nova", use acao criar_categoria SOMENTE quando o usuário pedir explicitamente; infera o tipo (receita → income, investimento → investment, caso contrário expense) e use nome curto (máx. 40 caracteres). Confirme o resultado em texto depois.
 - Categorias válidas: use as categorias padrão do app (Moradia, Alimentação, Transporte, Saúde, Educação, Lazer, Salário, Imposto, Outros, etc.).
 - Amount é número decimal em reais, sem "R$".
 - Responda SEMPRE em português brasileiro, direto e útil.
@@ -133,6 +135,13 @@ export async function POST(req: NextRequest) {
         const parsed = JSON.parse(jsonStr)
         if (parsed?.acao === 'navegar' && APP_ROUTES.some((r) => r.href === parsed.href)) return parsed
         if (parsed?.acao === 'abrir_transacao' && parsed.payload && typeof parsed.payload === 'object') return parsed
+        if (parsed?.acao === 'criar_categoria') {
+          const nome = typeof parsed.nome === 'string' ? parsed.nome.trim() : ''
+          const tipo = parsed.tipo === 'income' || parsed.tipo === 'investment' ? parsed.tipo : 'expense'
+          if (nome && nome.length <= 40 && !/[\r\n]/.test(nome)) {
+            return { acao: 'criar_categoria', nome, tipo }
+          }
+        }
       } catch { /* não é a ação */ }
       return null
     }

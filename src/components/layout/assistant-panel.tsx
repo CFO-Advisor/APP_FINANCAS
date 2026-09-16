@@ -7,7 +7,7 @@ import { Sparkles, X, SendHorizontal, Loader2, Bot, ChevronRight, Paperclip } fr
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { extractStatementLines } from '@/lib/import/pdf'
-import { AI_MODEL_KEY } from '@/lib/ai-config'
+import { AI_MODEL_KEY, addCustomCategory } from '@/lib/ai-config'
 
 // Painel do assistente de IA (retrátil, lado direito).
 // Chat via /api/ai/assistant (chave/modelo ficam no servidor).
@@ -20,6 +20,7 @@ export const AI_PREFILL_EVENT = 'ai:prefill-transaction'
 export const AI_PREFILL_STORAGE = 'ai_pending_prefill'
 export const AI_MODEL_PREF_KEY = AI_MODEL_KEY
 export const AI_OPEN_IMPORT_EVENT = 'ai:open-import'
+export const AI_CATEGORY_CREATED_EVENT = 'ai:category-created'
 
 // Arquivo pendente de importação (CSV/XLSX/OFX) escolhido no assistente.
 // Vive em memória (o painel persiste entre rotas por estar no layout).
@@ -39,6 +40,8 @@ interface AiAction {
   acao: string
   href?: string
   payload?: Record<string, unknown>
+  nome?: string
+  tipo?: string
 }
 
 const SUGGESTIONS = [
@@ -76,6 +79,20 @@ export function AssistantPanel() {
       try { sessionStorage.setItem(AI_PREFILL_STORAGE, JSON.stringify(action.payload)) } catch { /* ignore */ }
       router.push('/transactions')
       window.dispatchEvent(new CustomEvent(AI_PREFILL_EVENT, { detail: action.payload }))
+    } else if (action.acao === 'criar_categoria' && typeof action.nome === 'string') {
+      // Categoria nova pedida explicitamente pelo usuário no chat. Grava no
+      // localStorage (mesma estrutura da tela de Transações) e avisa a página
+      // para atualizar a lista sem recarregar.
+      const tipo = action.tipo === 'income' || action.tipo === 'investment' ? action.tipo : 'expense'
+      const result = addCustomCategory(action.nome, tipo)
+      if (result === 'created') {
+        window.dispatchEvent(new CustomEvent(AI_CATEGORY_CREATED_EVENT, { detail: { name: action.nome, type: tipo } }))
+        toast.success(`Categoria "${action.nome}" criada.`)
+      } else if (result === 'exists') {
+        toast.info(`A categoria "${action.nome}" já existe.`)
+      } else {
+        toast.error('Não consegui criar a categoria — nome inválido.')
+      }
     }
   }, [router])
 
