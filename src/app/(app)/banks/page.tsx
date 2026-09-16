@@ -21,6 +21,7 @@ import { createClient } from '@/lib/supabase/client'
 import { BANK_TYPE_LABELS } from '@/lib/constants'
 import { formatCurrency } from '@/lib/csv-export'
 import { exportBankStatementToExcel } from '@/lib/excel-export'
+import { AI_BANKS_CHANGED_EVENT } from '@/components/layout/assistant-panel'
 import type { Bank, BankBalance, Transaction } from '@/lib/types'
 
 // ── Extended transaction type for extrato ─────────────
@@ -74,6 +75,12 @@ export default function BanksPage() {
 
   const [reloadKey, setReloadKey] = useState(0)
   const fetchBanks = () => setReloadKey((k) => k + 1)
+
+  // Assistente IA: banco criado pelo painel → recarrega a lista
+  useEffect(() => {
+    window.addEventListener(AI_BANKS_CHANGED_EVENT, fetchBanks)
+    return () => window.removeEventListener(AI_BANKS_CHANGED_EVENT, fetchBanks)
+  }, [])
 
   useEffect(() => {
     let ignore = false

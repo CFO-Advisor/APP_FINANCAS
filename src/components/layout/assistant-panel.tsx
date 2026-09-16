@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { extractStatementLines } from '@/lib/import/pdf'
 import { AI_MODEL_KEY, addCustomCategory } from '@/lib/ai-config'
+import { createClient } from '@/lib/supabase/client'
+import { BANK_PRESETS } from '@/lib/constants'
 
 // Painel do assistente de IA (retrátil, lado direito).
 // Chat via /api/ai/assistant (chave/modelo ficam no servidor).
@@ -21,6 +23,8 @@ export const AI_PREFILL_STORAGE = 'ai_pending_prefill'
 export const AI_MODEL_PREF_KEY = AI_MODEL_KEY
 export const AI_OPEN_IMPORT_EVENT = 'ai:open-import'
 export const AI_CATEGORY_CREATED_EVENT = 'ai:category-created'
+export const AI_BANKS_CHANGED_EVENT = 'ai:banks-changed'
+export const AI_CARDS_CHANGED_EVENT = 'ai:cards-changed'
 
 // Arquivo pendente de importação (CSV/XLSX/OFX) escolhido no assistente.
 // Vive em memória (o painel persiste entre rotas por estar no layout).
@@ -42,6 +46,11 @@ interface AiAction {
   payload?: Record<string, unknown>
   nome?: string
   tipo?: string
+  saldo_inicial?: number
+  bandeira?: string
+  limite?: number
+  dia_fechamento?: number
+  dia_vencimento?: number
 }
 
 const SUGGESTIONS = [
@@ -93,6 +102,59 @@ export function AssistantPanel() {
       } else {
         toast.error('Não consegui criar a categoria — nome inválido.')
       }
+    } else if (action.acao === 'criar_banco' && typeof action.nome === 'string') {
+      // Banco pedido explicitamente pelo usuário no chat. Insert direto via
+      // Supabase (RLS garante que é conta do próprio usuário) + recarrega a
+      // página de Bancos se estiver aberta.
+      void (async () => {
+        try {
+          const supabase = createClient()
+          const { data: { user } } = await supabase.auth.getUser()
+          if (!user) { toast.error('Não autenticado.'); return }
+          const nome = action.nome as string
+          const preset = BANK_PRESETS.find((b) => nome.toLowerCase().includes(b.name.toLowerCase()))
+          const { error } = await supabase.from('banks').insert({
+            user_id: user.id,
+            name: nome,
+            type: action.tipo === 'savings' || action.tipo === 'investment' || action.tipo === 'wallet' ? action.tipo : 'checking',
+            initial_balance: typeof action.saldo_inicial === 'number' && action.saldo_inicial >= 0 ? action.saldo_inicial : 0,
+            color: preset?.color ?? '#6366f1',
+          })
+          if (error) throw error
+          window.dispatchEvent(new CustomEvent(AI_BANKS_CHANGED_EVENT))
+          toast.success(`Banco "${nome}" cadastrado.`)
+          router.push('/banks')
+        } catch (e) {
+          toast.error(e instanceof Error ? e.message : 'Falha ao cadastrar o banco.')
+        }
+      })()
+    } else if (action.acao === 'criar_cartao' && typeof action.nome === 'string') {
+      // Cartão pedido explicitamente pelo usuário no chat. Mesmo padrão do
+      // formulário de cartões (dias de fechamento/vencimento entre 1 e 28).
+      void (async () => {
+        try {
+          const supabase = createClient()
+          const { data: { user } } = await supabase.auth.getUser()
+          if (!user) { toast.error('Não autenticado.'); return }
+          const nome = action.nome as string
+          const bandeira = action.bandeira === 'visa' || action.bandeira === 'mastercard' || action.bandeira === 'elo' || action.bandeira === 'amex' || action.bandeira === 'hipercard' ? action.bandeira : 'outros'
+          const { error } = await supabase.from('credit_cards').insert({
+            user_id: user.id,
+            name: nome,
+            brand: bandeira,
+            color: '#6366f1',
+            credit_limit: typeof action.limite === 'number' && action.limite >= 0 ? action.limite : 0,
+            closing_day: typeof action.dia_fechamento === 'number' ? action.dia_fechamento : 5,
+            due_day: typeof action.dia_vencimento === 'number' ? action.dia_vencimento : 15,
+          })
+          if (error) throw error
+          window.dispatchEvent(new CustomEvent(AI_CARDS_CHANGED_EVENT))
+          toast.success(`Cartão "${nome}" cadastrado.`)
+          router.push('/credit-cards')
+        } catch (e) {
+          toast.error(e instanceof Error ? e.message : 'Falha ao cadastrar o cartão.')
+        }
+      })()
     }
   }, [router])
 

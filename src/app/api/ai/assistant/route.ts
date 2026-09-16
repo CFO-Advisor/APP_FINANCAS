@@ -42,11 +42,14 @@ Você PODE responder com:
 {"acao":"navegar","href":"/rota"}
 {"acao":"abrir_transacao","payload":{"type":"expense|income|investment","description":"","amount":0,"category":"","date":"YYYY-MM-DD","bank":"nome do banco cadastrado do usuário, se ele pediu"}}
 {"acao":"criar_categoria","nome":"<nome da categoria>","tipo":"expense|income|investment"}
+{"acao":"criar_banco","nome":"<nome do banco>","tipo":"checking|savings|investment|wallet","saldo_inicial":0}
+{"acao":"criar_cartao","nome":"<nome do cartão>","bandeira":"visa|mastercard|elo|amex|hipercard|outros","limite":0,"dia_fechamento":5,"dia_vencimento":15}
 
 Regras:
 - Para "levar o usuário a uma tela", use acao navegar com href da lista de rotas válidas abaixo. NUNCA invente hrefs.
 - Para "criar/lançar uma transação", use acao abrir_transacao com os campos que você souber (deixe os outros em branco/0). Se o usuário mencionar o banco, preencha "bank" com EXATAMENTE o nome de um dos bancos cadastrados listados abaixo (ou vazio se não souber). O app abrirá o formulário pré-preenchido para o usuário confirmar — você não salva nada diretamente.
 - Para "criar uma categoria nova", use acao criar_categoria SOMENTE quando o usuário pedir explicitamente; infera o tipo (receita → income, investimento → investment, caso contrário expense) e use nome curto (máx. 40 caracteres). Confirme o resultado em texto depois.
+- Para "cadastrar um banco" ou "um cartão de crédito", use acao criar_banco / criar_cartao SOMENTE quando o usuário pedir explicitamente. Se não souber o tipo do banco, use "checking"; se não souber a bandeira, use "outros"; dia_fechamento e dia_vencimento são números de 1 a 28. Campos que o usuário não informou, omita — o app usa padrões. Confirme o resultado em texto depois.
 - Categorias válidas: use as categorias padrão do app (Moradia, Alimentação, Transporte, Saúde, Educação, Lazer, Salário, Imposto, Outros, etc.).
 - Amount é número decimal em reais, sem "R$".
 - Responda SEMPRE em português brasileiro, direto e útil.
@@ -140,6 +143,23 @@ export async function POST(req: NextRequest) {
           const tipo = parsed.tipo === 'income' || parsed.tipo === 'investment' ? parsed.tipo : 'expense'
           if (nome && nome.length <= 40 && !/[\r\n]/.test(nome)) {
             return { acao: 'criar_categoria', nome, tipo }
+          }
+        }
+        if (parsed?.acao === 'criar_banco') {
+          const nome = typeof parsed.nome === 'string' ? parsed.nome.trim() : ''
+          const tipo = ['checking', 'savings', 'investment', 'wallet'].includes(parsed.tipo as string) ? parsed.tipo : 'checking'
+          const saldo = typeof parsed.saldo_inicial === 'number' && parsed.saldo_inicial >= 0 && parsed.saldo_inicial <= 1e9 ? parsed.saldo_inicial : 0
+          if (nome && nome.length <= 40 && !/[\r\n]/.test(nome)) {
+            return { acao: 'criar_banco', nome, tipo, saldo_inicial: saldo }
+          }
+        }
+        if (parsed?.acao === 'criar_cartao') {
+          const nome = typeof parsed.nome === 'string' ? parsed.nome.trim() : ''
+          const bandeira = ['visa', 'mastercard', 'elo', 'amex', 'hipercard', 'outros'].includes(parsed.bandeira as string) ? parsed.bandeira : 'outros'
+          const limite = typeof parsed.limite === 'number' && parsed.limite >= 0 && parsed.limite <= 1e9 ? parsed.limite : 0
+          const dia = (v: unknown, def: number) => (typeof v === 'number' && Number.isInteger(v) && v >= 1 && v <= 28 ? v : def)
+          if (nome && nome.length <= 40 && !/[\r\n]/.test(nome)) {
+            return { acao: 'criar_cartao', nome, bandeira, limite, dia_fechamento: dia(parsed.dia_fechamento, 5), dia_vencimento: dia(parsed.dia_vencimento, 15) }
           }
         }
       } catch { /* não é a ação */ }

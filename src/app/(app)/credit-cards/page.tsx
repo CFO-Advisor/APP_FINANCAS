@@ -18,6 +18,7 @@ import { CreditCardIcon } from '@/components/credit-cards/credit-card-icon'
 import { CreditCardFormDialog } from '@/components/credit-cards/credit-card-form-dialog'
 import { CreditCardBalanceChart } from '@/components/credit-cards/credit-card-balance-chart'
 import { ImportDialog } from '@/components/import/import-dialog'
+import { AI_CARDS_CHANGED_EVENT } from '@/components/layout/assistant-panel'
 import { createClient } from '@/lib/supabase/client'
 import { CARD_BRAND_LABELS } from '@/lib/constants'
 import { formatCurrency } from '@/lib/csv-export'
@@ -67,6 +68,12 @@ export default function CreditCardsPage() {
 
   const [reloadKey, setReloadKey] = useState(0)
   const fetchData = () => setReloadKey((k) => k + 1)
+
+  // Assistente IA: cartão criado pelo painel → recarrega os dados
+  useEffect(() => {
+    window.addEventListener(AI_CARDS_CHANGED_EVENT, fetchData)
+    return () => window.removeEventListener(AI_CARDS_CHANGED_EVENT, fetchData)
+  }, [])
 
   useEffect(() => {
     let ignore = false
