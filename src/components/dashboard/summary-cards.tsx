@@ -16,10 +16,6 @@ interface KpiCard {
   upIsGood: boolean
   /** Destino de detalhe ao clicar no card. */
   href: string
-  /** Linha de contexto curta abaixo do valor (ex.: denominador da média). */
-  note?: string
-  /** True para métricas derivadas que não comparam com o período anterior. */
-  noTrend?: boolean
 }
 
 function TrendBadge({ value, prevValue, upIsGood, trendLabel }: { value: number; prevValue: number; upIsGood: boolean; trendLabel: string }) {
@@ -74,22 +70,9 @@ export function SummaryCards({
     },
   ]
 
-  if (expenseDailyAvg !== undefined) {
-    cards.push({
-      title: 'Média diária de gastos',
-      value: expenseDailyAvg,
-      prevValue: 0,
-      icon: CalendarDays,
-      chipColor: 'var(--destructive)',
-      upIsGood: true,
-      href: '/transactions?type=expense',
-      noTrend: true,
-      note: `sobre ${periodDays ?? 0} dias do período`,
-    })
-  }
-
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+    <div className="space-y-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {cards.map((card) => (
         <Link
           key={card.title}
@@ -119,14 +102,48 @@ export function SummaryCards({
           >
             {formatCurrency(card.value)}
           </p>
-          {card.note && (
-            <p className="mt-1 text-xs text-muted-foreground">{card.note}</p>
-          )}
-          {previous && !card.noTrend && (
+          {previous && (
             <TrendBadge value={card.value} prevValue={card.prevValue} upIsGood={card.upIsGood} trendLabel={trendLabel} />
           )}
         </Link>
       ))}
+      </div>
+
+      {/* Média diária de gastos — barra de ponta a ponta */}
+      {expenseDailyAvg !== undefined && (
+        <Link
+          href="/transactions?type=expense"
+          aria-label="Ver detalhes da média diária de gastos"
+          className="group flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-xl border border-border bg-card px-5 py-4 shadow-sm transition-all duration-200 hover:border-foreground/25 hover:shadow-md"
+        >
+          <span className="flex items-center gap-3">
+            <span
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-all duration-200 group-hover:scale-105"
+              style={{
+                backgroundColor: `color-mix(in srgb, var(--destructive) 12%, transparent)`,
+                color: 'var(--destructive)',
+              }}
+            >
+              <CalendarDays className="h-4 w-4 shrink-0" strokeWidth={2} />
+            </span>
+            <span className="text-sm font-medium uppercase tracking-[0.08em] text-muted-foreground">
+              Média diária de gastos
+            </span>
+          </span>
+          <span className="flex items-center gap-4">
+            <span className="text-xs text-muted-foreground">
+              sobre {periodDays ?? 0} dias do período
+            </span>
+            <span className="text-[1.4rem] font-semibold leading-none tracking-[-0.03em] text-foreground">
+              {formatCurrency(expenseDailyAvg)}
+            </span>
+            <ArrowUpRight
+              className="h-4 w-4 text-muted-foreground/60 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+              strokeWidth={2}
+            />
+          </span>
+        </Link>
+      )}
     </div>
   )
 }

@@ -358,8 +358,8 @@ export default function DashboardPage() {
 
       {/* Summary Cards */}
       {loading ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
-          {[1, 2, 3, 4, 5].map((i) => (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
             <div key={i} className="h-28 animate-pulse rounded-lg bg-card border border-border" />
           ))}
         </div>
