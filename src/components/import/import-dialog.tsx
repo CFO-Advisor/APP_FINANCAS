@@ -370,8 +370,14 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
     let imported = 0
     let errors = 0
 
-    for (let i = 0; i < validRows.length; i += CHUNK_SIZE) {
-      const chunk = validRows.slice(i, i + CHUNK_SIZE).map((r) => {
+    // Import para cartão: apenas compras. Pagamentos/estornos da fatura
+    // (valores negativos) ficam de fora — o pagamento é lançado como
+    // "Pg. Fatura" vinculado ao banco, não como despesa do cartão.
+    const rowsToInsert = resolvedCardId ? validRows.filter((r) => r.type !== 'income') : validRows
+    const cardSkipped = validRows.length - rowsToInsert.length
+
+    for (let i = 0; i < rowsToInsert.length; i += CHUNK_SIZE) {
+      const chunk = rowsToInsert.slice(i, i + CHUNK_SIZE).map((r) => {
         const isTransfer = r.type === 'transfer'
         return {
           user_id: user.id,
@@ -393,6 +399,7 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
 
     setImportedCount(imported)
     setErrorCount(errors)
+    if (cardSkipped > 0) toast.info(`${cardSkipped} pagamento(s)/estorno(s) da fatura ignorados — o pagamento da fatura é lançado como Pg. Fatura.`)
     setLoading(false)
     setStep('done')
     if (imported > 0) onSuccess()

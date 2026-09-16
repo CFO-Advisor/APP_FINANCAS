@@ -78,4 +78,31 @@ assert.equal(c6Rows[3].category, 'Pagamento de Cartão', 'PGTO FAT → Pagamento
 assert.equal(c6Rows[4].amount, 23437.13)
 assert.equal(c6Rows[4].type, 'income')
 
+// ── C6 Fatura (cartão): ; delimitador, Valor R$ (não US$), parcelas ──────
+const c6FaturaCsv = [
+  'Data de Compra;Nome no Cartão;Final do Cartão;Categoria;Descrição;Parcela;Valor (em US$);Cotação (em R$);Valor (em R$)',
+  '27/09/2025;CELIO G DE OLIVEIRA;3008;Departamento / Desconto;APA;12/12;0;0;363.91',
+  '20/08/2026;CELIO G DE OLIVEIRA;4442;-;"Inclusao de Pagamento    ";Única;0;0;-8710.81',
+  '09/09/2026;CELIO G DE OLIVEIRA;5689;Empresa para empresa;APPLE STORE R610    28;Única;894.01;5.35;4784.74',
+  '11/04/2026;MARIA NAZARE SILVA;4863;Vestuário / Roupas;CROCS;6/6;0;0;136.32',
+].join('\n')
+
+const c6f = parseCSVContent(c6FaturaCsv)
+const c6fMap = guessFieldMap(c6f.headers) as any
+assert.deepEqual(
+  { date: c6fMap.date, description: c6fMap.description, amount: c6fMap.amount },
+  { date: 'Data', description: 'Descrição', amount: 'Valor' },
+  `normalização fatura C6, veio: ${JSON.stringify(c6f.headers)}`,
+)
+const c6fRows = mapCSVRows(c6f.rows, c6fMap)
+assert.equal(c6fRows.length, 4)
+assert.equal(c6fRows[0].amount, 363.91)
+assert.equal(c6fRows[0].type, 'expense')
+assert.ok(c6fRows[0].description.endsWith('(12/12)'), `parcela na descrição: ${c6fRows[0].description}`)
+assert.equal(c6fRows[1].type, 'income', 'pagamento (negativo) vira receita → import p/ cartão ignora')
+assert.equal(c6fRows[1].amount, 8710.81)
+assert.equal(c6fRows[2].amount, 4784.74)
+assert.ok(!c6fRows[2].description.includes('('), 'Única não adiciona parcela')
+assert.equal(c6fRows[3].description, 'CROCS (6/6)')
+
 console.log('parsers.check OK ✓')

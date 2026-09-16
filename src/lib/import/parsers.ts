@@ -148,6 +148,28 @@ function normalizeTwoAmountColumns(headers: string[], rows: Record<string, strin
   return { headers: ['Data', 'Descrição', 'Valor'], rows: newRows }
 }
 
+// Fatura de cartão (C6): compra vem com valor POSITIVO e pagamento/estorno
+// negativo — o oposto da convenção do app (negativo = despesa). Normaliza
+// para Data/Descrição/Valor invertendo o sinal e preservando a parcela.
+function normalizeCardFatura(headers: string[], rows: Record<string, string>[]): { headers: string[]; rows: Record<string, string>[] } {
+  const descCol = headers.find((h) => norm(h).startsWith('descricao'))
+  const parcelaCol = headers.find((h) => norm(h).startsWith('parcela'))
+  const dateCol = headers.find((h) => matchHint(h, DATE_HINTS)) ?? headers[0] ?? 'Data'
+  // Valor em R$: o último 'valor' que não seja US$ nem cotação
+  const valorCol = [...headers].reverse().find((h) => matchHint(h, AMT_HINTS) && !norm(h).match(/us\s*\$|usd/) && !norm(h).includes('cotacao'))
+
+  const newRows = rows.map((row) => {
+    const desc = descCol ? (row[descCol] ?? '') : ''
+    const parcela = parcelaCol ? (row[parcelaCol] ?? '').trim() : ''
+    const description = /^\d+\s*\/\s*\d+$/.test(parcela) ? `${desc} (${parcela})` : desc
+    const brl = parseBRNumber(valorCol ? (row[valorCol] ?? '') : '')
+    const valor = isNaN(brl) ? 0 : -brl
+    return { Data: row[dateCol] ?? '', 'Descrição': description, Valor: String(valor) }
+  })
+
+  return { headers: ['Data', 'Descrição', 'Valor'], rows: newRows }
+}
+
 export function parseCSVContent(content: string, delimiter?: string): { headers: string[]; rows: Record<string, string>[] } {
   const lines = content.split(/\r?\n/).filter((l) => l.trim())
   if (lines.length === 0) return { headers: [], rows: [] }
@@ -186,6 +208,11 @@ export function parseCSVContent(content: string, delimiter?: string): { headers:
     return normalizeTwoAmountColumns(headers, rows)
   }
 
+  // Fatura de cartão (C6): "Final do Cartão" + "Parcela" → compra positiva na
+  // fatura é DESPESA; inverte o sinal para a convenção do app (negativo = saída)
+  const isCardFatura = headers.some((h) => norm(h).includes('final do cartao')) && headers.some((h) => norm(h).startsWith('parcela'))
+  if (isCardFatura) return normalizeCardFatura(headers, rows)
+
   return { headers, rows }
 }
 
@@ -212,9 +239,10 @@ export function guessFieldMap(headers: string[]): Partial<CSVFieldMap> {
   for (const h of headers) {
     if (matchHint(h, OP_HINTS)) { map.type = h; break }
   }
+  // Fatura em dólar (C6): ignora coluna US$/USD — o valor da base é em R$
   for (const h of headers) {
     if (!map.date && matchHint(h, DATE_HINTS)) map.date = h
-    else if (!map.amount && matchHint(h, AMT_HINTS)) map.amount = h
+    else if (!map.amount && matchHint(h, AMT_HINTS) && !norm(h).match(/us\s*\$|usd/)) map.amount = h
   }
   // Descrição: prioriza colunas "descri*" (Inter PF tem "Histórico"=tipo do
   // lançamento e "Descrição"=favorecido — esta última é a que interessa)
@@ -224,7 +252,7 @@ export function guessFieldMap(headers: string[]): Partial<CSVFieldMap> {
   for (const h of headers) {
     if (!map.date && matchHint(h, DATE_HINTS)) map.date = h
     else if (!map.description && matchHint(h, DESC_HINTS)) map.description = h
-    else if (!map.amount && matchHint(h, AMT_HINTS)) map.amount = h
+    else if (!map.amount && matchHint(h, AMT_HINTS) && !norm(h).match(/us\s*\$|usd/)) map.amount = h
     else if (!map.type && matchHint(h, TYPE_HINTS)) map.type = h
   }
   return map
@@ -278,9 +306,14 @@ export function mapCSVRows(
       else if (t.includes('credit') || t.includes('rec') || t.includes('entrada') || t === 'c') type = 'income'
     }
 
+    // Fatura de cartão (C6): preserva a parcela na descrição (ex.: "(3/12)")
+    let description = rawDesc || 'Sem descrição'
+    const parcela = (row['Parcela'] ?? '').trim()
+    if (parcela !== 'Única' && /^\d+\s*\/\s*\d+$/.test(parcela)) description = `${description} (${parcela})`
+
     return {
       date,
-      description: rawDesc || 'Sem descrição',
+      description,
       amount: Math.abs(amount),
       type,
       category: guessCategory(Object.values(row).join(' ')),
