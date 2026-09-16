@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { CATEGORIES, MONTHS } from '@/lib/constants'
+import type { Bank } from '@/lib/types'
 
 interface TransactionFiltersProps {
   month: number
@@ -18,12 +19,15 @@ interface TransactionFiltersProps {
   category: string
   type: string
   search: string
+  bank: string
+  banks?: Bank[]
   categories?: string[]
   onMonthChange: (v: number) => void
   onYearChange: (v: number) => void
   onCategoryChange: (v: string) => void
   onTypeChange: (v: string) => void
   onSearchChange: (v: string) => void
+  onBankChange: (v: string) => void
   onReset: () => void
 }
 
@@ -36,15 +40,18 @@ export function TransactionFilters({
   category,
   type,
   search,
+  bank,
+  banks = [],
   categories = CATEGORIES,
   onMonthChange,
   onYearChange,
   onCategoryChange,
   onTypeChange,
   onSearchChange,
+  onBankChange,
   onReset,
 }: TransactionFiltersProps) {
-  const hasActiveFilters = category !== 'all' || type !== 'all' || search !== ''
+  const hasActiveFilters = category !== 'all' || type !== 'all' || search !== '' || bank !== 'all'
   const selectedMonthLabel = MONTHS.find((m) => m.value === month)?.label ?? ''
 
   return (
@@ -115,6 +122,18 @@ export function TransactionFilters({
             <SelectItem value="investment">Investimentos</SelectItem>
             <SelectItem value="credit_card_payment">Pg. Fatura</SelectItem>
             <SelectItem value="transfer">Transferências</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select value={bank} onValueChange={(v) => { if (v !== null) onBankChange(v) }}>
+          <SelectTrigger className="w-40 bg-card">
+            <SelectValue placeholder="Banco" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os bancos</SelectItem>
+            {banks.map((b) => (
+              <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
 

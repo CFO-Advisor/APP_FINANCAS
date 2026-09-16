@@ -59,6 +59,7 @@ export default function TransactionsPage() {
   const [category, setCategory] = useState('all')
   const [type, setType] = useState('all')
   const [search, setSearch] = useState('')
+  const [bankFilter, setBankFilter] = useState('all')
 
   const [reloadKey, setReloadKey] = useState(0)
   const fetchTransactions = () => setReloadKey((k) => k + 1)
@@ -111,9 +112,11 @@ export default function TransactionsPage() {
       if (category !== 'all' && t.category !== category) return false
       if (type !== 'all' && t.type !== type) return false
       if (search && !t.description.toLowerCase().includes(search.toLowerCase())) return false
+      // Filtro por conta: inclui transferências onde a conta é origem ou destino
+      if (bankFilter !== 'all' && t.bank_id !== bankFilter && t.transfer_bank_id !== bankFilter) return false
       return true
     })
-  }, [transactions, category, type, search])
+  }, [transactions, category, type, search, bankFilter])
 
   function handleEdit(transaction: Transaction) {
     setEditTarget(transaction)
@@ -178,6 +181,7 @@ export default function TransactionsPage() {
     setCategory('all')
     setType('all')
     setSearch('')
+    setBankFilter('all')
   }
 
   function handleExport() {
@@ -217,12 +221,15 @@ export default function TransactionsPage() {
         category={category}
         type={type}
         search={search}
+        bank={bankFilter}
+        banks={banks}
         categories={allCategories}
         onMonthChange={setMonth}
         onYearChange={setYear}
         onCategoryChange={setCategory}
         onTypeChange={setType}
         onSearchChange={setSearch}
+        onBankChange={setBankFilter}
         onReset={handleReset}
       />
 
