@@ -386,7 +386,7 @@ export default function DashboardPage() {
 
       {/* Bank + Cards + Investments + Budget */}
       {viewMode === 'monthly' ? (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-6 sm:grid-cols-2">
           {loading ? (
             <>
               <div className="h-64 animate-pulse rounded-lg border border-border bg-card" />
