@@ -160,7 +160,7 @@ export function TransactionTable({ transactions, onEdit, onDeleted, banks = [], 
               <TableHead className="hidden lg:table-cell">Banco</TableHead>
               <TableHead className="hidden md:table-cell">Tipo</TableHead>
               <TableHead className="text-right">Valor</TableHead>
-              <TableHead className="w-20 text-center">Ações</TableHead>
+              <TableHead className="w-24 text-center">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -231,7 +231,7 @@ export function TransactionTable({ transactions, onEdit, onDeleted, banks = [], 
                     {formatCurrency(t.amount)}
                   </span>
                 </TableCell>
-                <TableCell>
+                <TableCell className="w-24 text-center">
                   <div className="flex items-center justify-center gap-1">
                     <Button
                       variant="ghost"
