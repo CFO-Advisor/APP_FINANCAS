@@ -44,12 +44,15 @@ Você PODE responder com:
 {"acao":"criar_categoria","nome":"<nome da categoria>","tipo":"expense|income|investment"}
 {"acao":"criar_banco","nome":"<nome do banco>","tipo":"checking|savings|investment|wallet","saldo_inicial":0}
 {"acao":"criar_cartao","nome":"<nome do cartão>","bandeira":"visa|mastercard|elo|amex|hipercard|outros","limite":0,"dia_fechamento":5,"dia_vencimento":15}
+{"acao":"editar_banco","nome":"<nome atual do banco>","novo_nome":"","tipo":"checking|savings|investment|wallet","saldo_inicial":0}
+{"acao":"editar_cartao","nome":"<nome atual do cartão>","novo_nome":"","bandeira":"visa|mastercard|elo|amex|hipercard|outros","limite":0,"dia_fechamento":5,"dia_vencimento":15}
 
 Regras:
 - Para "levar o usuário a uma tela", use acao navegar com href da lista de rotas válidas abaixo. NUNCA invente hrefs.
 - Para "criar/lançar uma transação", use acao abrir_transacao com os campos que você souber (deixe os outros em branco/0). Se o usuário mencionar o banco, preencha "bank" com EXATAMENTE o nome de um dos bancos cadastrados listados abaixo (ou vazio se não souber). O app abrirá o formulário pré-preenchido para o usuário confirmar — você não salva nada diretamente.
 - Para "criar uma categoria nova", use acao criar_categoria SOMENTE quando o usuário pedir explicitamente; infera o tipo (receita → income, investimento → investment, caso contrário expense) e use nome curto (máx. 40 caracteres). Confirme o resultado em texto depois.
 - Para "cadastrar um banco" ou "um cartão de crédito", use acao criar_banco / criar_cartao SOMENTE quando o usuário pedir explicitamente. Se não souber o tipo do banco, use "checking"; se não souber a bandeira, use "outros"; dia_fechamento e dia_vencimento são números de 1 a 28. Campos que o usuário não informou, omita — o app usa padrões. Confirme o resultado em texto depois.
+- Para "editar/renomear/mudar limite/saldo" de um banco ou cartão EXISTENTE, use acao editar_banco / editar_cartao SOMENTE quando o usuário pedir explicitamente; "nome" deve ser o nome ATUAL conforme as listas abaixo, e inclua apenas os campos que o usuário pediu para mudar (novo_nome, tipo/bandeira, saldo_inicial/limite, dias). Confirme em texto o que foi alterado.
 - Categorias válidas: use as categorias padrão do app (Moradia, Alimentação, Transporte, Saúde, Educação, Lazer, Salário, Imposto, Outros, etc.).
 - Amount é número decimal em reais, sem "R$".
 - Responda SEMPRE em português brasileiro, direto e útil.
@@ -99,16 +102,23 @@ export async function POST(req: NextRequest) {
     })),
   ]
 
-  // Bancos cadastrados do usuário (para o agente preencher "bank" corretamente)
+  // Bancos e cartões cadastrados do usuário (para preencher "bank" e para
+  // o agente referenciar registros existentes ao editar)
   try {
-    const { data: banks } = await supabase.from('banks').select('name').order('name')
-    if (banks && banks.length > 0) {
+    const [{ data: banks }, { data: cards }] = await Promise.all([
+      supabase.from('banks').select('name').order('name'),
+      supabase.from('credit_cards').select('name').order('name'),
+    ])
+    const contexto: string[] = []
+    if (banks && banks.length > 0) contexto.push(`Bancos cadastrados do usuário: ${banks.map((b) => b.name).join(', ')}`)
+    if (cards && cards.length > 0) contexto.push(`Cartões cadastrados do usuário: ${cards.map((c) => c.name).join(', ')}`)
+    if (contexto.length > 0) {
       llmMessages[0] = {
         ...llmMessages[0],
-        content: `${llmMessages[0].content}\n\nBancos cadastrados do usuário: ${banks.map((b) => b.name).join(', ')}`,
+        content: `${llmMessages[0].content}\n\n${contexto.join('\n')}`,
       }
     }
-  } catch { /* sem bancos → agente deixa "bank" vazio */ }
+  } catch { /* sem contexto → agente segue sem */ }
 
   try {
     const resp = await fetch(`${baseUrl.replace(/\/+$/, '')}/chat/completions`, {
@@ -161,6 +171,31 @@ export async function POST(req: NextRequest) {
           if (nome && nome.length <= 40 && !/[\r\n]/.test(nome)) {
             return { acao: 'criar_cartao', nome, bandeira, limite, dia_fechamento: dia(parsed.dia_fechamento, 5), dia_vencimento: dia(parsed.dia_vencimento, 15) }
           }
+        }
+        if (parsed?.acao === 'editar_banco' || parsed?.acao === 'editar_cartao') {
+          const nome = typeof parsed.nome === 'string' ? parsed.nome.trim() : ''
+          if (!nome || nome.length > 40 || /[\r\n]/.test(nome)) return null
+          const out: Record<string, unknown> = { acao: parsed.acao, nome }
+          const novoNome = typeof parsed.novo_nome === 'string' ? parsed.novo_nome.trim() : ''
+          if (novoNome && novoNome.length <= 40 && !/[\r\n]/.test(novoNome)) out.novo_nome = novoNome
+          const num = (v: unknown, min: number, max: number) =>
+            typeof v === 'number' && Number.isFinite(v) && v >= min && v <= max ? v : undefined
+          if (parsed.acao === 'editar_banco') {
+            if (['checking', 'savings', 'investment', 'wallet'].includes(parsed.tipo as string)) out.tipo = parsed.tipo
+            const s = num(parsed.saldo_inicial, 0, 1e9)
+            if (s !== undefined) out.saldo_inicial = s
+          } else {
+            if (['visa', 'mastercard', 'elo', 'amex', 'hipercard', 'outros'].includes(parsed.bandeira as string)) out.bandeira = parsed.bandeira
+            const l = num(parsed.limite, 0, 1e9)
+            if (l !== undefined) out.limite = l
+            const df = num(parsed.dia_fechamento, 1, 28)
+            if (df !== undefined) out.dia_fechamento = df
+            const dv = num(parsed.dia_vencimento, 1, 28)
+            if (dv !== undefined) out.dia_vencimento = dv
+          }
+          // Exige ao menos um campo para alterar (além de acao + nome)
+          if (Object.keys(out).length > 2) return out
+          return null
         }
       } catch { /* não é a ação */ }
       return null

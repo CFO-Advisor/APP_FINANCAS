@@ -45,6 +45,7 @@ interface AiAction {
   href?: string
   payload?: Record<string, unknown>
   nome?: string
+  novo_nome?: string
   tipo?: string
   saldo_inicial?: number
   bandeira?: string
@@ -153,6 +154,63 @@ export function AssistantPanel() {
           router.push('/credit-cards')
         } catch (e) {
           toast.error(e instanceof Error ? e.message : 'Falha ao cadastrar o cartão.')
+        }
+      })()
+    } else if (action.acao === 'editar_banco' && typeof action.nome === 'string') {
+      const nomeAlvo = action.nome
+      // Edição de registro existente: localiza pelo nome (exato, depois
+      // "contém") e aplica apenas os campos informados. RLS garante que só
+      // mexe em registros do próprio usuário.
+      void (async () => {
+        try {
+          const supabase = createClient()
+          const { data: { user } } = await supabase.auth.getUser()
+          if (!user) { toast.error('Não autenticado.'); return }
+          const alvo = nomeAlvo.toLowerCase()
+          const { data: banks, error: qErr } = await supabase.from('banks').select('id, name').eq('user_id', user.id)
+          if (qErr) throw qErr
+          const target = banks?.find((b) => b.name.toLowerCase() === alvo) ?? banks?.find((b) => b.name.toLowerCase().includes(alvo))
+          if (!target) { toast.error(`Não encontrei o banco "${nomeAlvo}".`); return }
+          const update: Record<string, unknown> = {}
+          if (typeof action.novo_nome === 'string' && action.novo_nome.trim()) update.name = action.novo_nome.trim()
+          if (action.tipo) update.type = action.tipo
+          if (typeof action.saldo_inicial === 'number') update.initial_balance = action.saldo_inicial
+          if (Object.keys(update).length === 0) { toast.info('Nada para alterar nesse banco.'); return }
+          const { error } = await supabase.from('banks').update(update).eq('id', target.id)
+          if (error) throw error
+          window.dispatchEvent(new CustomEvent(AI_BANKS_CHANGED_EVENT))
+          toast.success(`Banco "${update.name ?? target.name}" atualizado.`)
+          router.push('/banks')
+        } catch (e) {
+          toast.error(e instanceof Error ? e.message : 'Falha ao atualizar o banco.')
+        }
+      })()
+    } else if (action.acao === 'editar_cartao' && typeof action.nome === 'string') {
+      const nomeAlvo = action.nome
+      void (async () => {
+        try {
+          const supabase = createClient()
+          const { data: { user } } = await supabase.auth.getUser()
+          if (!user) { toast.error('Não autenticado.'); return }
+          const alvo = nomeAlvo.toLowerCase()
+          const { data: cards, error: qErr } = await supabase.from('credit_cards').select('id, name').eq('user_id', user.id)
+          if (qErr) throw qErr
+          const target = cards?.find((c) => c.name.toLowerCase() === alvo) ?? cards?.find((c) => c.name.toLowerCase().includes(alvo))
+          if (!target) { toast.error(`Não encontrei o cartão "${nomeAlvo}".`); return }
+          const update: Record<string, unknown> = {}
+          if (typeof action.novo_nome === 'string' && action.novo_nome.trim()) update.name = action.novo_nome.trim()
+          if (action.bandeira) update.brand = action.bandeira
+          if (typeof action.limite === 'number') update.credit_limit = action.limite
+          if (typeof action.dia_fechamento === 'number') update.closing_day = action.dia_fechamento
+          if (typeof action.dia_vencimento === 'number') update.due_day = action.dia_vencimento
+          if (Object.keys(update).length === 0) { toast.info('Nada para alterar nesse cartão.'); return }
+          const { error } = await supabase.from('credit_cards').update(update).eq('id', target.id)
+          if (error) throw error
+          window.dispatchEvent(new CustomEvent(AI_CARDS_CHANGED_EVENT))
+          toast.success(`Cartão "${update.name ?? target.name}" atualizado.`)
+          router.push('/credit-cards')
+        } catch (e) {
+          toast.error(e instanceof Error ? e.message : 'Falha ao atualizar o cartão.')
         }
       })()
     }
