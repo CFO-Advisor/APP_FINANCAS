@@ -9,7 +9,7 @@ import { TransactionTable } from '@/components/transactions/transaction-table'
 import { ImportDialog } from '@/components/import/import-dialog'
 import { AI_PREFILL_EVENT, AI_PREFILL_STORAGE, AI_OPEN_IMPORT_EVENT, AI_CATEGORY_CREATED_EVENT, consumePendingImportFile } from '@/components/layout/assistant-panel'
 import { createClient } from '@/lib/supabase/client'
-import { exportToCSV } from '@/lib/csv-export'
+import { exportToCSV, formatCurrency } from '@/lib/csv-export'
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, INVESTMENT_CATEGORIES } from '@/lib/constants'
 import type { Transaction, Bank, CreditCard, TransactionType } from '@/lib/types'
 
@@ -117,6 +117,24 @@ export default function TransactionsPage() {
       return true
     })
   }, [transactions, category, type, search, bankFilter])
+
+  // Resumo do período filtrado (padrão dos apps financeiros BR: entradas/saídas/saldo)
+  const filtersActive = category !== 'all' || type !== 'all' || search !== '' || bankFilter !== 'all'
+  const summary = useMemo(() => {
+    let entradas = 0
+    let saidas = 0
+    let transfer = 0
+    let investido = 0
+    let faturas = 0
+    for (const t of filtered) {
+      if (t.type === 'income') entradas += t.amount
+      else if (t.type === 'expense') saidas += t.amount
+      else if (t.type === 'transfer') transfer += t.amount
+      else if (t.type === 'investment') investido += t.amount
+      else if (t.type === 'credit_card_payment') faturas += t.amount
+    }
+    return { entradas, saidas, transfer, investido, faturas }
+  }, [filtered])
 
   function handleEdit(transaction: Transaction) {
     setEditTarget(transaction)
@@ -233,10 +251,50 @@ export default function TransactionsPage() {
         onReset={handleReset}
       />
 
+      {/* Resumo do período filtrado */}
+      {!loading && filtered.length > 0 && (
+        <div className="space-y-2">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <div className="rounded-lg border bg-card p-3">
+              <p className="text-xs text-muted-foreground">Entradas</p>
+              <p className="text-base font-semibold text-emerald-600">{formatCurrency(summary.entradas)}</p>
+            </div>
+            <div className="rounded-lg border bg-card p-3">
+              <p className="text-xs text-muted-foreground">Saídas</p>
+              <p className="text-base font-semibold text-destructive">{formatCurrency(summary.saidas)}</p>
+            </div>
+            <div className="rounded-lg border bg-card p-3">
+              <p className="text-xs text-muted-foreground">Saldo</p>
+              <p className={`text-base font-semibold ${summary.entradas - summary.saidas >= 0 ? 'text-emerald-600' : 'text-destructive'}`}>
+                {formatCurrency(summary.entradas - summary.saidas)}
+              </p>
+            </div>
+            <div className="rounded-lg border bg-card p-3">
+              <p className="text-xs text-muted-foreground">Investido</p>
+              <p className="text-base font-semibold">{formatCurrency(summary.investido)}</p>
+            </div>
+          </div>
+          {(summary.transfer > 0 || summary.faturas > 0) && (
+            <p className="text-xs text-muted-foreground">
+              {summary.transfer > 0 && (<>Transferências entre contas: <strong>{formatCurrency(summary.transfer)}</strong> (movimentação interna, não entra em Entradas/Saídas). </>)}
+              {summary.faturas > 0 && (<>Pg. Fatura: <strong>{formatCurrency(summary.faturas)}</strong>.</>)}
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Table */}
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <Loader2 className="h-8 w-8 animate-spin" style={{ color: 'var(--primary)' }} />
+        </div>
+      ) : filtersActive && filtered.length === 0 ? (
+        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-12 text-center">
+          <p className="font-medium">Nenhuma transação com esses filtros</p>
+          <p className="mt-1 text-sm text-muted-foreground">Tente ajustar a busca ou limpar os filtros.</p>
+          <Button variant="outline" size="sm" className="mt-4" onClick={handleReset}>
+            Limpar filtros
+          </Button>
         </div>
       ) : (
         <TransactionTable
