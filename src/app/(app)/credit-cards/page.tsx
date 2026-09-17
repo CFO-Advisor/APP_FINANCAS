@@ -18,6 +18,7 @@ import { CreditCardIcon } from '@/components/credit-cards/credit-card-icon'
 import { CreditCardFormDialog } from '@/components/credit-cards/credit-card-form-dialog'
 import { CreditCardBalanceChart } from '@/components/credit-cards/credit-card-balance-chart'
 import { ImportDialog } from '@/components/import/import-dialog'
+import { FaturasControl } from '@/components/credit-cards/faturas-control'
 import { AI_CARDS_CHANGED_EVENT } from '@/components/layout/assistant-panel'
 import { createClient } from '@/lib/supabase/client'
 import { CARD_BRAND_LABELS } from '@/lib/constants'
@@ -402,6 +403,9 @@ export default function CreditCardsPage() {
           </div>
         </>
       )}
+
+      {/* Controle de faturas por emissao */}
+      {!loading && <FaturasControl cards={cards} transactions={allTransactions} />}
 
       {/* Form dialog */}
       <CreditCardFormDialog

@@ -78,6 +78,37 @@ export function computeCardBalance(card: CreditCard, transactions: Transaction[]
   }
 }
 
+export interface FaturaGroup {
+  /** Data de emissão da fatura (os registros entram por ela). */
+  date: string
+  total: number
+  expenses: Transaction[]
+  /** Pagamentos atribuídos a esta fatura. */
+  payments: number
+}
+
+// Agrupa as despesas do cartão por fatura (data de emissão). Pagamentos
+// (credit_card_payment) são atribuídos à fatura mais recente emitida antes
+// do pagamento. Retorna as faturas mais recentes primeiro.
+export function groupCardFaturas(cardId: string, transactions: Transaction[], maxFaturas = 12): FaturaGroup[] {
+  const cardTxs = transactions.filter((t) => t.credit_card_id === cardId)
+  const expenses = cardTxs.filter((t) => t.type === 'expense')
+  const payments = cardTxs.filter((t) => t.type === 'credit_card_payment')
+
+  const dates = [...new Set(expenses.map((t) => t.date))].sort().reverse().slice(0, maxFaturas)
+
+  const groups: FaturaGroup[] = dates.map((date) => {
+    const list = expenses.filter((t) => t.date === date)
+    return { date, total: list.reduce((s, t) => s + t.amount, 0), expenses: list, payments: 0 }
+  })
+
+  for (const p of payments) {
+    const target = groups.find((g) => p.date >= g.date)
+    if (target) target.payments += p.amount
+  }
+  return groups
+}
+
 export function groupTransactionsByBillingCycle(
   transactions: Transaction[],
   closingDay: number,
