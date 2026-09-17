@@ -136,6 +136,10 @@ export default function TransactionsPage() {
     return { entradas, saidas, transfer, investido, faturas }
   }, [filtered])
 
+  // Separa transações de cartão das bancárias (tabelas distintas)
+  const cardTxs = useMemo(() => filtered.filter((t) => !!t.credit_card_id), [filtered])
+  const bankTxs = useMemo(() => filtered.filter((t) => !t.credit_card_id), [filtered])
+
   function handleEdit(transaction: Transaction) {
     setEditTarget(transaction)
     setDialogOpen(true)
@@ -297,13 +301,47 @@ export default function TransactionsPage() {
           </Button>
         </div>
       ) : (
-        <TransactionTable
-          transactions={filtered}
-          onEdit={handleEdit}
-          onDeleted={fetchTransactions}
-          banks={banks}
-          creditCards={creditCards}
-        />
+        <>
+          {bankTxs.length > 0 && (
+            <section className="space-y-2">
+              <h2 className="text-sm font-semibold text-muted-foreground">
+                Transações bancárias ({bankTxs.length})
+              </h2>
+              <TransactionTable
+                transactions={bankTxs}
+                onEdit={handleEdit}
+                onDeleted={fetchTransactions}
+                banks={banks}
+                creditCards={creditCards}
+              />
+            </section>
+          )}
+
+          {cardTxs.length > 0 && (
+            <section className="space-y-2">
+              <h2 className="text-sm font-semibold text-muted-foreground">
+                Cartão de crédito ({cardTxs.length})
+              </h2>
+              <TransactionTable
+                transactions={cardTxs}
+                onEdit={handleEdit}
+                onDeleted={fetchTransactions}
+                banks={banks}
+                creditCards={creditCards}
+              />
+            </section>
+          )}
+
+          {filtered.length === 0 && (
+            <TransactionTable
+              transactions={[]}
+              onEdit={handleEdit}
+              onDeleted={fetchTransactions}
+              banks={banks}
+              creditCards={creditCards}
+            />
+          )}
+        </>
       )}
 
       {/* Form Dialog */}
