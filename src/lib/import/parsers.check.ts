@@ -160,4 +160,28 @@ assert.equal(semSinal[1].amount, 1000)
 assert.equal(semSinal[2].type, 'expense')
 assert.equal(semSinal[2].amount, 3237.82)
 
+assert.equal(semSinal[2].amount, 3237.82)
+
+// ── Nubank (conta bancária CSV): valores com sinal e ponto decimal ──────
+const nuCsv = [
+  'Data,Valor,Identificador,Descrição',
+  '02/01/2026,1687.05,abc,Transferência recebida pelo Pix - CELIO GADELHA - BANCO INTER',
+  '02/01/2026,-2090.38,def,Pagamento de fatura',
+  '15/01/2026,584.38,ghi,Crédito em conta',
+].join('\n')
+const nu = parseCSVContent(nuCsv)
+const nuMap = guessFieldMap(nu.headers) as any
+assert.deepEqual(
+  { date: nuMap.date, amount: nuMap.amount, description: nuMap.description },
+  { date: 'Data', amount: 'Valor', description: 'Descrição' },
+)
+const nuRows = mapCSVRows(nu.rows, nuMap)
+assert.equal(nuRows.length, 3)
+assert.equal(nuRows[0].type, 'income')
+assert.equal(nuRows[0].amount, 1687.05)
+assert.equal(nuRows[0].category, 'Transferências Recebidas')
+assert.equal(nuRows[1].type, 'expense')
+assert.equal(nuRows[1].category, 'Pagamento de Cartão')
+assert.equal(nuRows[2].category, 'Transferências Recebidas')
+
 console.log('parsers.check OK ✓')
