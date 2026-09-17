@@ -146,4 +146,18 @@ assert.equal(interF[3].type, 'expense')
 assert.equal(interF[3].date, '2026-09-09')
 assert.ok(interF[3].error === undefined, 'multilinha fecha com o valor da linha seguinte')
 
+// Sem sinal → despesa; com "+" → crédito (PDF da Inter omite o sinal nas compras)
+const semSinal = parseInterCardFatura([
+  '16 de ago. 2026 LOJA QUALQUER R$ 50,00',
+  '17 de ago. 2026 PAGTO RECEBIDO + R$ 1.000,00',
+  '18 de ago. 2026 LOJA EXTERIOR',
+  'R$ 3.237,82',
+])
+assert.equal(semSinal[0].type, 'expense', 'sem sinal é despesa')
+assert.equal(semSinal[0].amount, 50)
+assert.equal(semSinal[1].type, 'income', '+ é crédito')
+assert.equal(semSinal[1].amount, 1000)
+assert.equal(semSinal[2].type, 'expense')
+assert.equal(semSinal[2].amount, 3237.82)
+
 console.log('parsers.check OK ✓')

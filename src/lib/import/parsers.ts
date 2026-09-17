@@ -518,7 +518,8 @@ export function parseInterCardFatura(lines: string[]): ParsedTransaction[] {
     if (!line) continue
 
     // Linha só de valor — fecha um lançamento internacional: "- R$ 3.237,82"
-    const valueOnly = line.match(/^([+\-])\s*R\$\s*([\d.]+,\d{2})$/)
+    // Linha só de valor — fecha um lançamento internacional. Sem "+" é despesa.
+    const valueOnly = line.match(/^([+\-]?)\s*R\$\s*([\d.]+,\d{2})$/)
     if (valueOnly) {
       if (pending) {
         const amount = Math.abs(parseBRNumber(valueOnly[2]))
@@ -526,7 +527,7 @@ export function parseInterCardFatura(lines: string[]): ParsedTransaction[] {
           date: pending.date,
           description: pending.description,
           amount,
-          type: valueOnly[1] === '-' ? 'expense' : 'income',
+          type: valueOnly[1] === '+' ? 'income' : 'expense',
           category: guessCategory(pending.description),
         })
         pending = null
@@ -540,7 +541,8 @@ export function parseInterCardFatura(lines: string[]): ParsedTransaction[] {
     if (!month) continue
     const date = `${m[3]}-${String(month).padStart(2, '0')}-${m[1].padStart(2, '0')}`
     const tail = m[4].trim()
-    const valueMatch = tail.match(/([+\-])\s*R\$\s*([\d.]+,\d{2})$/)
+    // Sinal opcional: sem "+" o valor é despesa; "+" = crédito/pagamento
+    const valueMatch = tail.match(/(?:([+\-])\s*)?R\$\s*([\d.]+,\d{2})$/)
     if (!valueMatch) {
       // Descrição agora; valor vem na(s) linha(s) seguinte(s)
       flushPending()
@@ -548,13 +550,13 @@ export function parseInterCardFatura(lines: string[]): ParsedTransaction[] {
       continue
     }
     flushPending()
-    const amount = parseBRNumber(valueMatch[2])
+    const amount = Math.abs(parseBRNumber(valueMatch[2]))
     const description = tail.slice(0, valueMatch.index).trim().replace(/[-\s]+$/, '') || 'Sem descrição'
     out.push({
       date,
       description,
-      amount: Math.abs(amount),
-      type: valueMatch[1] === '-' ? 'expense' : 'income',
+      amount,
+      type: valueMatch[1] === '+' ? 'income' : 'expense',
       category: guessCategory(description),
     })
   }
