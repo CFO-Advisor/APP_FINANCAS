@@ -20,6 +20,23 @@ const DEFAULT_MODELS: AllowedModel[] = [
   { provider: 'omniroute', model: 'free-1m', label: 'OmniRoute — Free 1M (grátis, recomendado)' },
   { provider: 'omniroute', model: 'auto', label: 'OmniRoute — Automático' },
   { provider: 'omniroute', model: 'auto/best-coding', label: 'OmniRoute — Melhor para código' },
+  // DeepSeek
+  { provider: 'openrouter', model: 'openrouter/deepseek/deepseek-v4-flash', label: 'DeepSeek V4 Flash — rápido e barato (1M ctx)' },
+  { provider: 'openrouter', model: 'openrouter/deepseek/deepseek-v4-pro', label: 'DeepSeek V4 Pro — raciocínio (1M ctx)' },
+  { provider: 'openrouter', model: 'openrouter/deepseek/deepseek-chat', label: 'DeepSeek Chat (V3) — leve' },
+  // OpenAI
+  { provider: 'openai', model: 'openrouter/openai/gpt-4.1-nano', label: 'GPT-4.1 Nano — econômico' },
+  { provider: 'openai', model: 'openrouter/openai/gpt-4o-mini', label: 'GPT-4o Mini — econômico' },
+  { provider: 'openai', model: 'openrouter/openai/gpt-4.1', label: 'GPT-4.1 — textos longos (1M ctx)' },
+  { provider: 'openai', model: 'openrouter/openai/gpt-4o', label: 'GPT-4o — visão (fotos de documentos)' },
+  // Google
+  { provider: 'google', model: 'openrouter/google/gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro — contexto 2M' },
+  // Outros provedores
+  { provider: 'moonshot', model: 'openrouter/moonshotai/kimi-k2.6', label: 'Kimi K2.6 — raciocínio' },
+  { provider: 'zai', model: 'openrouter/z-ai/glm-5.2', label: 'GLM 5.2 — econômico' },
+  { provider: 'meta', model: 'openrouter/meta-llama/llama-3.3-70b-instruct', label: 'Llama 3.3 70B — rápido' },
+  { provider: 'xai', model: 'openrouter/x-ai/grok-4.3', label: 'Grok 4.3 — geral' },
+  { provider: 'anthropic', model: 'dva/claude-sonnet-4-6', label: 'Claude Sonnet 4.6 — máxima precisão' },
 ]
 
 export function getAllowedModels(): AllowedModel[] {
