@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { callAi } from '@/lib/ai-provider'
 import { createClient } from '@/lib/supabase/server'
 import { getAllowedModels } from '../../ai/models/route'
 
@@ -73,11 +74,7 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 })
 
-  const apiKey = process.env.AI_API_KEY
-  const baseUrl = process.env.AI_API_BASE
-  if (!apiKey || !baseUrl) {
-    return NextResponse.json({ error: 'IA não configurada no servidor.' }, { status: 503 })
-  }
+  const timeoutMs = TIMEOUT_MS
 
   let messages: ChatMessage[]
   let model: string | undefined
@@ -121,22 +118,19 @@ export async function POST(req: NextRequest) {
   } catch { /* sem contexto → agente segue sem */ }
 
   try {
-    const resp = await fetch(`${baseUrl.replace(/\/+$/, '')}/chat/completions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({
+    let content: string
+    try {
+      content = await callAi({
         model: chosen,
         messages: llmMessages,
         temperature: 0.4,
-        max_tokens: 1200,
-      }),
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-    })
-    if (!resp.ok) {
-      return NextResponse.json({ error: `Provedor de IA respondeu HTTP ${resp.status}.` }, { status: 502 })
+        maxTokens: 1200,
+        timeoutMs,
+      })
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'erro desconhecido'
+      return NextResponse.json({ error: `Provedor de IA falhou: ${msg}`.slice(0, 300) }, { status: 502 })
     }
-    const data = await resp.json()
-    const content: string = data?.choices?.[0]?.message?.content ?? ''
 
     // Extrai ação JSON se existir. O modelo pode devolver o JSON dentro de
     // blocos ```json ...``` e o objeto tem aninhamento (payload) — usa um

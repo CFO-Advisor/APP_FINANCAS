@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { callAi } from '@/lib/ai-provider'
 import { createClient } from '@/lib/supabase/server'
 import { getAllowedModels, type AllowedModel } from '../models/route'
 import { CATEGORIES } from '@/lib/constants'
@@ -30,11 +31,7 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 })
 
-  const apiKey = process.env.AI_API_KEY
-  const baseUrl = process.env.AI_API_BASE
-  if (!apiKey || !baseUrl) {
-    return NextResponse.json({ error: 'IA não configurada no servidor.' }, { status: 503 })
-  }
+  const timeoutMs = TIMEOUT_MS
 
   let text = ''
   let imageBase64 = ''
@@ -61,28 +58,24 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const resp = await fetch(`${baseUrl.replace(/\/+$/, '')}/chat/completions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({
+    let content: string
+    try {
+      content = await callAi({
         model: chosen,
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content: userContent },
         ],
         temperature: 0,
-        max_tokens: 600,
-      }),
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-    })
-    if (!resp.ok) {
-      const detail = await resp.text().catch(() => '')
-      const hint = resp.status === 402 ? ' (créditos insuficientes no provedor — troque o modelo em Config. IA)'
-        : resp.status === 400 && chosen === 'free-1m' ? ' (este modelo pode não suportar imagens — troque em Config. IA)' : ''
-      return NextResponse.json({ error: `Provedor respondeu HTTP ${resp.status}.${hint}${detail.slice(0, 120)}` }, { status: 502 })
+        maxTokens: 600,
+        timeoutMs,
+      })
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'erro desconhecido'
+      const hint = msg.includes('402') ? ' (créditos insuficientes no provedor — troque o modelo em Config. IA)'
+        : msg.includes('400') && chosen === 'free-1m' ? ' (este modelo pode não suportar imagens — troque em Config. IA)' : ''
+      return NextResponse.json({ error: `Provedor respondeu ${msg}.${hint}`.slice(0, 300) }, { status: 502 })
     }
-    const data = await resp.json()
-    const content: string = data?.choices?.[0]?.message?.content ?? ''
     const m = content.match(/\{[\s\S]*\}/)
     if (!m) return NextResponse.json({ error: 'Não consegui extrair dados do documento.' }, { status: 422 })
     const parsed = JSON.parse(m[0])

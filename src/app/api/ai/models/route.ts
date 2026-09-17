@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { callAi, DIRECT_CATALOG, readProviderKeys } from '@/lib/ai-provider'
 
 // Lista de provedores/modelos de IA permitidos neste app.
 // Boas práticas:
@@ -14,6 +15,10 @@ export interface AllowedModel {
   provider: string
   model: string
   label: string
+  /** Modelo direto (fora do OmniRoute, usa chave propria). */
+  direct?: boolean
+  /** True quando o provedor direto ja tem chave configurada. */
+  keyConfigured?: boolean
 }
 
 const DEFAULT_MODELS: AllowedModel[] = [
@@ -61,35 +66,31 @@ export async function GET(req: Request) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 })
 
-  const models = getAllowedModels()
+  const keys = readProviderKeys()
+  const directEntries = DIRECT_CATALOG.map((d) => ({
+    provider: d.provider,
+    model: d.model,
+    label: `${d.label} - direto${keys[d.provider]?.apiKey ? '' : ' (configure a chave de API abaixo)'}`,
+    direct: true,
+    keyConfigured: !!keys[d.provider]?.apiKey,
+  }))
+  const models: AllowedModel[] = [...getAllowedModels(), ...directEntries]
 
   // ?test=1 → faz um ping de 1 token no modelo escolhido (?model=...)
   const url = new URL(req.url)
   if (url.searchParams.get('test')) {
     const requested = url.searchParams.get('model') ?? models[0].model
-    const apiKey = process.env.AI_API_KEY
-    const baseUrl = process.env.AI_API_BASE
-    if (!apiKey || !baseUrl) {
-      return NextResponse.json({ models, test: { ok: false, error: 'IA não configurada no servidor.' } })
-    }
     try {
-      const resp = await fetch(`${baseUrl.replace(/\/+$/, '')}/chat/completions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-        body: JSON.stringify({
-          model: requested,
-          messages: [{ role: 'user', content: 'Responda apenas: ok' }],
-          max_tokens: 5,
-          temperature: 0,
-        }),
-        signal: AbortSignal.timeout(10000),
+      const content = await callAi({
+        model: requested,
+        messages: [{ role: 'user', content: 'Responda apenas: ok' }],
+        maxTokens: 5,
+        temperature: 0,
+        timeoutMs: 10000,
       })
-      if (!resp.ok) return NextResponse.json({ models, test: { ok: false, error: `HTTP ${resp.status}` } })
-      const data = await resp.json()
-      const content = data?.choices?.[0]?.message?.content ?? ''
       return NextResponse.json({ models, test: { ok: true, sample: String(content).slice(0, 40) } })
     } catch (e) {
-      return NextResponse.json({ models, test: { ok: false, error: 'Falha de conexão com o provedor.' } })
+      return NextResponse.json({ models, test: { ok: false, error: e instanceof Error ? e.message.slice(0, 160) : 'Falha de conexao com o provedor.' } })
     }
   }
 

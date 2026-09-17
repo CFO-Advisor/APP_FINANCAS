@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# chaves de IA diretas (nunca commitar)
+.ai-keys.json

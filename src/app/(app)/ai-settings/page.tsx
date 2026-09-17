@@ -37,6 +37,15 @@ interface AllowedModel {
   provider: string
   model: string
   label: string
+  direct?: boolean
+  keyConfigured?: boolean
+}
+
+interface KeyProviderInfo {
+  provider: string
+  label: string
+  models: string[]
+  apiKeyMasked: string
 }
 
 export default function AiSettingsPage() {
@@ -52,6 +61,13 @@ export default function AiSettingsPage() {
   const [rules, setRules] = useState<CustomRule[]>([])
   // Categorias criadas pelo usuário (localStorage) — também podem ser usadas
   const [customCats, setCustomCats] = useState<string[]>([])
+  // Chaves de API para modelos diretos (fora do OmniRoute) — ficam no servidor
+  const [keyProviders, setKeyProviders] = useState<KeyProviderInfo[]>([])
+  const [supportedProviders, setSupportedProviders] = useState<{ id: string; label: string }[]>([])
+  const [keyProvider, setKeyProvider] = useState('openai')
+  const [keyValue, setKeyValue] = useState('')
+  const [keyModels, setKeyModels] = useState('')
+  const [keySaving, setKeySaving] = useState(false)
 
   useEffect(() => {
     const prefs = readAiPrefs()
@@ -59,6 +75,7 @@ export default function AiSettingsPage() {
     setProLaboreMax(prefs.proLaboreMax)
     setRules(prefs.rules)
     setCustomCats(readCustomCategories())
+    loadKeys()
     load()
   }, [])
 
@@ -97,6 +114,62 @@ export default function AiSettingsPage() {
     setSelected(model)
     try { localStorage.setItem(MODEL_PREF_KEY, model) } catch { /* ignore */ }
     setTestResult(null)
+  }
+
+  function handleModelSelect(model: string | null) {
+    if (!model) return
+    save(model)
+    const m = models.find((x) => x.model === model)
+    if (m?.direct && !m.keyConfigured) {
+      toast.info('Modelo direto: configure a chave de API do provedor no card abaixo antes de usar.')
+    }
+  }
+
+  async function loadKeys() {
+    try {
+      const res = await fetch('/api/ai/keys')
+      if (!res.ok) return
+      const data = await res.json()
+      setKeyProviders(data.providers ?? [])
+      setSupportedProviders(data.supported ?? [])
+    } catch { /* ignora */ }
+  }
+
+  async function saveKey() {
+    const modelsList = keyModels.split(',').map((m) => m.trim()).filter(Boolean)
+    if (!keyValue.trim() || modelsList.length === 0) {
+      toast.error('Preencha a chave e ao menos um modelo (separe por vírgula).')
+      return
+    }
+    setKeySaving(true)
+    try {
+      const res = await fetch('/api/ai/keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider: keyProvider, apiKey: keyValue.trim(), models: modelsList }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Falha ao salvar a chave.')
+      toast.success(`Chave de ${keyProvider} salva (${data.apiKeyMasked}).`)
+      setKeyValue('')
+      setKeyModels('')
+      await loadKeys()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Falha ao salvar a chave.')
+    } finally {
+      setKeySaving(false)
+    }
+  }
+
+  async function removeKey(provider: string) {
+    try {
+      const res = await fetch(`/api/ai/keys?provider=${encodeURIComponent(provider)}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Falha ao remover.')
+      toast.success('Chave removida.')
+      await loadKeys()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Falha ao remover a chave.')
+    }
   }
 
   async function testConnection() {
@@ -148,7 +221,7 @@ export default function AiSettingsPage() {
             <>
               <div className="space-y-1.5">
                 <Label>Provedor / Modelo</Label>
-                <Select value={selected} onValueChange={save}>
+                <Select value={selected} onValueChange={handleModelSelect}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Selecionar modelo…" />
                   </SelectTrigger>
@@ -177,6 +250,71 @@ export default function AiSettingsPage() {
               )}
             </>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Chaves de API — modelos fora do OmniRoute</CardTitle>
+          <CardDescription>
+            Use sua própria chave para chamar o provedor diretamente. As chaves ficam somente no servidor (nunca no navegador).
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {keyProviders.length > 0 && (
+            <div className="space-y-2">
+              {keyProviders.map((k) => (
+                <div key={k.provider} className="flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{k.label}</p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {k.models.join(', ')} · chave {k.apiKeyMasked}
+                    </p>
+                  </div>
+                  <Button variant="ghost" size="sm" className="text-destructive" onClick={() => removeKey(k.provider)}>
+                    Remover
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="space-y-1.5">
+            <Label>Provedor</Label>
+            <Select value={keyProvider} onValueChange={(v) => { if (v) setKeyProvider(v) }}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Selecionar provedor…" />
+              </SelectTrigger>
+              <SelectContent>
+                {supportedProviders.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>{p.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Chave de API</Label>
+            <Input
+              type="password"
+              placeholder="sk-…"
+              value={keyValue}
+              onChange={(e) => setKeyValue(e.target.value)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Modelos (separe por vírgula)</Label>
+            <Input
+              placeholder="Ex.: gpt-5.4, deepseek-v4-pro"
+              value={keyModels}
+              onChange={(e) => setKeyModels(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Use os nomes exatos que o provedor aceita. Eles aparecem no seletor acima marcados como "direto".
+            </p>
+          </div>
+          <Button size="sm" onClick={saveKey} disabled={keySaving}>
+            {keySaving ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : null}
+            Salvar chave
+          </Button>
         </CardContent>
       </Card>
 

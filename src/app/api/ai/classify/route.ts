@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { callAi } from '@/lib/ai-provider'
 import { createClient } from '@/lib/supabase/server'
 import { CATEGORIES, TRANSFER_CATEGORY } from '@/lib/constants'
 
@@ -31,11 +32,7 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 })
 
-  const apiKey = process.env.AI_API_KEY
-  const baseUrl = process.env.AI_API_BASE
-  if (!apiKey || !baseUrl) {
-    return NextResponse.json({ configured: false, categories: {} })
-  }
+  const timeoutMs = TIMEOUT_MS
 
   let items: ClassifyItem[]
   let model: string | undefined
@@ -129,29 +126,16 @@ Transações:
 ${items.map((i) => `${i.index}. [${i.type}] ${i.text}${typeof i.amount === 'number' ? ` | R$ ${i.amount.toFixed(2)}` : ''}`).join('\n')}`
 
   try {
-    const resp = await fetch(`${baseUrl.replace(/\/+$/, '')}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: chosen,
-        messages: [
-          { role: 'system', content: 'Você classifica transações bancárias brasileiras respondendo apenas JSON válido.' },
-          { role: 'user', content: prompt },
-        ],
-        temperature: 0,
-      }),
-      signal: AbortSignal.timeout(TIMEOUT_MS),
+    const content: string = await callAi({
+      model: chosen,
+      messages: [
+        { role: 'system', content: 'Você classifica transações bancárias brasileiras respondendo apenas JSON válido.' },
+        { role: 'user', content: prompt },
+      ],
+      temperature: 0,
+      timeoutMs,
     })
 
-    if (!resp.ok) {
-      return NextResponse.json({ configured: true, categories: {}, fallback: true })
-    }
-
-    const data = await resp.json()
-    const content: string = data?.choices?.[0]?.message?.content ?? ''
     // Tolera JSON envolvido em ```json ... ```
     const jsonMatch = content.match(/\{[\s\S]*\}/)
     if (!jsonMatch) return NextResponse.json({ configured: true, categories: {}, fallback: true })
