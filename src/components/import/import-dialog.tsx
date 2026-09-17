@@ -96,7 +96,7 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
   // Conta de destino das linhas marcadas como Transferência
   const [transferDestId, setTransferDestId] = useState<string>('none')
   const [creditCardId, setCreditCardId] = useState<string>('none')
-  // Data da emissão da fatura (registro) — compras ficam como referência
+  // Data de vencimento da fatura (registro) — compras ficam como referência
   const [faturaDate, setFaturaDate] = useState('')
   const [loading, setLoading] = useState(false)
   const [importedCount, setImportedCount] = useState(0)
@@ -505,14 +505,14 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
                   <>
                     <p className="text-xs text-muted-foreground">Todos os lançamentos serão vinculados a este cartão como despesas.</p>
                     <div className="space-y-1">
-                      <Label>Data da emissão da fatura</Label>
+                      <Label>Data de vencimento da fatura</Label>
                       <Input
                         type="date"
                         value={faturaDate}
                         onChange={(e) => setFaturaDate(e.target.value)}
                       />
                       <p className="text-xs text-muted-foreground">
-                        Os registros entram com essa data; a data de compra fica como referência na tabela.
+                        Os registros entram com essa data (vencimento); a data de compra fica como referência na tabela.
                       </p>
                     </div>
                   </>
