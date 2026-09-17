@@ -480,3 +480,84 @@ export function parsePDFLines(lines: string[], defaultCategory = 'Outros'): Pars
 
   return results
 }
+
+// ── Fatura de cartão Inter (PDF) ─────────────────────────────────────
+// Linhas no formato "13 de jun. 2026 BENEFICIÁRIO (Parcela 03 de 05) - R$ 300,00",
+// pagamentos com "+ R$" (quitação da fatura anterior) e lançamentos internacio-
+// nais multilinha (o valor em R$ vem em linha própria após a descrição).
+
+const INTER_MONTH_ABBR: Record<string, number> = {
+  jan: 1, fev: 2, mar: 3, abr: 4, mai: 5, jun: 6, jul: 7, ago: 8, set: 9, out: 10, nov: 11, dez: 12,
+}
+
+// Reconhece o formato de fatura de cartão (datas por extenso "13 de jun. 2026")
+export function isInterCardFatura(lines: string[]): boolean {
+  return lines.some((l) => /^\d{1,2} de [a-zç]{3}\.? \d{4} /i.test(l.trim()))
+}
+
+export function parseInterCardFatura(lines: string[]): ParsedTransaction[] {
+  const out: ParsedTransaction[] = []
+  let pending: { date: string; description: string } | null = null
+
+  const flushPending = () => {
+    if (pending) {
+      out.push({
+        date: pending.date,
+        description: pending.description,
+        amount: 0,
+        type: 'expense',
+        category: guessCategory(pending.description),
+        error: 'Valor não encontrado no lançamento.',
+      })
+      pending = null
+    }
+  }
+
+  for (const raw of lines) {
+    const line = raw.trim()
+    if (!line) continue
+
+    // Linha só de valor — fecha um lançamento internacional: "- R$ 3.237,82"
+    const valueOnly = line.match(/^([+\-])\s*R\$\s*([\d.]+,\d{2})$/)
+    if (valueOnly) {
+      if (pending) {
+        const amount = Math.abs(parseBRNumber(valueOnly[2]))
+        out.push({
+          date: pending.date,
+          description: pending.description,
+          amount,
+          type: valueOnly[1] === '-' ? 'expense' : 'income',
+          category: guessCategory(pending.description),
+        })
+        pending = null
+      }
+      continue
+    }
+
+    const m = line.match(/^(\d{1,2}) de ([a-zç]{3})\.? (\d{4}) (.+)$/i)
+    if (!m) continue
+    const month = INTER_MONTH_ABBR[m[2].toLowerCase()]
+    if (!month) continue
+    const date = `${m[3]}-${String(month).padStart(2, '0')}-${m[1].padStart(2, '0')}`
+    const tail = m[4].trim()
+    const valueMatch = tail.match(/([+\-])\s*R\$\s*([\d.]+,\d{2})$/)
+    if (!valueMatch) {
+      // Descrição agora; valor vem na(s) linha(s) seguinte(s)
+      flushPending()
+      pending = { date, description: tail }
+      continue
+    }
+    flushPending()
+    const amount = parseBRNumber(valueMatch[2])
+    const description = tail.slice(0, valueMatch.index).trim().replace(/[-\s]+$/, '') || 'Sem descrição'
+    out.push({
+      date,
+      description,
+      amount: Math.abs(amount),
+      type: valueMatch[1] === '-' ? 'expense' : 'income',
+      category: guessCategory(description),
+    })
+  }
+  flushPending()
+  return out
+}

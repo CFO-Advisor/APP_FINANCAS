@@ -7,6 +7,8 @@ import {
   mapCSVRows,
   parseBRNumber,
   parsePDFLines,
+  isInterCardFatura,
+  parseInterCardFatura,
 } from './parsers'
 
 // ── 1. Inter bank CSV: debits (tipoOperacao=D) must import as expense ─────────
@@ -104,5 +106,44 @@ assert.equal(c6fRows[1].amount, 8710.81)
 assert.equal(c6fRows[2].amount, 4784.74)
 assert.ok(!c6fRows[2].description.includes('('), 'Única não adiciona parcela')
 assert.equal(c6fRows[3].description, 'CROCS (6/6)')
+
+assert.equal(c6fRows[3].description, 'CROCS (6/6)')
+
+// ── Inter Fatura (cartão, PDF): datas por extenso, +pagamento, multilinha ──
+const interFaturaLines = [
+  'Resumo da fatura',
+  'Total da sua fatura',
+  'R$ 11.469,57',
+  'Despesas da fatura',
+  'CARTÃO 5364****6670',
+  'Data Movimentação Beneficiário Valor',
+  '13 de jun. 2026 A N B ALMEIDA ODONTOPE (Parcela 03 de 05) - R$ 300,00',
+  '16 de ago. 2026 SABOR CASEIRO - R$ 90,00',
+  '20 de ago. 2026 PAGTO DEBITO AUTOMATICO - + R$ 8.988,38',
+  '09 de set. 2026 FYP*SHENZHENJINGANLANJ',
+  'Valor e símbolo da moeda de origem: 4.000,00 CNY',
+  'Valor em dólar americano: $ 604,94',
+  'Cotação do dólar americano: R$ 5,3523',
+  '- R$ 3.237,82',
+  'Total CARTÃO 5364****6670 R$ 7.670,89',
+  'Movimentação Valor',
+  'JAComercioDe (Parcela 12 de 12) R$ 67,95',
+]
+assert.equal(isInterCardFatura(interFaturaLines), true, 'deve reconhecer fatura de cartão')
+const interF = parseInterCardFatura(interFaturaLines)
+assert.equal(interF.length, 4, `4 lançamentos, veio: ${interF.length}`)
+assert.equal(interF[0].type, 'expense')
+assert.equal(interF[0].amount, 300)
+assert.equal(interF[0].date, '2026-06-13')
+assert.ok(interF[0].description.includes('(Parcela 03 de 05)'), 'parcela mantida na descrição')
+assert.equal(interF[1].type, 'expense')
+assert.equal(interF[1].amount, 90)
+assert.equal(interF[2].type, 'income', 'pagamento (+) vira receita → import p/ cartão ignora')
+assert.equal(interF[2].amount, 8988.38)
+assert.equal(interF[3].description, 'FYP*SHENZHENJINGANLANJ')
+assert.equal(interF[3].amount, 3237.82)
+assert.equal(interF[3].type, 'expense')
+assert.equal(interF[3].date, '2026-09-09')
+assert.ok(interF[3].error === undefined, 'multilinha fecha com o valor da linha seguinte')
 
 console.log('parsers.check OK ✓')

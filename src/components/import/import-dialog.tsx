@@ -30,6 +30,8 @@ import {
   mapCSVRows,
   parseOFXContent,
   parsePDFLines,
+  isInterCardFatura,
+  parseInterCardFatura,
   type ParsedTransaction,
   type CSVFieldMap,
 } from '@/lib/import/parsers'
@@ -145,7 +147,8 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
     } else if (ext === 'pdf') {
       const buffer = await f.arrayBuffer()
       const lines = await extractStatementLines(buffer)
-      const parsed = parsePDFLines(lines)
+      // Fatura de cartão Inter (datas por extenso "13 de jun. 2026") tem parser próprio
+      const parsed = isInterCardFatura(lines) ? parseInterCardFatura(lines) : parsePDFLines(lines)
       setFile({ name: f.name, format: 'pdf', csvHeaders: [], csvRows: [], parsed })
       setStep('preview')
     } else if (ext === 'xlsx' || ext === 'xls') {
