@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
 import {
   Dialog,
   DialogContent,
@@ -85,6 +86,8 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
   // Conta de destino das linhas marcadas como Transferência
   const [transferDestId, setTransferDestId] = useState<string>('none')
   const [creditCardId, setCreditCardId] = useState<string>('none')
+  // Data da emissão da fatura (registro) — compras ficam como referência
+  const [faturaDate, setFaturaDate] = useState('')
   const [loading, setLoading] = useState(false)
   const [importedCount, setImportedCount] = useState(0)
   const [errorCount, setErrorCount] = useState(0)
@@ -112,6 +115,7 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
 
   function handleClose() {
     reset()
+    setFaturaDate('')
     onOpenChange(false)
   }
 
@@ -383,7 +387,9 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
           user_id: user.id,
           description: r.description,
           amount: r.amount,
-          date: r.date,
+          // Fatura de cartão: o registro usa a data da fatura; a compra fica como referência
+          date: resolvedCardId && faturaDate ? faturaDate : r.date,
+          purchase_date: resolvedCardId && faturaDate ? r.date : null,
           // card imports are always expenses; transferência é tipo próprio
           type: isTransfer ? 'transfer' : (resolvedCardId ? 'expense' : r.type),
           category: isTransfer ? TRANSFER_CATEGORY : r.category,
@@ -481,7 +487,20 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
                   </SelectContent>
                 </Select>
                 {creditCardId !== 'none' && (
-                  <p className="text-xs text-muted-foreground">Todos os lançamentos serão vinculados a este cartão como despesas.</p>
+                  <>
+                    <p className="text-xs text-muted-foreground">Todos os lançamentos serão vinculados a este cartão como despesas.</p>
+                    <div className="space-y-1">
+                      <Label>Data da emissão da fatura</Label>
+                      <Input
+                        type="date"
+                        value={faturaDate}
+                        onChange={(e) => setFaturaDate(e.target.value)}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Os registros entram com essa data; a data de compra fica como referência na tabela.
+                      </p>
+                    </div>
+                  </>
                 )}
               </div>
             )}

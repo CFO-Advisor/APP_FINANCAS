@@ -177,6 +177,11 @@ export function TransactionTable({ transactions, onEdit, onDeleted, banks = [], 
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                   {format(new Date(t.date + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR })}
+                  {t.purchase_date && (
+                    <p className="text-[10px] text-muted-foreground/70">
+                      compra {format(new Date(t.purchase_date + 'T00:00:00'), 'dd/MM/yy', { locale: ptBR })}
+                    </p>
+                  )}
                 </TableCell>
                 <TableCell>
                   <span className="font-medium">{t.description}</span>

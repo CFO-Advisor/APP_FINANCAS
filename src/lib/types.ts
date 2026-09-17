@@ -21,6 +21,8 @@ export interface Transaction {
   credit_card_id: string | null
   // Apenas para type='transfer': conta de destino (bank_id é a de origem)
   transfer_bank_id: string | null
+  /** Fatura de cartão: data da compra (o registro usa a data da fatura). */
+  purchase_date?: string | null
   created_at: string
 }
 
