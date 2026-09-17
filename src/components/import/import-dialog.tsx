@@ -78,6 +78,16 @@ async function readTextFile(f: File): Promise<string> {
 
 const CHUNK_SIZE = 100
 
+// Extrai a data de emissão de nomes como "Fatura_2026-09-20.csv" ou "fatura 20-09-2026.pdf"
+function faturaDateFromFilename(name: string): string {
+  const m = name.toLowerCase().match(/fatura[^\d]*(\d{2,4})[-_.](\d{2})[-_.](\d{2,4})/)
+  if (!m) return ''
+  const iso = m[1].length === 4
+    ? `${m[1]}-${m[2]}-${m[3]}`
+    : `${m[3]}-${m[2]}-${m[1].padStart(2, '0')}`
+  return /^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso : ''
+}
+
 export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSuccess, pendingFile, customCategories = [] }: ImportDialogProps) {
   const [step, setStep] = useState<Step>('upload')
   const [file, setFile] = useState<FileState | null>(null)
@@ -120,6 +130,11 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
   }
 
   async function processFile(f: File) {
+    // Fatura de cartão: pré-preenche a data de emissão pelo nome do arquivo
+    if (!faturaDate) {
+      const auto = faturaDateFromFilename(f.name)
+      if (auto) setFaturaDate(auto)
+    }
     const ext = f.name.split('.').pop()?.toLowerCase()
 
     if (ext === 'ofx') {
