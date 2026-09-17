@@ -90,6 +90,29 @@ function faturaDateFromFilename(name: string): string {
   return /^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso : ''
 }
 
+// Tenta identificar a conta citada na descrição de uma transferência
+// (ex.: "PIX ENVIADO - BANCO BTG PACTUAL S.A." → banco "Btg Pactual")
+function matchBankInDescription(description: string, banks: Bank[], excludeBankId?: string | null): string | null {
+  const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '')
+  const d = norm(description)
+  let best: string | null = null
+  let bestLen = 0
+  for (const b of banks) {
+    if (b.id === excludeBankId) continue
+    const n = norm(b.name).replace(/^banco\s+/, '').trim()
+    if (n.length >= 3 && n.length > bestLen && d.includes(n)) {
+      best = b.id
+      bestLen = n.length
+    }
+  }
+  return best
+}
+
+// Chave estável de uma linha do preview (para overrides por lançamento)
+function rowKey(r: { date: string; description: string; amount: number }): string {
+  return `${r.date}|${r.description.trim().toLowerCase()}|${r.amount.toFixed(2)}`
+}
+
 export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSuccess, pendingFile, customCategories = [] }: ImportDialogProps) {
   const [step, setStep] = useState<Step>('upload')
   const [file, setFile] = useState<FileState | null>(null)
@@ -97,6 +120,8 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
   const [bankId, setBankId] = useState<string>('none')
   // Conta de destino das linhas marcadas como Transferência
   const [transferDestId, setTransferDestId] = useState<string>('none')
+  // Contra-partida por lançamento de transferência (chave = rowKey da linha)
+  const [transferRowBanks, setTransferRowBanks] = useState<Record<string, string>>({})
   const [creditCardId, setCreditCardId] = useState<string>('none')
   // Data de vencimento da fatura (registro) — compras ficam como referência
   const [faturaDate, setFaturaDate] = useState('')
@@ -128,11 +153,13 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
   function handleClose() {
     reset()
     setFaturaDate('')
+    setTransferRowBanks({})
     onOpenChange(false)
   }
 
   async function processFile(f: File) {
     // Fatura de cartão: pré-preenche a data de emissão pelo nome do arquivo
+    setTransferRowBanks({})
     if (!faturaDate) {
       const auto = faturaDateFromFilename(f.name)
       if (auto) setFaturaDate(auto)
@@ -380,13 +407,23 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
     const resolvedCardId = creditCardId === 'none' ? null : creditCardId
     const finalBankId = resolvedCardId ? null : resolvedBankId
 
-    // Transferências: exigem as duas contas (mesmo titular) e não vêm de cartão
+    // Transferências: exigem as duas contas (mesmo titular) e não vêm de cartão.
+    // Contra-partida por lançamento: manual na prévia → automática pela descrição → global.
     const transferCount = validRows.filter((r) => r.type === 'transfer').length
     if (transferCount > 0) {
       if (resolvedCardId) { toast.error('Transferências não podem ser importadas como despesa de cartão.'); setLoading(false); return }
       if (!resolvedBankId) { toast.error('Selecione a conta de ORIGEM das transferências.'); setLoading(false); return }
-      if (transferDestId === 'none') { toast.error('Selecione a conta de DESTINO das transferências.'); setLoading(false); return }
-      if (resolvedBankId === transferDestId) { toast.error('A conta de destino deve ser diferente da origem.'); setLoading(false); return }
+      const semContra = validRows
+        .filter((r) => r.type === 'transfer')
+        .filter((r) => {
+          const cp = transferRowBanks[rowKey(r)] ?? matchBankInDescription(r.description, banks, resolvedBankId) ?? (transferDestId !== 'none' ? transferDestId : null)
+          return !cp || cp === resolvedBankId
+        })
+      if (semContra.length > 0) {
+        toast.error(`Escolha a contra-partida de ${semContra.length} transferência(s) — ex.: "${semContra[0].description.slice(0, 40)}".`)
+        setLoading(false)
+        return
+      }
     }
 
     let imported = 0
@@ -401,6 +438,11 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
     for (let i = 0; i < rowsToInsert.length; i += CHUNK_SIZE) {
       const chunk = rowsToInsert.slice(i, i + CHUNK_SIZE).map((r) => {
         const isTransfer = r.type === 'transfer'
+        // Direção da transferência: recebida → a origem é a contra-partida
+        const received = isTransfer && /recebida/i.test(r.category ?? '')
+        const counterparty = isTransfer
+          ? transferRowBanks[rowKey(r)] ?? matchBankInDescription(r.description, banks, resolvedBankId) ?? (transferDestId !== 'none' ? transferDestId : null)
+          : null
         return {
           user_id: user.id,
           description: r.description,
@@ -411,9 +453,9 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
           // card imports are always expenses; transferência é tipo próprio
           type: isTransfer ? 'transfer' : (resolvedCardId ? 'expense' : r.type),
           category: isTransfer ? TRANSFER_CATEGORY : r.category,
-          bank_id: isTransfer ? resolvedBankId : finalBankId,
+          bank_id: isTransfer ? (received ? counterparty : resolvedBankId) : finalBankId,
           credit_card_id: isTransfer ? null : resolvedCardId,
-          transfer_bank_id: isTransfer ? transferDestId : null,
+          transfer_bank_id: isTransfer ? (received ? resolvedBankId : counterparty) : null,
         }
       })
       const { error } = await supabase.from('transactions').insert(chunk)
@@ -433,6 +475,8 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
   const errorRows = file?.parsed.filter((r) => r.error) ?? []
   // Linhas marcadas como Transferência: exigem conta de origem + destino
   const transferRowsCount = file?.parsed.filter((r) => !r.error && r.type === 'transfer').length ?? 0
+  // Banco do extrato (excluído das opções de contra-partida)
+  const extratoBankId = bankId === 'none' ? null : bankId
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -630,7 +674,7 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
             {transferRowsCount > 0 && (
               <div className="space-y-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3">
                 <p className="text-xs font-medium text-amber-600">
-                  {transferRowsCount} lançamento(s) marcado(s) como Transferência — informe as contas (mesmo titular):
+                  {transferRowsCount} lançamento(s) marcado(s) como Transferência — a contra-partida é detectada pela descrição quando possível; ajuste por lançamento abaixo se precisar:
                 </p>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   <div className="space-y-1">
@@ -706,11 +750,26 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
                         {row.type === 'income' ? 'Receita' : row.type === 'investment' ? 'Investimento' : row.type === 'credit_card_payment' ? 'Pagto. Fatura' : row.type === 'transfer' ? 'Transferência' : 'Despesa'}
                       </td>
                       <td className="px-3 py-1.5">
-                        {row.error && (
+                        {row.error ? (
                           <span className="text-destructive" title={row.error}>
                             <AlertCircle className="h-3 w-3" />
                           </span>
-                        )}
+                        ) : row.type === 'transfer' ? (
+                          <Select
+                            value={transferRowBanks[rowKey(row)] ?? matchBankInDescription(row.description, banks, extratoBankId) ?? transferDestId}
+                            onValueChange={(v) => { if (v && v !== 'none') setTransferRowBanks((prev) => ({ ...prev, [rowKey(row)]: v })) }}
+                          >
+                            <SelectTrigger className="h-6 w-full border-none bg-transparent px-1 text-xs shadow-none hover:bg-muted/60">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="max-h-64">
+                              <SelectItem value="none" className="text-xs">— escolher conta</SelectItem>
+                              {banks.filter((b) => b.id !== extratoBankId).map((b) => (
+                                <SelectItem key={b.id} value={b.id} className="text-xs">{b.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : null}
                       </td>
                     </tr>
                   ))}
