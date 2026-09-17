@@ -139,6 +139,8 @@ export default function TransactionsPage() {
   // Separa transações de cartão das bancárias (tabelas distintas)
   const cardTxs = useMemo(() => filtered.filter((t) => !!t.credit_card_id), [filtered])
   const bankTxs = useMemo(() => filtered.filter((t) => !t.credit_card_id), [filtered])
+  // Aba ativa das tabelas separadas
+  const [tableTab, setTableTab] = useState<'bancos' | 'cartao'>('bancos')
 
   function handleEdit(transaction: Transaction) {
     setEditTarget(transaction)
@@ -302,39 +304,36 @@ export default function TransactionsPage() {
         </div>
       ) : (
         <>
-          {bankTxs.length > 0 && (
-            <section className="space-y-2">
-              <h2 className="text-sm font-semibold text-muted-foreground">
-                Transações bancárias ({bankTxs.length})
-              </h2>
-              <TransactionTable
-                transactions={bankTxs}
-                onEdit={handleEdit}
-                onDeleted={fetchTransactions}
-                banks={banks}
-                creditCards={creditCards}
-              />
-            </section>
-          )}
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant={tableTab === 'bancos' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setTableTab('bancos')}
+            >
+              Bancos ({bankTxs.length})
+            </Button>
+            <Button
+              type="button"
+              variant={tableTab === 'cartao' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setTableTab('cartao')}
+            >
+              Cartão de crédito ({cardTxs.length})
+            </Button>
+          </div>
 
-          {cardTxs.length > 0 && (
-            <section className="space-y-2">
-              <h2 className="text-sm font-semibold text-muted-foreground">
-                Cartão de crédito ({cardTxs.length})
-              </h2>
-              <TransactionTable
-                transactions={cardTxs}
-                onEdit={handleEdit}
-                onDeleted={fetchTransactions}
-                banks={banks}
-                creditCards={creditCards}
-              />
-            </section>
-          )}
-
-          {filtered.length === 0 && (
+          {tableTab === 'bancos' ? (
             <TransactionTable
-              transactions={[]}
+              transactions={bankTxs}
+              onEdit={handleEdit}
+              onDeleted={fetchTransactions}
+              banks={banks}
+              creditCards={creditCards}
+            />
+          ) : (
+            <TransactionTable
+              transactions={cardTxs}
               onEdit={handleEdit}
               onDeleted={fetchTransactions}
               banks={banks}
