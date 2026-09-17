@@ -539,7 +539,9 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
                 <Label>Cartão de crédito (opcional)</Label>
                 <Select value={creditCardId} onValueChange={(v) => { if (v) { setCreditCardId(v); if (v !== 'none') setBankId('none') } }}>
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Sem cartão" />
+                    <span className="flex flex-1 text-left text-sm">
+                      {creditCardId === 'none' ? '— Sem cartão' : creditCards.find((c) => c.id === creditCardId)?.name ?? '— Sem cartão'}
+                    </span>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">— Sem cartão</SelectItem>
@@ -573,7 +575,9 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
                 <Label>Banco / Conta (opcional)</Label>
                 <Select value={bankId} onValueChange={(v) => { if (v) setBankId(v) }}>
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Sem banco" />
+                    <span className="flex flex-1 text-left text-sm">
+                      {bankId === 'none' ? '— Sem banco' : banks.find((b) => b.id === bankId)?.name ?? '— Sem banco'}
+                    </span>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">— Sem banco</SelectItem>
@@ -680,7 +684,7 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
                   <div className="space-y-1">
                     <Label className="text-xs">Conta de origem (saída)</Label>
                     <Select value={bankId} onValueChange={(v) => { if (v) { setBankId(v); if (v === transferDestId) setTransferDestId('none') } }}>
-                      <SelectTrigger className="w-full"><SelectValue placeholder="Selecionar conta..." /></SelectTrigger>
+                      <SelectTrigger className="w-full"><span className="flex flex-1 text-left text-sm">{bankId === 'none' ? '— Selecionar conta' : banks.find((b) => b.id === bankId)?.name ?? '— Selecionar conta'}</span></SelectTrigger>
                       <SelectContent className="max-h-52 overflow-y-auto">
                         <SelectItem value="none">— Selecionar conta</SelectItem>
                         {banks.map((b) => (
@@ -692,7 +696,7 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
                   <div className="space-y-1">
                     <Label className="text-xs">Conta de destino (entrada)</Label>
                     <Select value={transferDestId} onValueChange={(v) => { if (v) setTransferDestId(v) }}>
-                      <SelectTrigger className="w-full"><SelectValue placeholder="Selecionar conta..." /></SelectTrigger>
+                      <SelectTrigger className="w-full"><span className="flex flex-1 text-left text-sm">{transferDestId === 'none' ? '— Selecionar conta' : banks.find((b) => b.id === transferDestId)?.name ?? '— Selecionar conta'}</span></SelectTrigger>
                       <SelectContent className="max-h-52 overflow-y-auto">
                         <SelectItem value="none">— Selecionar conta</SelectItem>
                         {banks.filter((b) => b.id !== bankId).map((b) => (
@@ -760,7 +764,12 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
                             onValueChange={(v) => { if (v && v !== 'none') setTransferRowBanks((prev) => ({ ...prev, [rowKey(row)]: v })) }}
                           >
                             <SelectTrigger className="h-6 w-full border-none bg-transparent px-1 text-xs shadow-none hover:bg-muted/60">
-                              <SelectValue />
+                              <span className="flex flex-1 truncate text-left text-xs">
+                                {(() => {
+                                  const v = transferRowBanks[rowKey(row)] ?? matchBankInDescription(row.description, banks, extratoBankId) ?? transferDestId
+                                  return v === 'none' ? '— escolher conta' : banks.find((b) => b.id === v)?.name ?? '— escolher conta'
+                                })()}
+                              </span>
                             </SelectTrigger>
                             <SelectContent className="max-h-64">
                               <SelectItem value="none" className="text-xs">— escolher conta</SelectItem>
