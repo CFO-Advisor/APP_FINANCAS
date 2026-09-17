@@ -68,6 +68,8 @@ export default function AiSettingsPage() {
   const [keyValue, setKeyValue] = useState('')
   const [keyModels, setKeyModels] = useState('')
   const [keySaving, setKeySaving] = useState(false)
+  // Abas da página: modelo/chave de IA vs regras de classificação
+  const [tab, setTab] = useState<'modelo' | 'regras'>('modelo')
 
   useEffect(() => {
     const prefs = readAiPrefs()
@@ -203,6 +205,16 @@ export default function AiSettingsPage() {
         </div>
       </div>
 
+      <div className="flex gap-2">
+        <Button type="button" variant={tab === 'modelo' ? 'default' : 'outline'} size="sm" onClick={() => setTab('modelo')}>
+          Modelo e Chave de IA
+        </Button>
+        <Button type="button" variant={tab === 'regras' ? 'default' : 'outline'} size="sm" onClick={() => setTab('regras')}>
+          Regras de classificação
+        </Button>
+      </div>
+      {tab === 'modelo' && (
+        <>
       <Card>
         <CardHeader>
           <CardTitle>Modelo de IA</CardTitle>
@@ -317,7 +329,11 @@ export default function AiSettingsPage() {
           </Button>
         </CardContent>
       </Card>
+        </>
+      )}
 
+      {tab === 'regras' && (
+        <>
       <Card>
         <CardHeader>
           <CardTitle>Regras de classificação</CardTitle>
@@ -411,6 +427,8 @@ export default function AiSettingsPage() {
           <Button size="sm" onClick={saveRules}>Salvar regras</Button>
         </CardContent>
       </Card>
+        </>
+      )}
 
       <Card>
         <CardHeader>
