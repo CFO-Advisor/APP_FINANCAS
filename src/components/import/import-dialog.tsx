@@ -38,6 +38,7 @@ import {
 import { extractStatementLines } from '@/lib/import/pdf'
 import { downloadImportTemplate } from '@/lib/excel-export'
 import { formatCurrency } from '@/lib/csv-export'
+import { buildExistingIndex, filterNewRows, type ImportKeyRow } from '@/lib/import/dedup'
 import { CATEGORIES, EXPENSE_CATEGORIES, INCOME_CATEGORIES, INVESTMENT_CATEGORIES, TRANSFER_CATEGORY, categoryToType, reconcileTypeWithStatement } from '@/lib/constants'
 import type { TransactionType } from '@/lib/types'
 import { AI_MODEL_PREF_KEY } from '@/components/layout/assistant-panel'
@@ -459,38 +460,62 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
     const rowsToInsert = resolvedCardId ? validRows.filter((r) => r.type !== 'income') : validRows
     const cardSkipped = validRows.length - rowsToInsert.length
 
-    for (let i = 0; i < rowsToInsert.length; i += CHUNK_SIZE) {
-      const chunk = rowsToInsert.slice(i, i + CHUNK_SIZE).map((r) => {
-        const isTransfer = r.type === 'transfer'
-        // Direção pelo EXTRATO: C (crédito) = o dinheiro entrou na conta do
-        // extrato; D (débito) = saiu. Sem essa informação, cai no texto.
-        const dirIn = isTransfer && (r.statementType
-          ? r.statementType === 'income'
-          : /recebid/i.test(`${r.description} ${r.category ?? ''}`))
-        // Contrapartida é opcional: quando não identificada, a transferência
-        // fica pendente e afeta só a conta do extrato.
-        const rawCounterparty = isTransfer
-          ? transferRowBanks[rowKey(r)] ?? matchBankInDescription(r.description, banks, resolvedBankId) ?? (transferDestId !== 'none' ? transferDestId : null)
-          : null
-        const counterparty = isTransfer && rawCounterparty && rawCounterparty !== resolvedBankId ? rawCounterparty : null
-        return {
-          user_id: ownerId,
-          description: r.description,
-          amount: r.amount,
-          // Fatura de cartão: o registro usa a data da fatura; a compra fica como referência
-          date: resolvedCardId && faturaDate ? faturaDate : r.date,
-          purchase_date: resolvedCardId && faturaDate ? r.date : null,
-          // card imports are always expenses; transferência é tipo próprio
-          type: isTransfer ? 'transfer' : (resolvedCardId ? 'expense' : r.type),
-          category: isTransfer ? TRANSFER_CATEGORY : r.category,
-          // A conta do extrato é sempre o bank_id da transferência; a direção
-          // (transfer_dir) diz se o dinheiro saiu ou entrou nela.
-          bank_id: isTransfer ? resolvedBankId : finalBankId,
-          credit_card_id: isTransfer ? null : resolvedCardId,
-          transfer_bank_id: isTransfer ? counterparty : null,
-          transfer_dir: isTransfer ? (dirIn ? 'in' : 'out') : null,
-        }
-      })
+    // Monta os lançamentos primeiro: é o resultado deste mapeamento que vai para
+    // a base e que define a chave de deduplicação (data/tipo/valor/descrição/conta).
+    const mapped = rowsToInsert.map((r) => {
+      const isTransfer = r.type === 'transfer'
+      // Direção pelo EXTRATO: C (crédito) = o dinheiro entrou na conta do
+      // extrato; D (débito) = saiu. Sem essa informação, cai no texto.
+      const dirIn = isTransfer && (r.statementType
+        ? r.statementType === 'income'
+        : /recebid/i.test(`${r.description} ${r.category ?? ''}`))
+      // Contrapartida é opcional: quando não identificada, a transferência
+      // fica pendente e afeta só a conta do extrato.
+      const rawCounterparty = isTransfer
+        ? transferRowBanks[rowKey(r)] ?? matchBankInDescription(r.description, banks, resolvedBankId) ?? (transferDestId !== 'none' ? transferDestId : null)
+        : null
+      const counterparty = isTransfer && rawCounterparty && rawCounterparty !== resolvedBankId ? rawCounterparty : null
+      return {
+        user_id: ownerId,
+        description: r.description,
+        amount: r.amount,
+        // Fatura de cartão: o registro usa a data da fatura; a compra fica como referência
+        date: resolvedCardId && faturaDate ? faturaDate : r.date,
+        purchase_date: resolvedCardId && faturaDate ? r.date : null,
+        // card imports are always expenses; transferência é tipo próprio
+        type: isTransfer ? 'transfer' : (resolvedCardId ? 'expense' : r.type),
+        category: isTransfer ? TRANSFER_CATEGORY : r.category,
+        // A conta do extrato é sempre o bank_id da transferência; a direção
+        // (transfer_dir) diz se o dinheiro saiu ou entrou nela.
+        bank_id: isTransfer ? resolvedBankId : finalBankId,
+        credit_card_id: isTransfer ? null : resolvedCardId,
+        transfer_bank_id: isTransfer ? counterparty : null,
+        transfer_dir: isTransfer ? (dirIn ? 'in' : 'out') : null,
+      }
+    })
+
+    // Trava anti-duplicidade: reimportar o mesmo extrato (ou importar um arquivo
+    // que se sobrepõe a um já importado) não pode duplicar. Chave exata, e a
+    // contagem é respeitada — se o extrato traz 3 lançamentos iguais e a base já
+    // tem 1, entram apenas 2 (repetição legítima continua funcionando).
+    let toInsert = mapped
+    let duplicates = 0
+    if (mapped.length > 0) {
+      const dates = mapped.map((r) => r.date).sort()
+      const { data: existentes } = await supabase
+        .from('transactions')
+        .select('date, type, amount, description, bank_id, credit_card_id')
+        .eq('user_id', ownerId)
+        .gte('date', dates[0])
+        .lte('date', dates[dates.length - 1])
+      const index = buildExistingIndex((existentes ?? []) as ImportKeyRow[])
+      const res = filterNewRows(mapped, index)
+      toInsert = res.fresh
+      duplicates = res.duplicates
+    }
+
+    for (let i = 0; i < toInsert.length; i += CHUNK_SIZE) {
+      const chunk = toInsert.slice(i, i + CHUNK_SIZE)
       const { error } = await supabase.from('transactions').insert(chunk)
       if (error) errors += chunk.length
       else imported += chunk.length
@@ -498,6 +523,7 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
 
     setImportedCount(imported)
     setErrorCount(errors)
+    if (duplicates > 0) toast.info(`${duplicates} lançamento(s) já existiam no período e não foram duplicados.`)
     if (cardSkipped > 0) toast.info(`${cardSkipped} pagamento(s)/estorno(s) da fatura ignorados — o pagamento da fatura é lançado como Pg. Fatura.`)
     setLoading(false)
     setStep('done')
