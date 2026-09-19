@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import Link from 'next/link'
-import { ArrowRight, Landmark, TrendingUp as TrendingUpIcon, Package2, ScrollText, CreditCard as CreditCardIcon, AlertCircle } from 'lucide-react'
+import { ArrowRight, ArrowUpRight, ArrowDownRight, Landmark, TrendingUp as TrendingUpIcon, Package2, ScrollText, CreditCard as CreditCardIcon, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Select,
@@ -49,6 +49,7 @@ export default function DashboardPage() {
   const [assetsData, setAssetsData] = useState<Pick<Asset, 'group_type' | 'value'>[]>([])
   const [debtsData, setDebtsData] = useState<Pick<Debt, 'group_type' | 'total_amount' | 'monthly_amount' | 'installments_paid' | 'status'>[]>([])
   const [previousSummary, setPreviousSummary] = useState<DashboardSummary>({ totalIncome: 0, totalExpense: 0, totalInvestment: 0, balance: 0 })
+  const [caixaInicial, setCaixaInicial] = useState(0)
   const [loading, setLoading] = useState(true)
   const [updatedAt, setUpdatedAt] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<ViewMode>('monthly')
@@ -88,7 +89,7 @@ export default function DashboardPage() {
         .order('date', { ascending: false }),
       supabase.from('budgets').select('*').eq('month', month).eq('year', year),
       supabase.from('banks').select('*').order('name'),
-      supabase.from('transactions').select('bank_id, transfer_bank_id, type, amount, credit_card_id').not('bank_id', 'is', null),
+      supabase.from('transactions').select('bank_id, transfer_bank_id, type, amount, credit_card_id, date').not('bank_id', 'is', null),
       supabase.from('credit_cards').select('*').order('name'),
       supabase.from('transactions').select('*').not('credit_card_id', 'is', null),
       supabase.from('transactions').select('category, amount').eq('type', 'investment'),
@@ -121,7 +122,7 @@ export default function DashboardPage() {
 
     if (!banksRes.error && banksRes.data) {
       const rawBanks = banksRes.data as Bank[]
-      const allTx = (allTxRes.data ?? []) as Pick<Transaction, 'bank_id' | 'transfer_bank_id' | 'type' | 'amount' | 'credit_card_id'>[]
+      const allTx = (allTxRes.data ?? []) as Pick<Transaction, 'bank_id' | 'transfer_bank_id' | 'type' | 'amount' | 'credit_card_id' | 'date'>[]
       const totals: Record<string, { income: number; expense: number }> = {}
       // Transferências movem saldo entre contas, mas não são receita nem despesa
       const transferOut: Record<string, number> = {}
@@ -148,6 +149,18 @@ export default function DashboardPage() {
           balance: b.initial_balance + t.income - t.expense + (transferIn[b.id] ?? 0) - (transferOut[b.id] ?? 0),
         }
       }))
+
+      // Caixa no início do período = saldo inicial das contas + movimentos
+      // anteriores ao período (mesmas regras do caixa: compra no cartão só
+      // afeta quando a fatura é paga; transferência entre contas é interna).
+      let caixaInicialCalc = rawBanks.reduce((s, b) => s + b.initial_balance, 0)
+      for (const t of allTx) {
+        if (t.date >= startDate) continue
+        if (t.credit_card_id && t.type !== 'credit_card_payment') continue
+        if (t.type === 'transfer') continue
+        caixaInicialCalc += t.type === 'income' ? t.amount : -t.amount
+      }
+      setCaixaInicial(caixaInicialCalc)
     }
 
     if (!cardsRes.error && cardsRes.data) {
@@ -245,6 +258,52 @@ export default function DashboardPage() {
   const otherTotal      = debtsData.filter((d) => d.group_type === 'other').reduce((s, d) => s + (d.total_amount > 0 ? d.total_amount : d.monthly_amount), 0)
   const totalPassivos   = cardTotal + loanRemaining + billsMonthly + otherTotal
   const patrimonioLiquido = totalAtivos - totalPassivos
+
+  // ── Fluxo de Caixa (movimentação efetiva das contas bancárias) ──────
+  // Compras no cartão só saem do caixa quando a fatura é paga;
+  // transferências entre contas são internas (efeito líquido zero);
+  // lançamentos sem conta vinculada não passam pelo caixa.
+  const cashFlow = useMemo(() => {
+    let entradas = 0
+    let saidasDespesas = 0
+    let saidasInvestimentos = 0
+    let saidasFatura = 0
+    let comprasCartao = 0
+    const entradasCat: Record<string, number> = {}
+
+    for (const t of transactions) {
+      if (t.credit_card_id && t.type !== 'credit_card_payment') {
+        comprasCartao += t.amount
+        continue
+      }
+      if (t.type === 'transfer') continue
+      if (!t.bank_id) continue
+
+      if (t.type === 'income') {
+        entradas += t.amount
+        entradasCat[t.category] = (entradasCat[t.category] ?? 0) + t.amount
+        continue
+      }
+      if (t.type === 'investment') saidasInvestimentos += t.amount
+      else if (t.type === 'credit_card_payment') saidasFatura += t.amount
+      else saidasDespesas += t.amount
+    }
+
+    const saidas = saidasDespesas + saidasInvestimentos + saidasFatura
+    const bruto = entradas + saidas
+    return {
+      entradas,
+      saidas,
+      saidasDespesas,
+      saidasInvestimentos,
+      saidasFatura,
+      comprasCartao,
+      resultado: entradas - saidas,
+      pctEntradas: bruto > 0 ? (entradas / bruto) * 100 : 0,
+      pctSaidas: bruto > 0 ? (saidas / bruto) * 100 : 0,
+      entradasCat: Object.entries(entradasCat).sort((a, b) => b[1] - a[1]).slice(0, 4),
+    }
+  }, [transactions])
 
   const actualByCategory = useMemo(() => {
     const map: Record<string, { amount: number; type: 'expense' | 'income' }> = {}
@@ -525,6 +584,151 @@ export default function DashboardPage() {
                 <span className="text-sm font-bold tabular-nums" style={{ color: 'var(--destructive)' }}>{formatCurrency(totalPassivos)}</span>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Fluxo de Caixa — full width */}
+      {loading ? (
+        <div className="h-56 animate-pulse rounded-xl border border-border bg-card" />
+      ) : (
+        <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-border px-5 py-4">
+            <div>
+              <p className="font-semibold">Fluxo de Caixa</p>
+              <p className="text-xs text-muted-foreground">Entradas e saídas de {periodLabel} · contas bancárias</p>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="text-right">
+                <p className="text-xs text-muted-foreground">Resultado do período</p>
+                <p
+                  className="text-lg font-semibold tracking-tight tabular-nums"
+                  style={{ color: cashFlow.resultado >= 0 ? 'var(--positive)' : 'var(--destructive)' }}
+                >
+                  {formatCurrency(cashFlow.resultado)}
+                </p>
+              </div>
+              <Link href="/transactions">
+                <Button variant="ghost" size="sm" className="flex items-center gap-1 text-primary">
+                  Ver transações <ArrowRight className="h-3 w-3" />
+                </Button>
+              </Link>
+            </div>
+          </div>
+
+          {/* Entradas vs Saídas proportion bar */}
+          {(cashFlow.entradas + cashFlow.saidas) > 0 && (
+            <div className="px-5 pt-4">
+              <div className="mb-1.5 flex justify-between text-[0.65rem] text-muted-foreground">
+                <span>Entradas {cashFlow.pctEntradas.toFixed(0)}%</span>
+                <span>Saídas {cashFlow.pctSaidas.toFixed(0)}%</span>
+              </div>
+              <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full"
+                  style={{ width: `${cashFlow.pctEntradas}%`, backgroundColor: 'var(--positive)' }}
+                />
+                <div
+                  className="h-full"
+                  style={{ width: `${cashFlow.pctSaidas}%`, backgroundColor: 'var(--destructive)' }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Two columns */}
+          <div className="grid divide-y divide-border sm:grid-cols-2 sm:divide-x sm:divide-y-0">
+            {/* Entradas */}
+            <div className="px-5 py-4">
+              <p className="mb-3 flex items-center gap-1.5 text-[0.65rem] font-bold uppercase tracking-widest" style={{ color: 'var(--positive)' }}>
+                <ArrowUpRight className="h-3 w-3" /> Entradas
+              </p>
+              <div className="space-y-2.5">
+                {cashFlow.entradasCat.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Nenhuma entrada no período.</p>
+                ) : (
+                  cashFlow.entradasCat.map(([cat, value]) => (
+                    <div key={cat} className="flex items-center gap-2">
+                      <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: CATEGORY_COLORS[cat] ?? 'var(--positive)' }} />
+                      <span className="flex-1 truncate text-sm text-muted-foreground">{cat}</span>
+                      <span className="tabular-nums text-sm font-medium text-foreground">{formatCurrency(value)}</span>
+                    </div>
+                  ))
+                )}
+              </div>
+              <div className="mt-3 flex justify-between border-t border-border pt-2.5">
+                <span className="text-[0.65rem] font-bold uppercase tracking-widest text-muted-foreground">Total</span>
+                <span className="text-sm font-semibold tabular-nums" style={{ color: 'var(--positive)' }}>{formatCurrency(cashFlow.entradas)}</span>
+              </div>
+            </div>
+
+            {/* Saídas */}
+            <div className="px-5 py-4">
+              <p className="mb-3 flex items-center gap-1.5 text-[0.65rem] font-bold uppercase tracking-widest" style={{ color: 'var(--destructive)' }}>
+                <ArrowDownRight className="h-3 w-3" /> Saídas
+              </p>
+              <div className="space-y-2.5">
+                {([
+                  { label: 'Despesas',            value: cashFlow.saidasDespesas,      Icon: ArrowDownRight },
+                  { label: 'Investimentos',       value: cashFlow.saidasInvestimentos, Icon: TrendingUpIcon },
+                  { label: 'Pagamento de fatura', value: cashFlow.saidasFatura,        Icon: CreditCardIcon },
+                ] as const).map(({ label, value, Icon }) => (
+                  <div key={label} className="flex items-center gap-2">
+                    <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+                      <Icon className="h-3 w-3" />
+                    </span>
+                    <span className="flex-1 text-sm text-muted-foreground">{label}</span>
+                    <span className="tabular-nums text-sm font-medium text-foreground">{formatCurrency(value)}</span>
+                  </div>
+                ))}
+                {cashFlow.comprasCartao > 0 && (
+                  <div className="flex items-center gap-2 border-t border-dashed border-border pt-2.5">
+                    <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground/70">
+                      <CreditCardIcon className="h-3 w-3" />
+                    </span>
+                    <span className="flex-1 text-sm text-muted-foreground">
+                      Compras no cartão <span className="text-[0.65rem] text-muted-foreground/70">(fora do caixa)</span>
+                    </span>
+                    <span className="tabular-nums text-sm font-medium text-muted-foreground">{formatCurrency(cashFlow.comprasCartao)}</span>
+                  </div>
+                )}
+              </div>
+              <div className="mt-3 flex justify-between border-t border-border pt-2.5">
+                <span className="text-[0.65rem] font-bold uppercase tracking-widest text-muted-foreground">Total</span>
+                <span className="text-sm font-bold tabular-nums" style={{ color: 'var(--destructive)' }}>{formatCurrency(cashFlow.saidas)}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Saldo inicial → resultado → saldo final */}
+          <div className="grid gap-4 border-t border-border px-5 py-4 sm:grid-cols-3">
+            <div>
+              <p className="text-xs text-muted-foreground">Saldo inicial do período</p>
+              <p className="text-base font-semibold tabular-nums text-foreground">{formatCurrency(caixaInicial)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Resultado do período</p>
+              <p
+                className="text-base font-semibold tabular-nums"
+                style={{ color: cashFlow.resultado >= 0 ? 'var(--positive)' : 'var(--destructive)' }}
+              >
+                {cashFlow.resultado >= 0 ? '+' : ''}{formatCurrency(cashFlow.resultado)}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Saldo final do período</p>
+              <p className="text-base font-semibold tabular-nums text-foreground">{formatCurrency(caixaInicial + cashFlow.resultado)}</p>
+            </div>
+          </div>
+
+          {/* Referências */}
+          <div className="space-y-1 border-t border-border bg-muted/30 px-5 py-3">
+            <p className="text-[0.7rem] text-muted-foreground">
+              Caixa hoje em todas as contas:{' '}
+              <span className="font-medium tabular-nums text-foreground">{formatCurrency(bankTotal)}</span>
+              {' '}· compras no cartão entram no caixa somente quando a fatura é paga
+            </p>
           </div>
         </div>
       )}
