@@ -270,7 +270,7 @@ const CATEGORY_RULES: [RegExp, string][] = [
   [/\b(iof|imposto\b|impostos|tarifa|cip|cheque especial|juros|seguro conta)/i, 'Tarifas e Impostos'],
   [/\b(pix enviado|transferencia enviada|ted enviada|doc enviado)/i, 'Transferências Enviadas'],
   [/\b(pix recebido|transferencia recebida|ted recebida|deposito|credito em conta)/i, 'Transferências Recebidas'],
-  [/\b(pagamento fatura|pgto\s+fat|pagto\s+fat|pagamento de fatura|fatura cart[aã]o)/i, 'Pagamento de Cartão'],
+  [/\b(pagamento fatura|pgto\s+fat|pagto\s+fat|pagamento de fatura|fatura cart[aã]o)/i, 'Pagamento de Fatura'],
   [/\b(salario|salario|proventos|folha)/i, 'Salário'],
   [/\b(boleto|codigo de barras| concessiona|energia|luz|agua|c[eo]p e[lr]|amazo ?nas energia)/i, 'Contas e Boletos'],
   [/\b(netflix|spotify|amazon prime|disney|hbo|max\b|youtube premium|icloud|google one|apple\.com)/i, 'Assinaturas'],

@@ -15,6 +15,7 @@ import {
   suggestInvoiceMatches,
   type CardPaymentRow,
 } from './card-invoices'
+import { CARD_PAYMENT_CATEGORY } from './constants'
 import type { CreditCard } from './types'
 
 const CARTAO_INTER: CreditCard = {
@@ -56,11 +57,19 @@ assert.equal(invoiceDueDate('2026-03-25', 20), '2026-04-20', 'fecha 25/03 → ve
 
 // ── Quem é pagamento de fatura ──────────────────────────────────────────────
 assert.equal(isCardPayment({ type: 'credit_card_payment', category: 'Qualquer' }), true, 'tipo próprio conta')
-assert.equal(isCardPayment({ type: 'expense', category: 'Fatura Cartão' }), true, 'categoria do extrato conta')
-// O extrato da Inter traz "Cfo Advisor" marcado como Fatura Cartão, mas é ENTRADA:
+assert.equal(isCardPayment({ type: 'expense', category: 'Pagamento de Fatura' }), true, 'categoria do extrato conta')
+// "Cfo Advisor" é renda da empresa (pró-labore/dividendos), não fatura — e
+// mesmo que viesse com a categoria de fatura, entrada nunca quita fatura:
 // dinheiro que entrou não paga fatura.
-assert.equal(isCardPayment({ type: 'income', category: 'Fatura Cartão' }), false, 'entrada não é pagamento')
-assert.equal(isCardPayment({ type: 'transfer', category: 'Fatura Cartão' }), false, 'transferência não é pagamento')
+assert.equal(isCardPayment({ type: 'income', category: 'Pagamento de Fatura' }), false, 'entrada não é pagamento')
+assert.equal(isCardPayment({ type: 'transfer', category: 'Pagamento de Fatura' }), false, 'transferência não é pagamento')
+// A âncora é a categoria do titular — é por ela que o app reconhece o pagamento
+// dos cartões (o formulário já grava com este nome).
+assert.equal(CARD_PAYMENT_CATEGORY, 'Pagamento de Fatura', 'nome canônico da categoria')
+assert.equal(isCardPayment({ type: 'expense', category: CARD_PAYMENT_CATEGORY }), true, 'categoria canônica conta')
+// Renda da empresa não quita fatura, mesmo lançada como saída.
+assert.equal(isCardPayment({ type: 'expense', category: 'Pró-labore' }), false, 'pró-labore não é pagamento')
+assert.equal(isCardPayment({ type: 'expense', category: 'Dividendos' }), false, 'dividendos não é pagamento')
 
 // ── Status ─────────────────────────────────────────────────────────────────
 assert.equal(invoiceStatus(9141.6, 9141.6), 'quitada', 'pago igual ao devido')
@@ -79,7 +88,7 @@ const PAGAMENTO_MARCO = tx({
   date: '2026-03-20',
   amount: 9141.6,
   description: 'Pagamento Fatura - CELIO GADELHA DE OLIVEIRA',
-  category: 'Fatura Cartão',
+  category: 'Pagamento de Fatura',
   bank_id: 'conta-inter',
 })
 
@@ -106,8 +115,8 @@ assert.equal(sugestoes[0].payment.date, '2026-03-20', 'pagamento no vencimento')
 
 // ── Ambiguidade vai para decisão manual ────────────────────────────────────
 const duasIguais = [
-  tx({ id: 'p1', date: '2026-03-20', amount: 9141.6, category: 'Fatura Cartão' }),
-  tx({ id: 'p2', date: '2026-03-21', amount: 9141.6, category: 'Fatura Cartão' }),
+  tx({ id: 'p1', date: '2026-03-20', amount: 9141.6, category: 'Pagamento de Fatura' }),
+  tx({ id: 'p2', date: '2026-03-21', amount: 9141.6, category: 'Pagamento de Fatura' }),
 ]
 const filaAmbigua = pendingPayments(duasIguais)
 assert.equal(filaAmbigua.length, 2, 'dois pagamentos na fila')
@@ -118,7 +127,7 @@ assert.equal(findInvoiceCandidates(filaAmbigua[1], faturas).length, 1, 'fatura �
 assert.equal(suggestInvoiceMatches(filaAmbigua, faturas).length, 0, 'disputa não é sugerida automaticamente')
 
 // ── Valor diferente não casa (pagamento parcial) ───────────────────────────
-const parcial = pendingPayments([tx({ date: '2026-03-20', amount: 4000, category: 'Fatura Cartão' })])
+const parcial = pendingPayments([tx({ date: '2026-03-20', amount: 4000, category: 'Pagamento de Fatura' })])
 assert.equal(findInvoiceCandidates(parcial[0], faturas).length, 0, 'valor diferente não é par')
 assert.equal(suggestInvoiceMatches(parcial, faturas).length, 0, 'parcial fica para decisão manual')
 
@@ -127,7 +136,7 @@ const faturasNubank = buildCardInvoices(CARTAO_NUBANK, [
   tx({ date: '2026-03-05', amount: 9141.6, credit_card_id: CARTAO_NUBANK.id }),
 ])
 const comCartao = pendingPayments([
-  tx({ date: '2026-03-20', amount: 9141.6, category: 'Fatura Cartão', credit_card_id: CARTAO_INTER.id }),
+  tx({ date: '2026-03-20', amount: 9141.6, category: 'Pagamento de Fatura', credit_card_id: CARTAO_INTER.id }),
 ])
 assert.equal(
   findInvoiceCandidates(comCartao[0], faturasNubank).length,
@@ -139,7 +148,7 @@ assert.equal(
 const vinculado = tx({
   date: '2026-03-20',
   amount: 9141.6,
-  category: 'Fatura Cartão',
+  category: 'Pagamento de Fatura',
   credit_card_id: CARTAO_INTER.id,
   paid_invoice_date: '2026-03-15',
 })

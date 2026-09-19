@@ -298,7 +298,7 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
         for (const rule of localRules) {
           if (descLower.includes(rule.match)) return rule.category
         }
-        if (faturaRe.test(r.description)) return 'Fatura Cartão'
+        if (faturaRe.test(r.description)) return 'Pagamento de Fatura'
         if (cfoRe.test(r.description) && r.type === 'income') {
           return r.amount <= prefs.proLaboreMax ? 'Pró-labore' : 'Dividendos'
         }

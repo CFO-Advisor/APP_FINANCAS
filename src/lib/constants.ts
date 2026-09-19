@@ -29,7 +29,7 @@ export const EXPENSE_CATEGORY_GROUPS = [
   },
   {
     label: '💳 Finanças',
-    categories: ['Fatura Cartão', 'Empréstimo', 'Seguro', 'Imposto'],
+    categories: ['Pagamento de Fatura', 'Empréstimo', 'Seguro', 'Imposto'],
   },
   {
     label: '📦 Outros',
@@ -87,6 +87,10 @@ export const CATEGORIES = [...new Set([...EXPENSE_CATEGORIES, ...INCOME_CATEGORI
 // Transferência entre contas do MESMO titular: tipo próprio, que não é
 // receita, despesa nem investimento. Usa esta categoria fixa.
 export const TRANSFER_CATEGORY = 'Transferência'
+// Categoria que marca o pagamento de fatura de cartão. É por ela que a
+// conciliação reconhece um pagamento no extrato — o titular classifica o
+// pagamento dos cartões com este nome (o formulário já grava assim).
+export const CARD_PAYMENT_CATEGORY = 'Pagamento de Fatura'
 
 // Categoria e tipo andam juntos: ao escolher a categoria, o tipo acompanha
 // (ex.: "Terreno" é investimento; "Transferência" é movimentação entre contas).
@@ -174,7 +178,7 @@ export const CATEGORY_COLORS: Record<string, string> = {
   'Calçados': '#fcc940',
   'Acessórios': '#fdd35b',
   // Despesas — Finanças / Outros
-  'Fatura Cartão': '#8892a4',
+  'Pagamento de Fatura': '#8892a4',
   'Empréstimo': '#9aa1ad',
   'Seguro': '#acb0b7',
   'Imposto': '#bebfc1',

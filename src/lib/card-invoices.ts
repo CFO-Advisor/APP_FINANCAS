@@ -1,3 +1,4 @@
+import { CARD_PAYMENT_CATEGORY } from './constants'
 import type { CreditCard, Transaction } from './types'
 
 /**
@@ -54,14 +55,16 @@ export type CardPaymentRow = Pick<
 > & { paid_invoice_date?: string | null }
 
 /**
- * Um lançamento é candidato a pagamento de fatura quando saiu dinheiro e ele
- * é do tipo próprio (`credit_card_payment`) ou veio do extrato já classificado
- * como "Fatura Cartão" — os dois jeitos coexistem na base hoje.
- * Entradas e transferências ficam de fora: pagar fatura é saída de caixa.
+ * Um lançamento é pagamento de fatura quando o titular o classificou com a
+ * categoria canônica (`Pagamento de Fatura`) — é por ela que o app reconhece o
+ * pagamento dos cartões. Lançamentos criados na tela como "Pg. Fatura" têm o
+ * tipo próprio (`credit_card_payment`), que também conta.
+ * Entradas e transferências ficam de fora: pagar fatura é saída de caixa, e
+ * recebimento da empresa (pró-labore/dividendos) não quita fatura.
  */
 export function isCardPayment(t: Pick<Transaction, 'type' | 'category'>): boolean {
   if (t.type === 'income' || t.type === 'transfer') return false
-  return t.type === 'credit_card_payment' || t.category === 'Fatura Cartão'
+  return t.type === 'credit_card_payment' || t.category === CARD_PAYMENT_CATEGORY
 }
 
 /** Vencimento da fatura emitida em `invoiceDate` para um cartão com `dueDay`. */
@@ -91,8 +94,8 @@ export function buildCardInvoices(
   transactions: CardPaymentRow[],
 ): CardInvoice[] {
   const cardTx = transactions.filter((t) => t.credit_card_id === card.id)
-  // Um pagamento de fatura que veio do extrato está tipado como 'expense' com a
-  // categoria "Fatura Cartão" — se entrasse aqui, inflaria o valor devido da
+  // Um pagamento de fatura está tipado como 'expense' com a categoria canônica
+  // ("Pagamento de Fatura") — se entrasse aqui, inflaria o valor devido da
   // própria fatura que ele quita.
   const expenses = cardTx.filter((t) => t.type === 'expense' && !isCardPayment(t))
   const payments = cardTx.filter((t) => isCardPayment(t))

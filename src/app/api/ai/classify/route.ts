@@ -93,12 +93,12 @@ export async function POST(req: NextRequest) {
   // (valor pequeno) ou dividendos (valor grande).
   const titularRules = `
 REGRAS DO TITULAR (aplicar ANTES das regras gerais, nesta ordem de prioridade):
-1) Pagamento de fatura de cartão (descrição contém "pagamento fatura", "fatura cartão", "pgto fatura") → "Fatura Cartão".
+1) Pagamento de fatura de cartão (descrição contém "pagamento fatura", "fatura cartão", "pgto fatura") → "Pagamento de Fatura".
 2) RECEBIMENTO vindo de "CFO ADVISOR" (ou "CFO Advisor", "Cfoadvisor"):
    - valor <= R$ ${proLaboreMax.toFixed(2)} → "Pró-labore"
    - valor > R$ ${proLaboreMax.toFixed(2)} → "Dividendos"
 ${holderNames.length > 0 ? `3) Se a descrição citar o PRÓPRIO TITULAR (${holderNames.join(', ')}) → é movimentação entre contas do mesmo titular: use "Transferência" (vale para entrada E saída).
-` : ''}Nunca use "Transferência" fora do caso 3. Em especial, "Pagamento Fatura - <nome do titular>" continua sendo "Fatura Cartão", NÃO transferência.`
+` : ''}Nunca use "Transferência" fora do caso 3. Em especial, "Pagamento Fatura - <nome do titular>" continua sendo "Pagamento de Fatura", NÃO transferência.`
 
   // Lista permitida desta chamada: oficiais + categorias do usuário
   const allowedCategories = [...new Set([...AI_CATEGORIES, ...customCategories])]

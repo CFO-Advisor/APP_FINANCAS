@@ -77,7 +77,7 @@ assert.ok(c6Rows[0].description.includes('IOF'), 'descrição do IOF')
 assert.equal(c6Rows[1].type, 'income')
 assert.equal(c6Rows[1].amount, 200)
 assert.equal(c6Rows[2].category, 'Tarifas e Impostos', 'SEGURO CONTA → Tarifas')
-assert.equal(c6Rows[3].category, 'Pagamento de Cartão', 'PGTO FAT → Pagamento de Cartão')
+assert.equal(c6Rows[3].category, 'Pagamento de Fatura', 'PGTO FAT → Pagamento de Fatura')
 assert.equal(c6Rows[4].amount, 23437.13)
 assert.equal(c6Rows[4].type, 'income')
 
@@ -182,7 +182,7 @@ assert.equal(nuRows[0].type, 'income')
 assert.equal(nuRows[0].amount, 1687.05)
 assert.equal(nuRows[0].category, 'Transferências Recebidas')
 assert.equal(nuRows[1].type, 'expense')
-assert.equal(nuRows[1].category, 'Pagamento de Cartão')
+assert.equal(nuRows[1].category, 'Pagamento de Fatura')
 assert.equal(nuRows[2].category, 'Transferências Recebidas')
 
 // ── Extrato do BTG (XLSX com preâmbulo + linhas de saldo) ────────────────────
