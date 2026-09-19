@@ -18,8 +18,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 })
     }
 
-    // Só permite lookup de ids ligados ao caller (dono ou convidado) — evita
-    // enumeração de usuários arbitrários.
+    // Só permite lookup de ids ligados ao caller: dono/convidado em
+    // shared_access, OU autores de transações que o caller pode ler
+    // (created_by/updated_by — RLS já restringe o que ele vê).
     const { data: related } = await supabase
       .from('shared_access')
       .select('owner_id, invitee_id')
@@ -28,6 +29,14 @@ export async function POST(req: NextRequest) {
     for (const r of related ?? []) {
       allowed.add(r.owner_id)
       allowed.add(r.invitee_id)
+    }
+    const { data: authors } = await supabase
+      .from('transactions')
+      .select('created_by,updated_by')
+      .limit(1000)
+    for (const a of authors ?? []) {
+      if (a.created_by) allowed.add(a.created_by)
+      if (a.updated_by) allowed.add(a.updated_by)
     }
     const filtered = ids.filter((i) => allowed.has(i))
     if (filtered.length === 0) {

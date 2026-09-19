@@ -45,6 +45,37 @@ export function TransactionTable({ transactions, onEdit, onDeleted, banks = [], 
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [bulkOpen, setBulkOpen] = useState(false)
   const [bulkDeleting, setBulkDeleting] = useState(false)
+  // Auditoria: e-mail/nome de quem criou/editou cada transação
+  const [authorNames, setAuthorNames] = useState<Record<string, string>>({})
+
+  useEffect(() => {
+    const ids = [...new Set(
+      transactions.flatMap((t) => [t.created_by, t.updated_by].filter(Boolean) as string[])
+    )]
+    if (ids.length === 0) return
+    void (async () => {
+      try {
+        const res = await fetch('/api/users/lookup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ids }),
+        })
+        if (res.ok) {
+          const body = await res.json()
+          const map: Record<string, string> = {}
+          for (const [id, email] of Object.entries(body.emails ?? {})) {
+            const local = String(email).split('@')[0]
+            map[id] = local
+              .replace(/[._-]+/g, ' ')
+              .replace(/\b\w/g, (c) => c.toUpperCase())
+          }
+          setAuthorNames(map)
+        }
+      } catch {
+        // auditoria é informativa; falha no lookup não quebra a tabela
+      }
+    })()
+  }, [transactions])
 
   // Remove da seleção ids que saíram da lista (filtros, exclusão)
   useEffect(() => {
@@ -159,6 +190,7 @@ export function TransactionTable({ transactions, onEdit, onDeleted, banks = [], 
               <TableHead className="hidden sm:table-cell">Categoria</TableHead>
               <TableHead className="hidden lg:table-cell">Banco</TableHead>
               <TableHead className="hidden md:table-cell">Tipo</TableHead>
+              <TableHead className="hidden xl:table-cell">Autor</TableHead>
               <TableHead className="text-right">Valor</TableHead>
               <TableHead className="w-24 text-center">Ações</TableHead>
             </TableRow>
@@ -229,6 +261,18 @@ export function TransactionTable({ transactions, onEdit, onDeleted, banks = [], 
                       : t.type === 'transfer' ? 'Transferência'
                       : 'Despesa'}
                   </Badge>
+                </TableCell>
+                <TableCell className="hidden xl:table-cell">
+                  <div className="text-xs">
+                    <span className="text-muted-foreground">
+                      {t.created_by ? (authorNames[t.created_by] ?? '—') : '—'}
+                    </span>
+                    {t.updated_by && t.updated_by !== t.created_by && (
+                      <p className="text-[10px] text-muted-foreground/70">
+                        edit. por {authorNames[t.updated_by] ?? '—'}
+                      </p>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell className="text-right">
                   <span className="font-semibold tabular-nums text-foreground">

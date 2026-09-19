@@ -23,6 +23,9 @@ export interface Transaction {
   transfer_bank_id: string | null
   /** Fatura de cartão: data da compra (o registro usa a data da fatura). */
   purchase_date?: string | null
+  /** Auditoria: quem criou / quem alterou por último (uuid). */
+  created_by?: string | null
+  updated_by?: string | null
   created_at: string
 }
 
