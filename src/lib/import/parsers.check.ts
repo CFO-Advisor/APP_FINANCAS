@@ -3,6 +3,7 @@ import * as fs from 'fs'
 import * as assert from 'node:assert'
 import {
   parseCSVContent,
+  parseXLSXContent,
   guessFieldMap,
   mapCSVRows,
   parseBRNumber,
@@ -183,5 +184,54 @@ assert.equal(nuRows[0].category, 'Transferências Recebidas')
 assert.equal(nuRows[1].type, 'expense')
 assert.equal(nuRows[1].category, 'Pagamento de Cartão')
 assert.equal(nuRows[2].category, 'Transferências Recebidas')
+
+// ── Extrato do BTG (XLSX com preâmbulo + linhas de saldo) ────────────────────
+// Armadilhas do formato: (1) o cabeçalho real está na linha 10 (antes vem
+// título/cliente/CPF/período e "Saldo atual"); (2) as colunas são esparsas
+// (B, C, D, G, J) e não podem ser compactadas; (3) há uma linha "Saldo Diário"
+// às 23:59 de cada dia, que NÃO é lançamento.
+const btgPath = '/root/.openclaw/media/inbound/Extrato_2026-01-01_a_2026-08-31_63395126234_btg---bffb5c66-4f18-4933-8b91-f883c1d6a6c4.xlsx'
+if (fs.existsSync(btgPath)) {
+  const buf = fs.readFileSync(btgPath)
+  const ab = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength)
+  const { headers: btgHeaders, rows: btgRows } = parseXLSXContent(ab as ArrayBuffer)
+
+  assert.ok(btgHeaders.includes('Data e hora'), `cabeçalho do BTG deve ser detectado; veio: ${JSON.stringify(btgHeaders)}`)
+  assert.ok(btgHeaders.includes('Valor'), 'coluna Valor deve existir')
+  assert.ok(!btgHeaders.includes('Extrato de conta corrente'), 'preâmbulo NÃO pode virar cabeçalho')
+
+  const btgMap = guessFieldMap(btgHeaders) as any
+  assert.deepEqual(
+    { date: btgMap.date, description: btgMap.description, amount: btgMap.amount },
+    { date: 'Data e hora', description: 'Descrição', amount: 'Valor' },
+    `mapeamento do BTG errado: ${JSON.stringify(btgMap)}`,
+  )
+
+  const btgParsed = mapCSVRows(btgRows, btgMap)
+  assert.equal(btgParsed.length, 19, `BTG deve ter 19 lançamentos (sem as 7 linhas de saldo); veio ${btgParsed.length}`)
+  assert.ok(!btgParsed.some((r) => /saldo/i.test(r.description)), 'linha de Saldo Diário não pode virar lançamento')
+
+  // Colunas não podem escorregar: a 1ª linha é "Transferência recebida" de 1687.05
+  assert.equal(btgParsed[0].date, '2026-01-02', `data errada: ${btgParsed[0].date}`)
+  assert.equal(btgParsed[0].type, 'income', 'valor positivo é entrada')
+  assert.equal(btgParsed[0].amount, 1687.05, `valor errado (colunas escorregaram?): ${btgParsed[0].amount}`)
+  assert.equal(btgParsed[1].type, 'expense', 'valor negativo é saída')
+  assert.equal(btgParsed[1].amount, 1687.05, 'valor da saída em módulo')
+
+  // Cancelamento de Pix: valor positivo = estorno (entrada)
+  const cancel = btgParsed.filter((r) => /canc/i.test(r.description))
+  assert.equal(cancel.length, 1, 'a linha "Canc. Transferência Pix enviada" deve entrar como lançamento')
+  assert.equal(cancel[0].type, 'income', 'cancelamento de saída é entrada')
+
+  const entradas = btgParsed.filter((r) => r.type === 'income')
+  const saidas = btgParsed.filter((r) => r.type === 'expense')
+  assert.equal(entradas.length, 9, `entradas esperadas: 9; veio ${entradas.length}`)
+  assert.equal(saidas.length, 10, `saídas esperadas: 10; veio ${saidas.length}`)
+
+  const liquido = entradas.reduce((s, r) => s + r.amount, 0) - saidas.reduce((s, r) => s + r.amount, 0)
+  assert.ok(Math.abs(liquido) < 1, `o extrato do BTG fecha perto de zero; veio ${liquido.toFixed(2)}`)
+} else {
+  console.log('parsers.check: arquivo do BTG ausente — teste do BTG ignorado')
+}
 
 console.log('parsers.check OK ✓')

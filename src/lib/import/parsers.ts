@@ -331,6 +331,15 @@ export function mapCSVRows(
 
 // ── XLSX parsing ────────────────────────────────────────────────────────────
 
+// Linhas de saldo/resumo não são lançamentos. O BTG, por exemplo, emite uma
+// linha "Saldo Diário" às 23:59 com o saldo do dia (e o cabeçalho traz
+// "Saldo atual"). Sem descartá-las, entrariam como lançamento de valor zero.
+const BALANCE_ROW_RE = /\bsaldo\s+(di[áa]rio|atual|final|inicial|anterior|bloqueado|dispon[íi]vel)\b/i
+
+function isBalanceRow(cells: unknown[]): boolean {
+  return BALANCE_ROW_RE.test(cells.map((c) => String(c ?? '')).join(' '))
+}
+
 export function parseXLSXContent(buffer: ArrayBuffer): { headers: string[]; rows: Record<string, string>[] } {
   const wb = XLSX.read(buffer, { type: 'array', cellDates: false })
   const ws = wb.Sheets[wb.SheetNames[0]]
@@ -346,18 +355,72 @@ export function parseXLSXContent(buffer: ArrayBuffer): { headers: string[]; rows
 
   if (data.length === 0) return { headers: [], rows: [] }
 
-  const headers = (data[0] as string[]).map((h) => String(h ?? '').trim()).filter(Boolean)
-  const rows: Record<string, string>[] = []
+  const cellText = (v: unknown) => String(v ?? '').trim()
 
-  for (let i = 1; i < data.length; i++) {
-    const rowArr = data[i] as string[]
-    if (!rowArr || rowArr.every((v) => !v)) continue
-    const row: Record<string, string> = {}
-    headers.forEach((h, idx) => { row[h] = String(rowArr[idx] ?? '').trim() })
-    rows.push(row)
+  // Vários bancos (ex.: BTG) prefixam a planilha com um preâmbulo — título,
+  // cliente, CPF, agência, conta, período e "Saldo atual" — e só depois vem o
+  // cabeçalho de verdade. Procura, nas primeiras 20 linhas, a primeira que
+  // pareça cabeçalho: ≥2 colunas preenchidas batendo em data E valor (as duas
+  // obrigatórias do import). Mesma heurística já usada no CSV.
+  let headerIdx = 0
+  for (let i = 0; i < Math.min(data.length, 20); i++) {
+    const filled = (data[i] ?? []).map(cellText).filter(Boolean)
+    if (filled.length < 2) continue
+    const hasDate = filled.some((c) => matchHint(c, DATE_HINTS))
+    const hasAmount = filled.some((c) => matchHint(c, AMT_HINTS))
+    if (hasDate && hasAmount) { headerIdx = i; break }
   }
 
-  return { headers, rows }
+  // Preserva a POSIÇÃO das colunas: cabeçalho vazio vira placeholder. Se a
+  // lista fosse compactada, as células escorregariam de coluna (planilhas com
+  // colunas separadas, como a do BTG: B, C, D, G, J).
+  const rawHeaders = (data[headerIdx] ?? []).map(cellText)
+  const keyed = rawHeaders.map((h, idx) => h || `__col${idx}`)
+  const realKeys = keyed.filter((h) => !h.startsWith('__col'))
+  const rows: Record<string, string>[] = []
+
+  for (let i = headerIdx + 1; i < data.length; i++) {
+    const rowArr = data[i] as string[]
+    if (!rowArr) continue
+    // Considera só as células dentro da faixa mapeada: planilhas trazem
+    // resíduos fora do cabeçalho (ex.: o BTG guarda um número solto na coluna
+    // do export). Olhar a linha inteira criava linhas fantasmas vazias.
+    const mapped: Record<string, string> = {}
+    keyed.forEach((h, idx) => { mapped[h] = cellText(rowArr[idx]) })
+    // Só as colunas REAIS do cabeçalho decidem se a linha existe: um número
+    // solto em coluna sem nome (o export do BTG deixa um) não pode criar linha.
+    if (realKeys.every((h) => !mapped[h])) continue
+    if (isBalanceRow(rowArr)) continue
+    rows.push(mapped)
+  }
+
+  return { headers: rawHeaders.filter(Boolean), rows: improveDescriptions(rows, realKeys) }
+}
+
+/**
+ * Quando a planilha separa o que aconteceu ("Transação": Pix enviado,
+ * Transferência recebida, Canc. ...) do nome do favorecido ("Descrição"),
+ * junta os dois. Sem isso a linha chega só com o nome e perde o contexto —
+ * o que atrapalha a leitura e a classificação automática. É o caso do BTG.
+ */
+function improveDescriptions(
+  rows: Record<string, string>[],
+  realKeys: string[],
+): Record<string, string>[] {
+  const transacaoKey = realKeys.find((h) => /transa[çc][ãa]o/i.test(norm(h)))
+  const descKey = realKeys.find((h) => matchHint(h, DESC_HINTS))
+  if (!transacaoKey || !descKey || transacaoKey === descKey) return rows
+
+  for (const row of rows) {
+    const acao = (row[transacaoKey] ?? '').trim()
+    const alvo = (row[descKey] ?? '').trim()
+    if (!acao) continue
+    if (!alvo) row[descKey] = acao
+    else if (alvo.toLowerCase() !== acao.toLowerCase() && !alvo.toLowerCase().includes(acao.toLowerCase())) {
+      row[descKey] = `${acao} - ${alvo}`
+    }
+  }
+  return rows
 }
 
 // ── OFX parsing ─────────────────────────────────────────────────────────────
