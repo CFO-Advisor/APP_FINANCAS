@@ -42,6 +42,10 @@ export function TransactionTable({ transactions, onEdit, onDeleted, banks = [], 
   const cardMap = new Map(creditCards.map((c) => [c.id, c]))
   const [deleteTarget, setDeleteTarget] = useState<Transaction | null>(null)
   const [deleting, setDeleting] = useState(false)
+  // O par de uma transferência vive no extrato de OUTRA conta. Apagar só um lado
+  // deixa o saldo daquela conta inconsistente (foi o que aconteceu em 19/09).
+  const [pairTarget, setPairTarget] = useState<Transaction | null>(null)
+  const [pairLoading, setPairLoading] = useState(false)
   // Seleção para exclusão em massa
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [bulkOpen, setBulkOpen] = useState(false)
@@ -103,6 +107,39 @@ export function TransactionTable({ transactions, onEdit, onDeleted, banks = [], 
     })
   }
 
+  // Ao abrir a confirmação de exclusão de uma transferência, procura o outro
+  // lado: mesma quantia, na conta da contrapartida, com data próxima (PIX cai no
+  // mesmo dia; TED/DOC pode virar o dia útil).
+  useEffect(() => {
+    setPairTarget(null)
+    const t = deleteTarget
+    if (!t || t.type !== 'transfer' || !t.transfer_bank_id || !t.bank_id) return
+    let cancelled = false
+    const shift = (iso: string, delta: number) => {
+      const d = new Date(`${iso}T00:00:00Z`)
+      d.setUTCDate(d.getUTCDate() + delta)
+      return d.toISOString().slice(0, 10)
+    }
+    ;(async () => {
+      setPairLoading(true)
+      const supabase = createClient()
+      const { data } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('type', 'transfer')
+        .eq('bank_id', t.transfer_bank_id)
+        .eq('amount', t.amount)
+        .gte('date', shift(t.date, -3))
+        .lte('date', shift(t.date, 3))
+      if (cancelled) return
+      const cands = (data ?? []) as Transaction[]
+      // Prefere quem aponta de volta para esta linha; senão, o primeiro candidato.
+      setPairTarget(cands.find((c) => c.transfer_bank_id === t.bank_id) ?? cands[0] ?? null)
+      setPairLoading(false)
+    })()
+    return () => { cancelled = true }
+  }, [deleteTarget])
+
   async function confirmBulkDelete() {
     if (selected.size === 0) return
     setBulkDeleting(true)
@@ -126,27 +163,35 @@ export function TransactionTable({ transactions, onEdit, onDeleted, banks = [], 
     setBulkOpen(false)
   }
 
-  async function confirmDelete() {
+  async function confirmDelete(alsoPair = false) {
     if (!deleteTarget) return
     setDeleting(true)
 
     const supabase = createClient()
+    // Com o par selecionado, os dois lados saem juntos — é o único jeito de
+    // apagar uma transferência sem deixar uma conta inconsistente.
+    const ids = alsoPair && pairTarget ? [deleteTarget.id, pairTarget.id] : [deleteTarget.id]
     const { error } = await supabase
       .from('transactions')
       .delete()
-      .eq('id', deleteTarget.id)
+      .in('id', ids)
 
     if (error) {
       console.error(toError(error))
       toast.error('Erro ao excluir transação.')
     } else {
-      toast.success('Transação excluída.')
+      toast.success(ids.length > 1 ? 'Transferência e o outro lado excluídos.' : 'Transação excluída.')
       onDeleted()
     }
 
     setDeleting(false)
     setDeleteTarget(null)
   }
+
+  // Transferências selecionadas que têm o par em outra conta (aviso do lote)
+  const selectedWithPair = transactions.filter(
+    (t) => selected.has(t.id) && t.type === 'transfer' && t.transfer_bank_id,
+  )
 
   if (transactions.length === 0) {
     return (
@@ -333,13 +378,48 @@ export function TransactionTable({ transactions, onEdit, onDeleted, banks = [], 
             Tem certeza que deseja excluir{' '}
             <strong>&quot;{deleteTarget?.description}&quot;</strong>? Esta ação não pode ser desfeita.
           </p>
-          <DialogFooter>
+
+          {/* Aviso de par: o outro lado desta transferência vive no extrato de
+              outra conta. Apagar só um lado deixa o saldo daquela conta errado
+              — foi o que quebrou a Inter em 19/09. */}
+          {deleteTarget?.type === 'transfer' && deleteTarget.transfer_bank_id && (
+            <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-xs">
+              <p className="font-medium text-amber-600">Esta transferência tem o outro lado em outra conta</p>
+              {pairLoading ? (
+                <p className="mt-1 text-muted-foreground">Procurando o outro lado…</p>
+              ) : pairTarget ? (
+                <p className="mt-1 text-muted-foreground">
+                  {bankMap.get(pairTarget.bank_id ?? '')?.name ?? 'outra conta'} ·{' '}
+                  {new Date(`${pairTarget.date}T00:00:00`).toLocaleDateString('pt-BR')} ·{' '}
+                  {formatCurrency(pairTarget.amount)} ({pairTarget.transfer_dir === 'in' ? 'entrou' : 'saiu'}).{' '}
+                  Apagar só este lado deixa o saldo desta conta inconsistente — o outro lado continua lá.
+                </p>
+              ) : (
+                <p className="mt-1 text-muted-foreground">
+                  Não encontrei o outro lado na base (o extrato da outra conta pode não ter sido importado).
+                </p>
+              )}
+            </div>
+          )}
+
+          <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={deleting}>
               Cancelar
             </Button>
-            <Button variant="destructive" onClick={confirmDelete} disabled={deleting}>
-              {deleting ? 'Excluindo...' : 'Excluir'}
-            </Button>
+            {pairTarget && deleteTarget?.type === 'transfer' ? (
+              <>
+                <Button variant="outline" className="text-destructive" onClick={() => confirmDelete(false)} disabled={deleting}>
+                  Só este lado
+                </Button>
+                <Button variant="destructive" onClick={() => confirmDelete(true)} disabled={deleting}>
+                  {deleting ? 'Excluindo...' : 'Excluir os dois lados'}
+                </Button>
+              </>
+            ) : (
+              <Button variant="destructive" onClick={() => confirmDelete()} disabled={deleting}>
+                {deleting ? 'Excluindo...' : 'Excluir'}
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -356,6 +436,14 @@ export function TransactionTable({ transactions, onEdit, onDeleted, banks = [], 
           <p className="text-sm text-muted-foreground">
             Tem certeza que deseja excluir <strong>{selected.size}</strong> transação(ões)? Esta ação não pode ser desfeita.
           </p>
+          {selectedWithPair.length > 0 && (
+            <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-xs text-muted-foreground">
+              <strong className="text-amber-600">{selectedWithPair.length} transferência(s)</strong>{' '}
+              da seleção têm o par no extrato de outra conta. Apagar só um lado deixa o saldo daquela conta
+              inconsistente — para excluir uma transferência por inteiro, use a exclusão individual e escolha
+              &quot;Excluir os dois lados&quot;.
+            </div>
+          )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setBulkOpen(false)} disabled={bulkDeleting}>
               Cancelar
