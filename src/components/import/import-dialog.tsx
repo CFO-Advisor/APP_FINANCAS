@@ -470,8 +470,13 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
     for (let i = 0; i < rowsToInsert.length; i += CHUNK_SIZE) {
       const chunk = rowsToInsert.slice(i, i + CHUNK_SIZE).map((r) => {
         const isTransfer = r.type === 'transfer'
-        // Direção da transferência: recebida → a origem é a contra-partida
-        const received = isTransfer && /recebida/i.test(r.category ?? '')
+        // Direção da transferência pelo EXTRATO: C (crédito) = o dinheiro entrou
+        // na conta do extrato; D (débito) = saiu. Antes a direção vinha do texto
+        // da categoria, que nunca diz "recebida" — toda transferência entrava
+        // como SAÍDA da conta do extrato e o saldo dela ficava negativo.
+        const received = isTransfer && (r.statementType
+          ? r.statementType === 'income'
+          : /recebid/i.test(`${r.description} ${r.category ?? ''}`))
         const counterparty = isTransfer
           ? transferRowBanks[rowKey(r)] ?? matchBankInDescription(r.description, banks, resolvedBankId) ?? (transferDestId !== 'none' ? transferDestId : null)
           : null
@@ -518,6 +523,17 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
       return acc
     },
     { entradas: 0, saidas: 0 },
+  )
+  // Transferências não entram no resultado, mas mudam o saldo das contas —
+  // por isso aparecem separadas na conferência.
+  const transferTotals = (file?.parsed ?? []).reduce(
+    (acc, r) => {
+      if (r.error || r.type !== 'transfer') return acc
+      if (r.statementType === 'income') acc.entrando += r.amount
+      else acc.saindo += r.amount
+      return acc
+    },
+    { entrando: 0, saindo: 0 },
   )
   // Banco do extrato (excluído das opções de contra-partida)
   const extratoBankId = bankId === 'none' ? null : bankId
@@ -739,6 +755,19 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
                   </span>
                 </span>
                 <span className="text-muted-foreground/70">confira com o extrato antes de importar</span>
+                {(transferTotals.entrando > 0 || transferTotals.saindo > 0) && (
+                  <span className="whitespace-nowrap text-muted-foreground">
+                    Transferências{' '}
+                    <span className="font-semibold tabular-nums text-foreground">
+                      {transferTotals.saindo > 0 && `−${formatCurrency(transferTotals.saindo)}`}
+                      {transferTotals.saindo > 0 && transferTotals.entrando > 0 && ' e '}
+                      {transferTotals.entrando > 0 && `+${formatCurrency(transferTotals.entrando)}`}
+                    </span>{' '}
+                    <span className="text-muted-foreground/70">
+                      (não alteram o resultado; movem saldo entre as contas)
+                    </span>
+                  </span>
+                )}
               </div>
             )}
 
@@ -860,7 +889,7 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
                         {row.error ? '—' : `${row.type === 'income' ? '+' : row.type === 'transfer' ? '' : '−'}\u00A0${formatCurrency(row.amount)}`}
                       </td>
                       <td className="whitespace-nowrap px-3 py-1.5 text-muted-foreground">
-                        {row.type === 'income' ? 'Receita' : row.type === 'investment' ? 'Investimento' : row.type === 'credit_card_payment' ? 'Pagto. Fatura' : row.type === 'transfer' ? 'Transferência' : 'Despesa'}
+                        {row.type === 'income' ? 'Receita' : row.type === 'investment' ? 'Investimento' : row.type === 'credit_card_payment' ? 'Pagto. Fatura' : row.type === 'transfer' ? (row.statementType === 'income' ? 'Transf. (entrada)' : row.statementType === 'expense' ? 'Transf. (saída)' : 'Transferência') : 'Despesa'}
                       </td>
                       <td className="px-3 py-1.5">
                         {row.error ? (
