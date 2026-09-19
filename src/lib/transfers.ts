@@ -60,3 +60,73 @@ export function transferSides(
     ? { from: t.transfer_bank_id ?? null, to: t.bank_id }
     : { from: t.bank_id, to: t.transfer_bank_id ?? null }
 }
+
+// ── Conciliação (rotina posterior à importação) ─────────────────────────────
+// Cada lado da transferência mora no extrato da sua conta. Conciliar é apenas
+// RECONHECER que duas linhas de contas diferentes são o mesmo evento — o
+// vínculo não altera saldo nenhum.
+
+/** Linha mínima para o pareamento. */
+export interface TransferRow {
+  id: string
+  bank_id: string | null
+  transfer_bank_id: string | null
+  transfer_dir: 'out' | 'in' | null
+  amount: number
+  date: string
+}
+
+/** Tolerância de datas: PIX cai no mesmo dia, TED/DOC pode virar o dia útil. */
+export const PAIR_DATE_TOLERANCE_DAYS = 3
+
+function daysApart(a: string, b: string): number {
+  const da = Date.parse(`${a}T00:00:00Z`)
+  const db = Date.parse(`${b}T00:00:00Z`)
+  if (Number.isNaN(da) || Number.isNaN(db)) return Number.POSITIVE_INFINITY
+  return Math.abs(da - db) / 86_400_000
+}
+
+/**
+ * Candidatos a par de uma transferência: mesma quantia, contas diferentes,
+ * **lados opostos** (uma saída de um lado é entrada do outro) e datas próximas.
+ * Nunca casa a mesma conta consigo mesma.
+ */
+export function findTransferCandidates(row: TransferRow, all: TransferRow[]): TransferRow[] {
+  if (!row.bank_id) return []
+  const rowIn = row.transfer_dir === 'in'
+  return all.filter((c) => {
+    if (c.id === row.id) return false
+    if (!c.bank_id || c.bank_id === row.bank_id) return false
+    if (c.amount !== row.amount) return false
+    if ((c.transfer_dir === 'in') === rowIn) return false
+    if (daysApart(row.date, c.date) > PAIR_DATE_TOLERANCE_DAYS) return false
+    return true
+  })
+}
+
+/**
+ * Pares inequívocos: cada linha tem exatamente um candidato e ambos apontam um
+ * para o outro. Só o que é inequívoco entra como sugestão automática —
+ * ambíguo vai para decisão do usuário (valores repetidos são comuns).
+ */
+export function suggestTransferPairs(
+  rows: TransferRow[],
+): { left: TransferRow; right: TransferRow }[] {
+  const byId = new Map(rows.map((r) => [r.id, r]))
+  const pairs: { left: TransferRow; right: TransferRow }[] = []
+  const used = new Set<string>()
+  for (const row of rows) {
+    if (used.has(row.id)) continue
+    const cands = findTransferCandidates(row, rows)
+    if (cands.length !== 1) continue
+    const other = cands[0]
+    if (used.has(other.id)) continue
+    const back = findTransferCandidates(other, rows)
+    if (back.length !== 1 || back[0].id !== row.id) continue
+    if (!byId.has(other.id)) continue
+    used.add(row.id)
+    used.add(other.id)
+    pairs.push({ left: row, right: other })
+  }
+  return pairs
+}

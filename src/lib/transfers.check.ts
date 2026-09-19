@@ -6,7 +6,14 @@
 // 'in' = entrou). transfer_bank_id é METADADO (conciliação/relatório) e não
 // altera saldo — cada lado aparece no extrato da sua própria conta.
 import * as assert from 'node:assert'
-import { transferEffect, transferSides, accumulateTransferEffects } from './transfers'
+import {
+  transferEffect,
+  transferSides,
+  accumulateTransferEffects,
+  findTransferCandidates,
+  suggestTransferPairs,
+  type TransferRow,
+} from './transfers'
 
 const INTER = 'conta-inter'
 const BTG = 'conta-btg'
@@ -57,4 +64,57 @@ assert.strictEqual(acc.outflow[NUBANK], undefined, 'o Nubank não recebe débito
 // ── 6. Conta sem participação devolve null ────────────────────────────────
 assert.strictEqual(transferEffect(saida, NUBANK), null)
 
-console.log('transfers.check: OK (cada lado no seu extrato, sem duplicar efeito)')
+// ── 7. Conciliação: pareamento dos dois lados ────────────────────────────
+const parInter: TransferRow = {
+  id: 'i1', bank_id: INTER, transfer_bank_id: null, transfer_dir: 'out', amount: 403.33, date: '2026-01-02',
+}
+const parNubank: TransferRow = {
+  id: 'n1', bank_id: NUBANK, transfer_bank_id: null, transfer_dir: 'in', amount: 403.33, date: '2026-01-02',
+}
+
+assert.deepStrictEqual(
+  findTransferCandidates(parInter, [parInter, parNubank]).map((c) => c.id),
+  ['n1'],
+  'casa a saída da Inter com a entrada no Nubank',
+)
+
+assert.strictEqual(
+  findTransferCandidates(parInter, [parInter, { ...parNubank, id: 'n2', transfer_dir: 'out' }]).length,
+  0,
+  'mesmo sentido NÃO é par (saída com saída)',
+)
+assert.strictEqual(
+  findTransferCandidates(parInter, [parInter, { ...parNubank, amount: 500 }]).length,
+  0,
+  'valor diferente NÃO é par',
+)
+assert.strictEqual(
+  findTransferCandidates(parInter, [parInter, { ...parNubank, date: '2026-01-06' }]).length,
+  0,
+  '4 dias de diferença passa da tolerância de 3 dias',
+)
+assert.strictEqual(
+  findTransferCandidates(parInter, [parInter, { ...parNubank, date: '2026-01-05' }]).length,
+  1,
+  '3 dias de diferença ainda é par (TED/DOC pode virar o dia)',
+)
+assert.strictEqual(
+  findTransferCandidates(parInter, [parInter, { ...parNubank, bank_id: INTER }]).length,
+  0,
+  'mesma conta NÃO é par',
+)
+
+// Par inequívoco → sugere | dois candidatos iguais → NÃO sugere (ambíguo)
+assert.strictEqual(suggestTransferPairs([parInter, parNubank]).length, 1, 'sugere o par inequívoco')
+assert.strictEqual(
+  suggestTransferPairs([parInter, parNubank, { ...parNubank, id: 'n3' }]).length,
+  0,
+  'com dois candidatos iguais (valores repetidos no mesmo dia) NÃO sugere sozinho',
+)
+assert.strictEqual(
+  suggestTransferPairs([parInter, { ...parNubank, amount: 500 }]).length,
+  0,
+  'sem candidato não há sugestão',
+)
+
+console.log('transfers.check: OK (cada lado no seu extrato, sem duplicar efeito + pareamento da conciliação)')

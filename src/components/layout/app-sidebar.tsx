@@ -25,6 +25,7 @@ import {
   Settings,
   Users,
   PieChart,
+  Link2,
 } from 'lucide-react'
 
 function CfoMark({ className }: { className?: string }) {
@@ -60,6 +61,7 @@ const navItems = [
   { href: '/balance', label: 'Balanço',             icon: Scale       },
   { href: '/relatorios', label: 'Relatórios',       icon: PieChart    },
   { href: '/banks',   label: 'Bancos',              icon: Landmark    },
+  { href: '/conciliacao', label: 'Conciliação',       icon: Link2       },
   { href: '/credit-cards', label: 'Cartões', icon: CreditCard },
   { href: '/calculadora', label: 'Calculadora', icon: Calculator },
 ]
