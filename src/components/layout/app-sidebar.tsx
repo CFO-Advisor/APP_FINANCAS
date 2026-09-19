@@ -22,6 +22,7 @@ import {
   Calculator,
   Sparkles,
   Users,
+  ScrollText,
 } from 'lucide-react'
 
 function CfoMark({ className }: { className?: string }) {
@@ -51,6 +52,7 @@ const navItems = [
   { href: '/calculadora', label: 'Calculadora', icon: Calculator },
   { href: '/ai-settings', label: 'Config. IA', icon: Sparkles },
   { href: '/sharing', label: 'Compartilhamento', icon: Users },
+  { href: '/audit', label: 'Histórico', icon: ScrollText },
 ]
 
 interface NavContentProps {
