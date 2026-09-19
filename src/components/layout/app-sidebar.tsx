@@ -140,7 +140,7 @@ function NavContent({ pathname, collapsed, isMobile = false, onCloseDrawer, onNa
           <CfoMark className="h-8 w-8 shrink-0" />
           {!collapsed && (
             <div className="min-w-0 flex-1">
-              <p className="truncate text-base font-black leading-tight tracking-tight">CFO Advisor</p>
+              <p className="truncate text-base font-black leading-tight tracking-tight">CFO ADVISOR</p>
               <p className="truncate text-xs text-muted-foreground">Finanças Pessoais</p>
             </div>
           )}
@@ -272,7 +272,7 @@ export function AppSidebar() {
       <header className="fixed inset-x-0 top-0 z-40 flex h-14 shrink-0 items-center justify-between border-b border-border bg-sidebar/95 backdrop-blur-sm px-4 md:hidden">
         <Link href="/dashboard" className="flex items-center gap-2">
           <CfoMark className="h-7 w-7 shrink-0" />
-          <span className="text-base font-black tracking-tight">CFO Advisor</span>
+          <span className="text-base font-black tracking-tight">CFO ADVISOR</span>
         </Link>
         <div className="flex items-center gap-1">
           <ThemeToggle />
