@@ -318,6 +318,9 @@ export function TransactionFormDialog({
             bank_id: finalBankId,
             credit_card_id: resolvedCardId,
             transfer_bank_id: finalTransferBankId,
+            // Lançamento manual: a contrapartida é obrigatória e o dinheiro sai
+            // da conta informada como origem.
+            transfer_dir: form.type === 'transfer' ? 'out' : null,
           })
           .eq('id', transaction.id)
 
@@ -338,6 +341,7 @@ export function TransactionFormDialog({
           bank_id: finalBankId,
           credit_card_id: resolvedCardId,
           transfer_bank_id: finalTransferBankId,
+          transfer_dir: form.type === 'transfer' ? 'out' : null,
         })
 
         if (error) throw error

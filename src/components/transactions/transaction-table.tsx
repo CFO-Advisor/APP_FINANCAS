@@ -26,6 +26,7 @@ import { formatCurrency } from '@/lib/csv-export'
 import { createClient } from '@/lib/supabase/client'
 import { toError } from '@/lib/utils'
 import { BankIcon } from '@/components/banks/bank-icon'
+import { transferSides } from '@/lib/transfers'
 import type { Transaction, Bank, CreditCard } from '@/lib/types'
 
 interface TransactionTableProps {
@@ -232,19 +233,32 @@ export function TransactionTable({ transactions, onEdit, onDeleted, banks = [], 
                       <span className="inline-flex h-5 w-5 items-center justify-center rounded text-[9px] font-bold text-white" style={{ backgroundColor: cardMap.get(t.credit_card_id)!.color }}>C</span>
                       <span className="text-xs">{cardMap.get(t.credit_card_id)!.name}</span>
                     </span>
-                  ) : t.type === 'transfer' && t.bank_id && bankMap.has(t.bank_id) ? (
-                    <span className="flex items-center gap-1.5">
-                      <BankIcon name={bankMap.get(t.bank_id)!.name} color={bankMap.get(t.bank_id)!.color} size="xs" />
-                      <span className="text-xs">{bankMap.get(t.bank_id)!.name}</span>
-                      {t.transfer_bank_id && bankMap.has(t.transfer_bank_id) && (
-                        <>
-                          <ArrowRight className="h-3 w-3 shrink-0 text-muted-foreground" />
-                          <BankIcon name={bankMap.get(t.transfer_bank_id)!.name} color={bankMap.get(t.transfer_bank_id)!.color} size="xs" />
-                          <span className="text-xs">{bankMap.get(t.transfer_bank_id)!.name}</span>
-                        </>
-                      )}
-                    </span>
-                  ) : t.bank_id && bankMap.has(t.bank_id) ? (
+                  ) : t.type === 'transfer' ? (() => {
+                    const { from, to } = transferSides(t)
+                    const fromBank = from ? bankMap.get(from) : null
+                    const toBank = to ? bankMap.get(to) : null
+                    return (
+                      <span className="flex items-center gap-1.5">
+                        {fromBank ? (
+                          <>
+                            <BankIcon name={fromBank.name} color={fromBank.color} size="xs" />
+                            <span className="text-xs">{fromBank.name}</span>
+                          </>
+                        ) : (
+                          <span className="text-xs text-muted-foreground/70">conta não informada</span>
+                        )}
+                        <ArrowRight className="h-3 w-3 shrink-0 text-muted-foreground" />
+                        {toBank ? (
+                          <>
+                            <BankIcon name={toBank.name} color={toBank.color} size="xs" />
+                            <span className="text-xs">{toBank.name}</span>
+                          </>
+                        ) : (
+                          <span className="text-xs text-muted-foreground/70">conta não informada</span>
+                        )}
+                      </span>
+                    )
+                  })() : t.bank_id && bankMap.has(t.bank_id) ? (
                     <span className="flex items-center gap-1.5">
                       <BankIcon name={bankMap.get(t.bank_id)!.name} color={bankMap.get(t.bank_id)!.color} size="xs" />
                       <span className="text-xs">{bankMap.get(t.bank_id)!.name}</span>

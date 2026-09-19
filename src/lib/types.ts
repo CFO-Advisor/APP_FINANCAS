@@ -21,6 +21,13 @@ export interface Transaction {
   credit_card_id: string | null
   // Apenas para type='transfer': conta de destino (bank_id é a de origem)
   transfer_bank_id: string | null
+  /**
+   * Direção da transferência, SEMPRE relativa ao bank_id:
+   * 'out' = o dinheiro saiu da conta em bank_id; 'in' = entrou.
+   * Com transfer_bank_id NULL (contrapartida pendente, típico de importação),
+   * a transferência afeta apenas a conta do extrato.
+   */
+  transfer_dir?: 'out' | 'in' | null
   /** Fatura de cartão: data da compra (o registro usa a data da fatura). */
   purchase_date?: string | null
   /** Auditoria: quem criou / quem alterou por último (uuid). */

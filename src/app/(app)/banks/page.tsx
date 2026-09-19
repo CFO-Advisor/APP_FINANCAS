@@ -23,9 +23,10 @@ import { formatCurrency } from '@/lib/csv-export'
 import { exportBankStatementToExcel } from '@/lib/excel-export'
 import { AI_BANKS_CHANGED_EVENT } from '@/components/layout/assistant-panel'
 import type { Bank, BankBalance, Transaction } from '@/lib/types'
+import { transferEffect } from '@/lib/transfers'
 
 // ── Extended transaction type for extrato ─────────────
-type BankTx = Pick<Transaction, 'id' | 'bank_id' | 'credit_card_id' | 'type' | 'amount' | 'date' | 'description' | 'category' | 'transfer_bank_id'>
+type BankTx = Pick<Transaction, 'id' | 'bank_id' | 'credit_card_id' | 'type' | 'amount' | 'date' | 'description' | 'category' | 'transfer_bank_id' | 'transfer_dir'>
 
 const TYPE_LABEL: Record<string, { label: string; color: string; sign: '+' | '-' }> = {
   income:               { label: 'Receita',     color: '#059669', sign: '+' },
@@ -52,7 +53,7 @@ function computeExtrato(
   const result: { tx: BankTx; balanceAfter: number }[] = []
 
   for (const tx of bankTx) {
-    const isTransferIn = tx.type === 'transfer' && tx.transfer_bank_id === bank.id
+    const isTransferIn = tx.type === 'transfer' ? (transferEffect(tx, bank.id)?.isInflow ?? false) : false
     balance = tx.type === 'income' || isTransferIn ? balance + tx.amount : balance - tx.amount
     const inRange = (!startDate || tx.date >= startDate) && (!endDate || tx.date <= endDate)
     if (inRange) result.push({ tx, balanceAfter: balance })
@@ -93,7 +94,7 @@ export default function BanksPage() {
         supabase.from('banks').select('*').order('created_at'),
         supabase
           .from('transactions')
-          .select('id, bank_id, transfer_bank_id, credit_card_id, type, amount, date, description, category')
+          .select('id, bank_id, transfer_bank_id, transfer_dir, credit_card_id, type, amount, date, description, category')
           .not('bank_id', 'is', null)
           .order('date', { ascending: false }),
       ])
@@ -114,8 +115,16 @@ export default function BanksPage() {
       for (const t of allTx) {
         if (t.credit_card_id && t.type !== 'credit_card_payment') continue
         if (t.type === 'transfer') {
-          if (t.bank_id) transferOut[t.bank_id] = (transferOut[t.bank_id] ?? 0) + t.amount
-          if (t.transfer_bank_id) transferIn[t.transfer_bank_id] = (transferIn[t.transfer_bank_id] ?? 0) + t.amount
+          // Direção relativa ao bank_id; sem contrapartida afeta só a conta do extrato
+          const dirIn = t.transfer_dir === 'in'
+          if (t.bank_id) {
+            const target = dirIn ? transferIn : transferOut
+            target[t.bank_id] = (target[t.bank_id] ?? 0) + t.amount
+          }
+          if (t.transfer_bank_id) {
+            const target = dirIn ? transferOut : transferIn
+            target[t.transfer_bank_id] = (target[t.transfer_bank_id] ?? 0) + t.amount
+          }
           continue
         }
         if (!t.bank_id) continue
@@ -412,7 +421,7 @@ function BankCard({ bank, allTx, expanded, filter, onToggle, onEdit, onDelete, o
                 {extrato.map(({ tx, balanceAfter }) => {
                   const meta = TYPE_LABEL[tx.type] ?? { label: tx.type, color: '#8892a4', sign: '-' as const }
                   // Do lado da conta de destino a transferência entra como crédito
-                  const sign = tx.type === 'transfer' && tx.transfer_bank_id === bank.id ? ('+' as const) : meta.sign
+                  const sign = tx.type === 'transfer' && (transferEffect(tx, bank.id)?.isInflow ?? false) ? ('+' as const) : meta.sign
                   return (
                     <div
                       key={tx.id}

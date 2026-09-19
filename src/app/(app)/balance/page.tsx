@@ -44,14 +44,14 @@ export default function BalancePage() {
       cardsRes,
     ] = await Promise.all([
       supabase.from('banks').select('*'),
-      supabase.from('transactions').select('bank_id, transfer_bank_id, credit_card_id, type, amount, category'),
+      supabase.from('transactions').select('bank_id, transfer_bank_id, transfer_dir, credit_card_id, type, amount, category'),
       supabase.from('investment_settings').select('initial_balance'),
       supabase.from('assets').select('group_type, value'),
       supabase.from('debts').select('*').neq('status', 'paid'),
       supabase.from('credit_cards').select('id, name'),
     ])
 
-    const allTx = (txRes.data ?? []) as Pick<Transaction, 'bank_id' | 'transfer_bank_id' | 'credit_card_id' | 'type' | 'amount' | 'category'>[]
+    const allTx = (txRes.data ?? []) as Pick<Transaction, 'bank_id' | 'transfer_bank_id' | 'transfer_dir' | 'credit_card_id' | 'type' | 'amount' | 'category'>[]
     const rawBanks = (banksRes.data ?? []) as Bank[]
     const allDebts = (debtsRes.data ?? []) as Debt[]
     const allAssets = (assetsRes.data ?? []) as Pick<Asset, 'group_type' | 'value'>[]
@@ -65,8 +65,15 @@ export default function BalancePage() {
     for (const t of allTx) {
       if (t.credit_card_id && t.type !== 'credit_card_payment') continue
       if (t.type === 'transfer') {
-        if (t.bank_id) transferOut[t.bank_id] = (transferOut[t.bank_id] ?? 0) + t.amount
-        if (t.transfer_bank_id) transferIn[t.transfer_bank_id] = (transferIn[t.transfer_bank_id] ?? 0) + t.amount
+        const dirIn = t.transfer_dir === 'in'
+        if (t.bank_id) {
+          const target = dirIn ? transferIn : transferOut
+          target[t.bank_id] = (target[t.bank_id] ?? 0) + t.amount
+        }
+        if (t.transfer_bank_id) {
+          const target = dirIn ? transferOut : transferIn
+          target[t.transfer_bank_id] = (target[t.transfer_bank_id] ?? 0) + t.amount
+        }
         continue
       }
       if (!t.bank_id) continue

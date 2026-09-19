@@ -89,7 +89,7 @@ export default function DashboardPage() {
         .order('date', { ascending: false }),
       supabase.from('budgets').select('*').eq('month', month).eq('year', year),
       supabase.from('banks').select('*').order('name'),
-      supabase.from('transactions').select('bank_id, transfer_bank_id, type, amount, credit_card_id, date').not('bank_id', 'is', null),
+      supabase.from('transactions').select('bank_id, transfer_bank_id, transfer_dir, type, amount, credit_card_id, date').not('bank_id', 'is', null),
       supabase.from('credit_cards').select('*').order('name'),
       supabase.from('transactions').select('*').not('credit_card_id', 'is', null),
       supabase.from('transactions').select('category, amount').eq('type', 'investment'),
@@ -122,7 +122,7 @@ export default function DashboardPage() {
 
     if (!banksRes.error && banksRes.data) {
       const rawBanks = banksRes.data as Bank[]
-      const allTx = (allTxRes.data ?? []) as Pick<Transaction, 'bank_id' | 'transfer_bank_id' | 'type' | 'amount' | 'credit_card_id' | 'date'>[]
+      const allTx = (allTxRes.data ?? []) as Pick<Transaction, 'bank_id' | 'transfer_bank_id' | 'transfer_dir' | 'type' | 'amount' | 'credit_card_id' | 'date'>[]
       const totals: Record<string, { income: number; expense: number }> = {}
       // Transferências movem saldo entre contas, mas não são receita nem despesa
       const transferOut: Record<string, number> = {}
@@ -131,8 +131,17 @@ export default function DashboardPage() {
         // skip card expenses (not yet debited from bank), but include payments (they ARE debited)
         if (t.credit_card_id && t.type !== 'credit_card_payment') continue
         if (t.type === 'transfer') {
-          if (t.bank_id) transferOut[t.bank_id] = (transferOut[t.bank_id] ?? 0) + t.amount
-          if (t.transfer_bank_id) transferIn[t.transfer_bank_id] = (transferIn[t.transfer_bank_id] ?? 0) + t.amount
+          // Direção relativa ao bank_id (transfer_dir). Sem contrapartida
+          // (transfer_bank_id NULL) só a conta do extrato é afetada.
+          const dirIn = t.transfer_dir === 'in'
+          if (t.bank_id) {
+            const target = dirIn ? transferIn : transferOut
+            target[t.bank_id] = (target[t.bank_id] ?? 0) + t.amount
+          }
+          if (t.transfer_bank_id) {
+            const target = dirIn ? transferOut : transferIn
+            target[t.transfer_bank_id] = (target[t.transfer_bank_id] ?? 0) + t.amount
+          }
           continue
         }
         if (!t.bank_id) continue
@@ -157,7 +166,12 @@ export default function DashboardPage() {
       for (const t of allTx) {
         if (t.date >= startDate) continue
         if (t.credit_card_id && t.type !== 'credit_card_payment') continue
-        if (t.type === 'transfer') continue
+        if (t.type === 'transfer') {
+          const dirIn = t.transfer_dir === 'in'
+          if (t.bank_id) caixaInicialCalc += dirIn ? t.amount : -t.amount
+          if (t.transfer_bank_id) caixaInicialCalc += dirIn ? -t.amount : t.amount
+          continue
+        }
         caixaInicialCalc += t.type === 'income' ? t.amount : -t.amount
       }
       setCaixaInicial(caixaInicialCalc)
