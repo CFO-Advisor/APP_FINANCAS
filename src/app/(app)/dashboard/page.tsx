@@ -131,16 +131,11 @@ export default function DashboardPage() {
         // skip card expenses (not yet debited from bank), but include payments (they ARE debited)
         if (t.credit_card_id && t.type !== 'credit_card_payment') continue
         if (t.type === 'transfer') {
-          // Direção relativa ao bank_id (transfer_dir). Sem contrapartida
-          // (transfer_bank_id NULL) só a conta do extrato é afetada.
-          const dirIn = t.transfer_dir === 'in'
+          // A transferência pertence ao extrato de UMA conta e afeta só ela.
+          // A contrapartida é metadado (o outro lado vem do extrato dele).
           if (t.bank_id) {
-            const target = dirIn ? transferIn : transferOut
+            const target = t.transfer_dir === 'in' ? transferIn : transferOut
             target[t.bank_id] = (target[t.bank_id] ?? 0) + t.amount
-          }
-          if (t.transfer_bank_id) {
-            const target = dirIn ? transferOut : transferIn
-            target[t.transfer_bank_id] = (target[t.transfer_bank_id] ?? 0) + t.amount
           }
           continue
         }
@@ -167,9 +162,7 @@ export default function DashboardPage() {
         if (t.date >= startDate) continue
         if (t.credit_card_id && t.type !== 'credit_card_payment') continue
         if (t.type === 'transfer') {
-          const dirIn = t.transfer_dir === 'in'
-          if (t.bank_id) caixaInicialCalc += dirIn ? t.amount : -t.amount
-          if (t.transfer_bank_id) caixaInicialCalc += dirIn ? -t.amount : t.amount
+          if (t.bank_id) caixaInicialCalc += t.transfer_dir === 'in' ? t.amount : -t.amount
           continue
         }
         caixaInicialCalc += t.type === 'income' ? t.amount : -t.amount

@@ -65,14 +65,10 @@ export default function BalancePage() {
     for (const t of allTx) {
       if (t.credit_card_id && t.type !== 'credit_card_payment') continue
       if (t.type === 'transfer') {
-        const dirIn = t.transfer_dir === 'in'
+        // Só a conta do extrato (bank_id) é afetada — contrapartida é metadado
         if (t.bank_id) {
-          const target = dirIn ? transferIn : transferOut
+          const target = t.transfer_dir === 'in' ? transferIn : transferOut
           target[t.bank_id] = (target[t.bank_id] ?? 0) + t.amount
-        }
-        if (t.transfer_bank_id) {
-          const target = dirIn ? transferOut : transferIn
-          target[t.transfer_bank_id] = (target[t.transfer_bank_id] ?? 0) + t.amount
         }
         continue
       }

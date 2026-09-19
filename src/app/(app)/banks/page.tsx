@@ -43,10 +43,10 @@ function computeExtrato(
   startDate: string,
   endDate: string,
 ): { tx: BankTx; balanceAfter: number }[] {
-  // Transferências aparecem nas DUAS contas: saem da origem (bank_id) e
-  // entram no destino (transfer_bank_id).
+  // Transferências aparecem apenas no extrato da própria conta (bank_id);
+  // a contrapartida é metadado e o outro lado vem do extrato dele.
   const bankTx = allTx
-    .filter((t) => (t.bank_id === bank.id || t.transfer_bank_id === bank.id) && !(t.credit_card_id && t.type !== 'credit_card_payment'))
+    .filter((t) => t.bank_id === bank.id && !(t.credit_card_id && t.type !== 'credit_card_payment'))
     .sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id))
 
   let balance = bank.initial_balance
@@ -115,15 +115,10 @@ export default function BanksPage() {
       for (const t of allTx) {
         if (t.credit_card_id && t.type !== 'credit_card_payment') continue
         if (t.type === 'transfer') {
-          // Direção relativa ao bank_id; sem contrapartida afeta só a conta do extrato
-          const dirIn = t.transfer_dir === 'in'
+          // Só a conta do extrato (bank_id) é afetada; a contrapartida é metadado
           if (t.bank_id) {
-            const target = dirIn ? transferIn : transferOut
+            const target = t.transfer_dir === 'in' ? transferIn : transferOut
             target[t.bank_id] = (target[t.bank_id] ?? 0) + t.amount
-          }
-          if (t.transfer_bank_id) {
-            const target = dirIn ? transferOut : transferIn
-            target[t.transfer_bank_id] = (target[t.transfer_bank_id] ?? 0) + t.amount
           }
           continue
         }
