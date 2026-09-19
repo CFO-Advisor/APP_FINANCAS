@@ -97,6 +97,41 @@ export function categoryToType(cat: string): TransactionType {
   return 'expense'
 }
 
+// Direção do dinheiro: 'income' é entrada; despesa, investimento e pagamento
+// de fatura são saídas; 'transfer' é movimentação interna entre contas (não
+// altera o saldo total, apenas troca de conta).
+const OUTFLOW_TYPES: TransactionType[] = ['expense', 'investment', 'credit_card_payment']
+
+export function isOutflowType(t: TransactionType): boolean {
+  return OUTFLOW_TYPES.includes(t)
+}
+
+/**
+ * Combina a categoria sugerida (regra do Config. IA ou IA) com o tipo que veio
+ * do extrato, **preservando a direção do dinheiro**.
+ *
+ * A categoria refina a classificação (despesa → investimento, fatura →
+ * pagamento de fatura), mas nunca inverte entrada/saída: uma linha negativa no
+ * extrato continua sendo saída mesmo que a categoria sugerida seja de receita
+ * ("Salário", "Pró-labore", "Dividendos"). Sem essa trava, o valor negativo
+ * entrava como receita e o saldo importado não fechava com o extrato.
+ */
+export function reconcileTypeWithStatement(
+  category: string,
+  statementType: TransactionType,
+): TransactionType {
+  const candidate = categoryToType(category)
+  // Transferência não é entrada nem saída: a categoria manda (o preview pede
+  // as contas de origem e destino).
+  if (candidate === 'transfer') return 'transfer'
+  // Linha sem direção confiável no extrato (ex.: PDF sem sinal): segue a categoria.
+  if (statementType === 'transfer') return candidate
+  const statementIsInflow = statementType === 'income'
+  const candidateIsInflow = candidate === 'income'
+  if (statementIsInflow !== candidateIsInflow) return statementType
+  return candidate
+}
+
 // Baseline palette: #6c63ff #43e97b #ff6584 #f7971e #38f9d7 #a78bfa #fbbf24
 export const CATEGORY_COLORS: Record<string, string> = {
   // Despesas — Alimentação (pink-red)

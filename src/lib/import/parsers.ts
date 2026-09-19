@@ -7,6 +7,12 @@ export interface ParsedTransaction {
   amount: number
   type: TransactionType
   category: string
+  /**
+   * Direção original do extrato (entrada/saída), guardada antes de qualquer
+   * classificação automática. A categoria pode refinar o tipo, mas não pode
+   * inverter o sinal do extrato (ver reconcileTypeWithStatement).
+   */
+  statementType?: TransactionType
   error?: string
 }
 

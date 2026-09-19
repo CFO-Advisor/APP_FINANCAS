@@ -37,7 +37,8 @@ import {
 } from '@/lib/import/parsers'
 import { extractStatementLines } from '@/lib/import/pdf'
 import { downloadImportTemplate } from '@/lib/excel-export'
-import { CATEGORIES, EXPENSE_CATEGORIES, INCOME_CATEGORIES, INVESTMENT_CATEGORIES, TRANSFER_CATEGORY, categoryToType } from '@/lib/constants'
+import { formatCurrency } from '@/lib/csv-export'
+import { CATEGORIES, EXPENSE_CATEGORIES, INCOME_CATEGORIES, INVESTMENT_CATEGORIES, TRANSFER_CATEGORY, categoryToType, reconcileTypeWithStatement } from '@/lib/constants'
 import type { TransactionType } from '@/lib/types'
 import { AI_MODEL_PREF_KEY } from '@/components/layout/assistant-panel'
 import { readAiPrefs } from '@/lib/ai-config'
@@ -45,6 +46,13 @@ import type { Bank, CreditCard } from '@/lib/types'
 import { getActiveOwnerId } from '@/lib/active-owner'
 
 type Step = 'upload' | 'configure' | 'preview' | 'done'
+
+// Guarda a direção que veio do extrato antes de qualquer classificação
+// automática. A categoria pode refinar o tipo, mas nunca inverter entrada/saída
+// (ver reconcileTypeWithStatement).
+function withStatementType(rows: ParsedTransaction[]): ParsedTransaction[] {
+  return rows.map((r) => ({ ...r, statementType: r.type }))
+}
 
 interface ImportDialogProps {
   open: boolean
@@ -170,14 +178,14 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
     if (ext === 'ofx') {
       const content = await readTextFile(f)
       const parsed = parseOFXContent(content)
-      setFile({ name: f.name, format: 'ofx', csvHeaders: [], csvRows: [], parsed })
+      setFile({ name: f.name, format: 'ofx', csvHeaders: [], csvRows: [], parsed: withStatementType(parsed) })
       setStep('preview')
     } else if (ext === 'pdf') {
       const buffer = await f.arrayBuffer()
       const lines = await extractStatementLines(buffer)
       // Fatura de cartão Inter (datas por extenso "13 de jun. 2026") tem parser próprio
       const parsed = isInterCardFatura(lines) ? parseInterCardFatura(lines) : parsePDFLines(lines)
-      setFile({ name: f.name, format: 'pdf', csvHeaders: [], csvRows: [], parsed })
+      setFile({ name: f.name, format: 'pdf', csvHeaders: [], csvRows: [], parsed: withStatementType(parsed) })
       setStep('preview')
     } else if (ext === 'xlsx' || ext === 'xls') {
       const buffer = await f.arrayBuffer()
@@ -205,7 +213,7 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
           type: guessed.type ?? '',
         }
         setFieldMap(fm)
-        setFile({ name: f.name, format: 'csv', csvHeaders: headers, csvRows: rows, parsed: mapCSVRows(rows, fm) })
+        setFile({ name: f.name, format: 'csv', csvHeaders: headers, csvRows: rows, parsed: withStatementType(mapCSVRows(rows, fm)) })
         setStep('preview')
       } else {
         setFieldMap({
@@ -246,7 +254,7 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
       toast.error('Mapeie os campos obrigatórios: Data, Descrição e Valor.')
       return
     }
-    const parsed = mapCSVRows(file.csvRows, fieldMap as CSVFieldMap)
+    const parsed = withStatementType(mapCSVRows(file.csvRows, fieldMap as CSVFieldMap))
     setFile((prev) => prev ? { ...prev, parsed } : prev)
     setStep('preview')
   }
@@ -357,26 +365,41 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
       }
 
       // Aplica: regras locais + resultados da IA, replicando nas linhas iguais
+      // Contadores fora do updater do setFile: o updater pode rodar mais de uma
+      // vez e inflaria os números.
       let applied = 0
       let byRules = 0
       let byAi = 0
+      let directionProtected = 0
+      for (const r of file.parsed) {
+        if (r.error) continue
+        const key = itemKey(r)
+        const cat = keyToCat.get(key)
+        if (!cat) continue
+        applied++
+        if (localKeys.has(key)) byRules++
+        else byAi++
+        const statementType = r.statementType ?? r.type
+        if (reconcileTypeWithStatement(cat, statementType) !== categoryToType(cat)) directionProtected++
+      }
+
       setFile((prev) => {
         if (!prev) return prev
         return {
           ...prev,
           parsed: prev.parsed.map((r) => {
             if (r.error) return r
-            const key = itemKey(r)
-            const cat = keyToCat.get(key)
-            if (cat) {
-              applied++
-              if (localKeys.has(key)) byRules++
-              else byAi++
-              // A categoria manda no tipo: Transferência vira type 'transfer'
-              // (o preview então pede as contas de origem e destino)
-              return { ...r, category: cat, type: categoryToType(cat) }
+            const cat = keyToCat.get(itemKey(r))
+            if (!cat) return r
+            // A categoria refina a classificação (Transferência vira 'transfer',
+            // uma despesa pode virar investimento...), mas nunca inverte a
+            // direção do dinheiro: o sinal que veio do extrato é preservado.
+            const statementType = r.statementType ?? r.type
+            return {
+              ...r,
+              category: cat,
+              type: reconcileTypeWithStatement(cat, statementType),
             }
-            return r
           }),
         }
       })
@@ -384,6 +407,11 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
         setAiApplied(true)
         const origem = [`${byRules} por regras do Config. IA`, byAi > 0 ? `${byAi} pela IA` : null].filter(Boolean).join(', ')
         toast.success(`Classificadas ${applied} transaç${applied !== 1 ? 'ões' : 'ão'} — ${origem}.`)
+        if (directionProtected > 0) {
+          toast.warning(
+            `${directionProtected} lançamento(s) mantiveram o sinal do extrato: a categoria sugerida era de receita para uma saída (ou o contrário).`,
+          )
+        }
       } else {
         toast.info('Nada foi classificado — IA indisponível e nenhuma regra do Config. IA aplicada.')
       }
@@ -477,6 +505,18 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
   const errorRows = file?.parsed.filter((r) => r.error) ?? []
   // Linhas marcadas como Transferência: exigem conta de origem + destino
   const transferRowsCount = file?.parsed.filter((r) => !r.error && r.type === 'transfer').length ?? 0
+  // Conferência do que será importado: entradas, saídas e resultado. Permite
+  // comparar com o extrato antes de gravar — era onde o sinal invertido
+  // aparecia (valor negativo do extrato entrando como receita).
+  const previewTotals = (file?.parsed ?? []).reduce(
+    (acc, r) => {
+      if (r.error || r.type === 'transfer') return acc
+      if (r.type === 'income') acc.entradas += r.amount
+      else acc.saidas += r.amount
+      return acc
+    },
+    { entradas: 0, saidas: 0 },
+  )
   // Banco do extrato (excluído das opções de contra-partida)
   const extratoBankId = bankId === 'none' ? null : bankId
 
@@ -663,8 +703,7 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
                   {errorRows.length} erro(s)
                 </span>
               )}
-              <Button
-                variant="outline"
+              <Button                variant="outline"
                 size="sm"
                 className="ml-auto gap-1.5 text-xs"
                 onClick={runAiClassification}
@@ -676,6 +715,30 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
                   : aiApplied ? 'Reclassificar com IA' : 'Classificar com IA'}
               </Button>
             </div>
+
+            {/* Conferência: o usuário compara estes totais com o extrato antes
+                de importar (pega sinal invertido e linha mal classificada) */}
+            {validCount > 0 && (
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg bg-muted/40 px-3 py-2 text-xs">
+                <span className="text-muted-foreground">
+                  Entradas{' '}
+                  <span className="font-semibold tabular-nums text-emerald-600">{formatCurrency(previewTotals.entradas)}</span>
+                </span>
+                <span className="text-muted-foreground">
+                  Saídas{' '}
+                  <span className="font-semibold tabular-nums text-destructive">{formatCurrency(previewTotals.saidas)}</span>
+                </span>
+                <span className="text-muted-foreground">
+                  Resultado{' '}
+                  <span
+                    className={`font-semibold tabular-nums ${previewTotals.entradas - previewTotals.saidas >= 0 ? 'text-emerald-600' : 'text-destructive'}`}
+                  >
+                    {formatCurrency(previewTotals.entradas - previewTotals.saidas)}
+                  </span>
+                </span>
+                <span className="text-muted-foreground/70">confira com o extrato antes de importar</span>
+              </div>
+            )}
 
             {transferRowsCount > 0 && (
               <div className="space-y-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3">
@@ -735,7 +798,7 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
                             onValueChange={(v) => setFile((prev) => {
                               if (!prev) return prev
                               const cat = v ?? 'Outros'
-                              return { ...prev, parsed: prev.parsed.map((r, j) => j === i ? { ...r, category: cat, type: categoryToType(cat) } : r) }
+                              return { ...prev, parsed: prev.parsed.map((r, j) => j === i ? { ...r, category: cat, type: reconcileTypeWithStatement(cat, r.statementType ?? r.type) } : r) }
                             })}
                           >
                             <SelectTrigger className="h-6 w-full border-none bg-transparent px-1 text-xs shadow-none hover:bg-muted/60">
@@ -749,8 +812,8 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
                           </Select>
                         )}
                       </td>
-                      <td className={`px-3 py-1.5 text-right font-medium tabular-nums ${row.type === 'income' ? 'text-emerald-600' : 'text-destructive'}`}>
-                        {row.error ? '—' : `R$ ${row.amount.toFixed(2)}`}
+                      <td className={`px-3 py-1.5 text-right font-medium tabular-nums ${row.type === 'income' ? 'text-emerald-600' : row.type === 'transfer' ? 'text-muted-foreground' : 'text-destructive'}`}>
+                        {row.error ? '—' : `${row.type === 'income' ? '+' : row.type === 'transfer' ? '' : '−'} ${formatCurrency(row.amount)}`}
                       </td>
                       <td className="px-3 py-1.5 text-muted-foreground">
                         {row.type === 'income' ? 'Receita' : row.type === 'investment' ? 'Investimento' : row.type === 'credit_card_payment' ? 'Pagto. Fatura' : row.type === 'transfer' ? 'Transferência' : 'Despesa'}
