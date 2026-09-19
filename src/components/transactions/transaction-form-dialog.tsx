@@ -34,6 +34,7 @@ import {
 } from '@/lib/constants'
 import { readAiPrefs } from '@/lib/ai-config'
 import { toError } from '@/lib/utils'
+import { getActiveOwnerId } from '@/lib/active-owner'
 import { BankIcon } from '@/components/banks/bank-icon'
 import type { Transaction, TransactionFormData, Bank, CreditCard as CreditCardType, TransactionType } from '@/lib/types'
 import { format } from 'date-fns'
@@ -325,9 +326,10 @@ export function TransactionFormDialog({
       } else {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) throw new Error('Not authenticated')
+        const ownerId = await getActiveOwnerId()
 
         const { error } = await supabase.from('transactions').insert({
-          user_id: user.id,
+          user_id: ownerId,
           description: form.description.trim(),
           amount: form.amount,
           date: form.date,

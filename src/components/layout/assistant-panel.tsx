@@ -10,6 +10,7 @@ import { extractStatementLines } from '@/lib/import/pdf'
 import { AI_MODEL_KEY, addCustomCategory } from '@/lib/ai-config'
 import { createClient } from '@/lib/supabase/client'
 import { BANK_PRESETS } from '@/lib/constants'
+import { getActiveOwnerId } from '@/lib/active-owner'
 
 // Painel do assistente de IA (retrátil, lado direito).
 // Chat via /api/ai/assistant (chave/modelo ficam no servidor).
@@ -115,7 +116,7 @@ export function AssistantPanel() {
           const nome = action.nome as string
           const preset = BANK_PRESETS.find((b) => nome.toLowerCase().includes(b.name.toLowerCase()))
           const { error } = await supabase.from('banks').insert({
-            user_id: user.id,
+            user_id: await getActiveOwnerId(),
             name: nome,
             type: action.tipo === 'savings' || action.tipo === 'investment' || action.tipo === 'wallet' ? action.tipo : 'checking',
             initial_balance: typeof action.saldo_inicial === 'number' && action.saldo_inicial >= 0 ? action.saldo_inicial : 0,
@@ -140,7 +141,7 @@ export function AssistantPanel() {
           const nome = action.nome as string
           const bandeira = action.bandeira === 'visa' || action.bandeira === 'mastercard' || action.bandeira === 'elo' || action.bandeira === 'amex' || action.bandeira === 'hipercard' ? action.bandeira : 'outros'
           const { error } = await supabase.from('credit_cards').insert({
-            user_id: user.id,
+            user_id: await getActiveOwnerId(),
             name: nome,
             brand: bandeira,
             color: '#6366f1',
@@ -167,7 +168,7 @@ export function AssistantPanel() {
           const { data: { user } } = await supabase.auth.getUser()
           if (!user) { toast.error('Não autenticado.'); return }
           const alvo = nomeAlvo.toLowerCase()
-          const { data: banks, error: qErr } = await supabase.from('banks').select('id, name').eq('user_id', user.id)
+          const { data: banks, error: qErr } = await supabase.from('banks').select('id, name').eq('user_id', await getActiveOwnerId())
           if (qErr) throw qErr
           const exact = banks?.filter((b) => b.name.toLowerCase() === alvo) ?? []
           const candidates = exact.length > 0 ? exact : (banks ?? []).filter((b) => b.name.toLowerCase().includes(alvo))
@@ -203,7 +204,7 @@ export function AssistantPanel() {
           const { data: { user } } = await supabase.auth.getUser()
           if (!user) { toast.error('Não autenticado.'); return }
           const alvo = nomeAlvo.toLowerCase()
-          const { data: cards, error: qErr } = await supabase.from('credit_cards').select('id, name').eq('user_id', user.id)
+          const { data: cards, error: qErr } = await supabase.from('credit_cards').select('id, name').eq('user_id', await getActiveOwnerId())
           if (qErr) throw qErr
           const exact = cards?.filter((c) => c.name.toLowerCase() === alvo) ?? []
           const candidates = exact.length > 0 ? exact : (cards ?? []).filter((c) => c.name.toLowerCase().includes(alvo))

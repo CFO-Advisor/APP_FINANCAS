@@ -25,6 +25,7 @@ import { createClient } from '@/lib/supabase/client'
 import { CARD_BRAND_LABELS, CARD_BRAND_COLORS } from '@/lib/constants'
 import { toError } from '@/lib/utils'
 import type { CreditCard, CardBrand } from '@/lib/types'
+import { getActiveOwnerId } from '@/lib/active-owner'
 
 interface CreditCardFormDialogProps {
   open: boolean
@@ -98,7 +99,7 @@ export function CreditCardFormDialog({ open, onOpenChange, card, onSuccess }: Cr
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) throw new Error('Not authenticated')
         const { error } = await supabase.from('credit_cards').insert({
-          user_id: user.id,
+          user_id: await getActiveOwnerId(),
           name: name.trim(),
           brand,
           color,

@@ -42,6 +42,7 @@ import type { TransactionType } from '@/lib/types'
 import { AI_MODEL_PREF_KEY } from '@/components/layout/assistant-panel'
 import { readAiPrefs } from '@/lib/ai-config'
 import type { Bank, CreditCard } from '@/lib/types'
+import { getActiveOwnerId } from '@/lib/active-owner'
 
 type Step = 'upload' | 'configure' | 'preview' | 'done'
 
@@ -402,6 +403,7 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { toast.error('Não autenticado.'); setLoading(false); return }
+    const ownerId = await getActiveOwnerId()
 
     const resolvedBankId = bankId === 'none' ? null : bankId
     const resolvedCardId = creditCardId === 'none' ? null : creditCardId
@@ -444,7 +446,7 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
           ? transferRowBanks[rowKey(r)] ?? matchBankInDescription(r.description, banks, resolvedBankId) ?? (transferDestId !== 'none' ? transferDestId : null)
           : null
         return {
-          user_id: user.id,
+          user_id: ownerId,
           description: r.description,
           amount: r.amount,
           // Fatura de cartão: o registro usa a data da fatura; a compra fica como referência

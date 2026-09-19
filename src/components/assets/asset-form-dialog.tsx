@@ -22,6 +22,7 @@ import { ASSET_GROUP_DEFS } from '@/lib/constants'
 import { toError } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import type { Asset, AssetGroupType } from '@/lib/types'
+import { getActiveOwnerId } from '@/lib/active-owner'
 
 interface AssetFormDialogProps {
   open: boolean
@@ -99,7 +100,8 @@ export function AssetFormDialog({ open, onOpenChange, asset, onSuccess }: AssetF
       } else {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) throw new Error('Usuário não autenticado.')
-        const { error } = await supabase.from('assets').insert({ ...basePayload, user_id: user.id })
+        const ownerId = await getActiveOwnerId()
+        const { error } = await supabase.from('assets').insert({ ...basePayload, user_id: ownerId })
         if (error) throw error
       }
       toast.success(asset ? 'Bem/Direito atualizado.' : 'Bem/Direito adicionado.')

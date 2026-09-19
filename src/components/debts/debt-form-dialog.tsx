@@ -22,6 +22,7 @@ import { DEBT_GROUP_DEFS } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 import { toError } from '@/lib/utils'
 import type { Debt, DebtGroupType, DebtStatus } from '@/lib/types'
+import { getActiveOwnerId } from '@/lib/active-owner'
 
 interface DebtFormDialogProps {
   open: boolean
@@ -121,7 +122,8 @@ export function DebtFormDialog({ open, onOpenChange, debt, onSuccess }: DebtForm
       } else {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) throw new Error('Usuário não autenticado.')
-        const { error } = await supabase.from('debts').insert({ ...basePayload, user_id: user.id })
+        const ownerId = await getActiveOwnerId()
+        const { error } = await supabase.from('debts').insert({ ...basePayload, user_id: ownerId })
         if (error) throw error
       }
       toast.success(debt ? 'Dívida atualizada.' : 'Dívida adicionada.')

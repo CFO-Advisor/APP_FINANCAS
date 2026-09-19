@@ -25,6 +25,7 @@ import { createClient } from '@/lib/supabase/client'
 import { BANK_PRESETS, BANK_TYPE_LABELS } from '@/lib/constants'
 import { toError } from '@/lib/utils'
 import type { Bank, BankType } from '@/lib/types'
+import { getActiveOwnerId } from '@/lib/active-owner'
 
 interface BankFormDialogProps {
   open: boolean
@@ -97,7 +98,7 @@ export function BankFormDialog({ open, onOpenChange, bank, onSuccess }: BankForm
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) throw new Error('Not authenticated')
         const { error } = await supabase.from('banks').insert({
-          user_id: user.id,
+          user_id: await getActiveOwnerId(),
           name: name.trim(),
           type,
           initial_balance: initialBalance,

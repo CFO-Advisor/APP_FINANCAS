@@ -21,6 +21,7 @@ import {
   ChevronLeft,
   Calculator,
   Sparkles,
+  Users,
 } from 'lucide-react'
 
 function CfoMark({ className }: { className?: string }) {
@@ -49,6 +50,7 @@ const navItems = [
   { href: '/credit-cards', label: 'Cartões', icon: CreditCard },
   { href: '/calculadora', label: 'Calculadora', icon: Calculator },
   { href: '/ai-settings', label: 'Config. IA', icon: Sparkles },
+  { href: '/sharing', label: 'Compartilhamento', icon: Users },
 ]
 
 interface NavContentProps {

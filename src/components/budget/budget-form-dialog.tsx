@@ -27,6 +27,7 @@ import { createClient } from '@/lib/supabase/client'
 import { EXPENSE_CATEGORY_GROUPS, INCOME_CATEGORY_GROUPS } from '@/lib/constants'
 import { toError } from '@/lib/utils'
 import type { Budget } from '@/lib/types'
+import { getActiveOwnerId } from '@/lib/active-owner'
 
 interface BudgetFormDialogProps {
   open: boolean
@@ -99,7 +100,7 @@ export function BudgetFormDialog({
         if (!user) throw new Error('Not authenticated')
 
         const { error } = await supabase.from('budgets').upsert(
-          { user_id: user.id, month, year, category, type, amount },
+          { user_id: await getActiveOwnerId(), month, year, category, type, amount },
           { onConflict: 'user_id,month,year,category' }
         )
         if (error) throw error

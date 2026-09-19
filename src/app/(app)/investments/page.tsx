@@ -27,6 +27,7 @@ import { MONTHS, CATEGORY_COLORS } from '@/lib/constants'
 import { formatCurrency } from '@/lib/csv-export'
 import { toError } from '@/lib/utils'
 import type { Transaction } from '@/lib/types'
+import { getActiveOwnerId } from '@/lib/active-owner'
 
 const currentYear = new Date().getFullYear()
 const YEARS = Array.from({ length: 5 }, (_, i) => currentYear - i)
@@ -133,7 +134,7 @@ export default function InvestmentsPage() {
       if (!user) throw new Error('Not authenticated')
 
       const { error } = await supabase.from('investment_settings').upsert(
-        { user_id: user.id, group_key: editingGroup.label, initial_balance: editValue },
+        { user_id: await getActiveOwnerId(), group_key: editingGroup.label, initial_balance: editValue },
         { onConflict: 'user_id,group_key' }
       )
       if (error) throw error
