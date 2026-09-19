@@ -3,11 +3,12 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { TrendingUp, LayoutDashboard, ArrowLeftRight, Target, LogOut, Menu, X } from 'lucide-react'
+import { TrendingUp, LayoutDashboard, ArrowLeftRight, Target, LogOut, KeyRound, Menu, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { ChangePasswordDialog } from '@/components/layout/change-password-dialog'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -19,6 +20,7 @@ export function AppNavbar() {
   const pathname = usePathname()
   const router = useRouter()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [pwOpen, setPwOpen] = useState(false)
 
   async function handleSignOut() {
     const supabase = createClient()
@@ -28,6 +30,7 @@ export function AppNavbar() {
   }
 
   return (
+    <>
     <header className="sticky top-0 z-50 border-b border-border bg-card">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         {/* Logo */}
@@ -59,6 +62,15 @@ export function AppNavbar() {
 
         {/* Right side */}
         <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setPwOpen(true)}
+            title="Alterar senha"
+            className="hidden text-xs text-muted-foreground hover:text-foreground md:inline-flex"
+          >
+            <KeyRound className="h-3.5 w-3.5" />
+          </Button>
           <Button
             variant="ghost"
             size="sm"
@@ -101,6 +113,13 @@ export function AppNavbar() {
               </Link>
             ))}
             <button
+              onClick={() => setPwOpen(true)}
+              className="flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-foreground"
+            >
+              <KeyRound className="h-4 w-4" />
+              Alterar senha
+            </button>
+            <button
               onClick={handleSignOut}
               className="flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-foreground"
             >
@@ -111,5 +130,8 @@ export function AppNavbar() {
         </div>
       )}
     </header>
+
+    <ChangePasswordDialog open={pwOpen} onOpenChange={setPwOpen} />
+    </>
   )
 }

@@ -15,6 +15,7 @@ import {
   Layers,
   Scale,
   LogOut,
+  KeyRound,
   Menu,
   X,
   ChevronLeft,
@@ -34,6 +35,7 @@ import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { ThemeToggle } from '@/components/theme-toggle'
+import { ChangePasswordDialog } from '@/components/layout/change-password-dialog'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -56,10 +58,11 @@ interface NavContentProps {
   onCloseDrawer?: () => void
   onNavClick?: () => void
   onSignOut: () => void
+  onChangePassword: () => void
   onNavigate: (href: string) => void
 }
 
-function NavContent({ pathname, collapsed, isMobile = false, onCloseDrawer, onNavClick, onSignOut, onNavigate }: NavContentProps) {
+function NavContent({ pathname, collapsed, isMobile = false, onCloseDrawer, onNavClick, onSignOut, onChangePassword, onNavigate }: NavContentProps) {
   return (
     <div className="flex h-full flex-col">
       {/* Logo + Theme toggle / Close button */}
@@ -129,8 +132,19 @@ function NavContent({ pathname, collapsed, isMobile = false, onCloseDrawer, onNa
         })}
       </nav>
 
-      {/* Logout */}
+      {/* Account actions */}
       <div className="shrink-0 border-t border-border p-3">
+        <button
+          onClick={onChangePassword}
+          title={collapsed ? 'Alterar senha' : undefined}
+          className={cn(
+            'mb-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-all hover:bg-accent hover:text-foreground',
+            collapsed && 'justify-center px-2'
+          )}
+        >
+          <KeyRound className="h-4 w-4 shrink-0" />
+          {!collapsed && 'Alterar senha'}
+        </button>
         <button
           onClick={onSignOut}
           title={collapsed ? 'Sair' : undefined}
@@ -152,6 +166,7 @@ export function AppSidebar() {
   const router = useRouter()
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [pwOpen, setPwOpen] = useState(false)
 
   async function handleSignOut() {
     const supabase = createClient()
@@ -178,6 +193,7 @@ export function AppSidebar() {
           collapsed={collapsed}
           isMobile={false}
           onSignOut={handleSignOut}
+          onChangePassword={() => setPwOpen(true)}
           onNavigate={handleNavigate}
         />
 
@@ -232,9 +248,12 @@ export function AppSidebar() {
           onCloseDrawer={() => setMobileOpen(false)}
           onNavClick={() => setMobileOpen(false)}
           onSignOut={handleSignOut}
+          onChangePassword={() => { setPwOpen(true); setMobileOpen(false) }}
           onNavigate={handleNavigate}
         />
       </aside>
+
+      <ChangePasswordDialog open={pwOpen} onOpenChange={setPwOpen} />
     </>
   )
 }
