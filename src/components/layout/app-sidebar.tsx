@@ -60,7 +60,6 @@ const navItems = [
   { href: '/banks',   label: 'Bancos',              icon: Landmark    },
   { href: '/credit-cards', label: 'Cartões', icon: CreditCard },
   { href: '/calculadora', label: 'Calculadora', icon: Calculator },
-  { href: '/audit', label: 'Histórico', icon: ScrollText },
 ]
 
 interface NavContentProps {
