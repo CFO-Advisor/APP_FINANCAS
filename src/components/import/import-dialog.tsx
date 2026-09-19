@@ -131,6 +131,8 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
   const [transferDestId, setTransferDestId] = useState<string>('none')
   // Contra-partida por lançamento de transferência (chave = rowKey da linha)
   const [transferRowBanks, setTransferRowBanks] = useState<Record<string, string>>({})
+  // Filtro de linhas da prévia: revisar transferências (par de contas) ou erros
+  const [rowFilter, setRowFilter] = useState<'all' | 'transfer' | 'error'>('all')
   const [creditCardId, setCreditCardId] = useState<string>('none')
   // Data de vencimento da fatura (registro) — compras ficam como referência
   const [faturaDate, setFaturaDate] = useState('')
@@ -522,7 +524,7 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className={step === 'preview' ? 'sm:max-w-4xl' : 'sm:max-w-2xl'}>
         <DialogHeader>
           <DialogTitle>Importar Transações</DialogTitle>
         </DialogHeader>
@@ -720,20 +722,20 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
                 de importar (pega sinal invertido e linha mal classificada) */}
             {validCount > 0 && (
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg bg-muted/40 px-3 py-2 text-xs">
-                <span className="text-muted-foreground">
+                <span className="whitespace-nowrap text-muted-foreground">
                   Entradas{' '}
-                  <span className="font-semibold tabular-nums text-emerald-600">{formatCurrency(previewTotals.entradas)}</span>
+                  <span className="font-semibold tabular-nums text-emerald-600">+{formatCurrency(previewTotals.entradas)}</span>
                 </span>
-                <span className="text-muted-foreground">
+                <span className="whitespace-nowrap text-muted-foreground">
                   Saídas{' '}
-                  <span className="font-semibold tabular-nums text-destructive">{formatCurrency(previewTotals.saidas)}</span>
+                  <span className="font-semibold tabular-nums text-destructive">−{formatCurrency(previewTotals.saidas)}</span>
                 </span>
-                <span className="text-muted-foreground">
+                <span className="whitespace-nowrap text-muted-foreground">
                   Resultado{' '}
                   <span
                     className={`font-semibold tabular-nums ${previewTotals.entradas - previewTotals.saidas >= 0 ? 'text-emerald-600' : 'text-destructive'}`}
                   >
-                    {formatCurrency(previewTotals.entradas - previewTotals.saidas)}
+                    {previewTotals.entradas - previewTotals.saidas >= 0 ? '+' : '−'}{formatCurrency(Math.abs(previewTotals.entradas - previewTotals.saidas))}
                   </span>
                 </span>
                 <span className="text-muted-foreground/70">confira com o extrato antes de importar</span>
@@ -743,7 +745,7 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
             {transferRowsCount > 0 && (
               <div className="space-y-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3">
                 <p className="text-xs font-medium text-amber-600">
-                  {transferRowsCount} lançamento(s) marcado(s) como Transferência — a contra-partida é detectada pela descrição quando possível; ajuste por lançamento abaixo se precisar:
+                  {transferRowsCount} lançamento(s) marcado(s) como Transferência. Elas não entram como receita nem despesa — só movem saldo entre contas. Use o filtro <strong>Transferências</strong> abaixo para revisar uma a uma e confirmar a conta de destino (detectada pela descrição quando possível):
                 </p>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   <div className="space-y-1">
@@ -774,7 +776,40 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
               </div>
             )}
 
-            <div className="max-h-72 overflow-y-auto rounded-lg border border-border">
+            {/* Filtro de linhas — facilita revisar as transferências uma a uma */}
+            <div className="flex flex-wrap items-center gap-1.5 text-xs">
+              {([
+                ['all', `Todas (${file.parsed.length})`],
+                ['transfer', `Transferências (${transferRowsCount})`],
+                ['error', `Erros (${errorRows.length})`],
+              ] as const).map(([key, label]) => {
+                if (key === 'transfer' && transferRowsCount === 0) return null
+                if (key === 'error' && errorRows.length === 0) return null
+                const active = rowFilter === key
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setRowFilter(key)}
+                    aria-pressed={active}
+                    className={`rounded-full border px-2.5 py-1 transition-colors ${
+                      active
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : 'border-border text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                )
+              })}
+              {rowFilter === 'transfer' && transferRowsCount > 0 && (
+                <span className="text-muted-foreground/70">
+                  escolha a conta de destino de cada uma na última coluna
+                </span>
+              )}
+            </div>
+
+            <div className="max-h-72 overflow-x-auto overflow-y-auto rounded-lg border border-border">
               <table className="w-full text-xs">
                 <thead className="sticky top-0 bg-muted/80 backdrop-blur">
                   <tr>
@@ -787,10 +822,19 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
                   </tr>
                 </thead>
                 <tbody>
-                  {file.parsed.map((row, i) => (
+                  {file.parsed
+                    .map((row, i) => ({ row, i }))
+                    .filter(({ row }) =>
+                      rowFilter === 'all'
+                        ? true
+                        : rowFilter === 'transfer'
+                          ? !row.error && row.type === 'transfer'
+                          : !!row.error,
+                    )
+                    .map(({ row, i }) => (
                     <tr key={i} className={`border-t border-border ${row.error ? 'bg-destructive/5' : ''}`}>
-                      <td className="px-3 py-1.5 text-muted-foreground">{row.date || '—'}</td>
-                      <td className="max-w-[200px] truncate px-3 py-1.5">{row.description}</td>
+                      <td className="whitespace-nowrap px-3 py-1.5 text-muted-foreground">{row.date || '—'}</td>
+                      <td className="max-w-[170px] truncate px-3 py-1.5">{row.description}</td>
                       <td className="max-w-[130px] px-3 py-1.5">
                         {row.error ? '—' : (
                           <Select
@@ -812,10 +856,10 @@ export function ImportDialog({ open, onOpenChange, banks, creditCards = [], onSu
                           </Select>
                         )}
                       </td>
-                      <td className={`px-3 py-1.5 text-right font-medium tabular-nums ${row.type === 'income' ? 'text-emerald-600' : row.type === 'transfer' ? 'text-muted-foreground' : 'text-destructive'}`}>
-                        {row.error ? '—' : `${row.type === 'income' ? '+' : row.type === 'transfer' ? '' : '−'} ${formatCurrency(row.amount)}`}
+                      <td className={`whitespace-nowrap px-3 py-1.5 text-right font-medium tabular-nums ${row.type === 'income' ? 'text-emerald-600' : row.type === 'transfer' ? 'text-muted-foreground' : 'text-destructive'}`}>
+                        {row.error ? '—' : `${row.type === 'income' ? '+' : row.type === 'transfer' ? '' : '−'}\u00A0${formatCurrency(row.amount)}`}
                       </td>
-                      <td className="px-3 py-1.5 text-muted-foreground">
+                      <td className="whitespace-nowrap px-3 py-1.5 text-muted-foreground">
                         {row.type === 'income' ? 'Receita' : row.type === 'investment' ? 'Investimento' : row.type === 'credit_card_payment' ? 'Pagto. Fatura' : row.type === 'transfer' ? 'Transferência' : 'Despesa'}
                       </td>
                       <td className="px-3 py-1.5">
