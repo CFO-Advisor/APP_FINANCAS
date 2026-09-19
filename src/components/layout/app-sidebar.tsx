@@ -21,8 +21,9 @@ import {
   ChevronLeft,
   Calculator,
   Sparkles,
-  Users,
   ScrollText,
+  Settings,
+  Users,
 } from 'lucide-react'
 
 function CfoMark({ className }: { className?: string }) {
@@ -38,6 +39,14 @@ import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { ChangePasswordDialog } from '@/components/layout/change-password-dialog'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -50,8 +59,6 @@ const navItems = [
   { href: '/banks',   label: 'Bancos',              icon: Landmark    },
   { href: '/credit-cards', label: 'Cartões', icon: CreditCard },
   { href: '/calculadora', label: 'Calculadora', icon: Calculator },
-  { href: '/ai-settings', label: 'Config. IA', icon: Sparkles },
-  { href: '/sharing', label: 'Compartilhamento', icon: Users },
   { href: '/audit', label: 'Histórico', icon: ScrollText },
 ]
 
@@ -64,6 +71,57 @@ interface NavContentProps {
   onSignOut: () => void
   onChangePassword: () => void
   onNavigate: (href: string) => void
+}
+
+// Menu de configurações: engrenagem no rodapé da sidebar.
+// Agrupa alterar senha, compartilhamento, configurações de IA e histórico.
+function SettingsMenu({
+  collapsed, onNavigate, onChangePassword, onNavClick,
+}: {
+  collapsed: boolean
+  onNavigate: (href: string) => void
+  onChangePassword: () => void
+  onNavClick?: () => void
+}) {
+  const router = useRouter()
+  const settingsItems = [
+    { label: 'Alterar senha', icon: KeyRound, action: onChangePassword },
+    { href: '/sharing', label: 'Compartilhamento', icon: Users },
+    { href: '/ai-settings', label: 'Configurações de IA', icon: Sparkles },
+    { href: '/audit', label: 'Histórico de alterações', icon: ScrollText },
+  ]
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        className={cn(
+          'mb-1 flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-all hover:bg-accent hover:text-foreground outline-none',
+          collapsed && 'justify-center px-2'
+        )}
+        aria-label="Configurações"
+      >
+        <Settings className="h-4 w-4 shrink-0" />
+        {!collapsed && 'Configurações'}
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" side="top" sideOffset={6} className="min-w-[230px]">
+        <DropdownMenuLabel>Configurações</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {settingsItems.map(({ label, icon: Icon, href, action }) => (
+          <DropdownMenuItem
+            key={label}
+            onClick={() => {
+              if (action) action()
+              else { onNavigate(href!); onNavClick?.() }
+            }}
+            className="cursor-pointer gap-2 text-sm"
+          >
+            <Icon className="h-4 w-4" />
+            {label}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
 }
 
 function NavContent({ pathname, collapsed, isMobile = false, onCloseDrawer, onNavClick, onSignOut, onChangePassword, onNavigate }: NavContentProps) {
@@ -138,17 +196,13 @@ function NavContent({ pathname, collapsed, isMobile = false, onCloseDrawer, onNa
 
       {/* Account actions */}
       <div className="shrink-0 border-t border-border p-3">
-        <button
-          onClick={onChangePassword}
-          title={collapsed ? 'Alterar senha' : undefined}
-          className={cn(
-            'mb-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-all hover:bg-accent hover:text-foreground',
-            collapsed && 'justify-center px-2'
-          )}
-        >
-          <KeyRound className="h-4 w-4 shrink-0" />
-          {!collapsed && 'Alterar senha'}
-        </button>
+        {/* Menu de configurações (engrenagem) */}
+        <SettingsMenu
+          collapsed={collapsed}
+          onNavigate={onNavigate}
+          onChangePassword={onChangePassword}
+          onNavClick={onNavClick}
+        />
         <button
           onClick={onSignOut}
           title={collapsed ? 'Sair' : undefined}
