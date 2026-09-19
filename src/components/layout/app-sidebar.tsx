@@ -44,6 +44,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuGroup,
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
@@ -104,21 +105,23 @@ function SettingsMenu({
         {!collapsed && 'Configurações'}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" side="top" sideOffset={6} className="min-w-[230px]">
-        <DropdownMenuLabel>Configurações</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        {settingsItems.map(({ label, icon: Icon, href, action }) => (
-          <DropdownMenuItem
-            key={label}
-            onClick={() => {
-              if (action) action()
-              else { onNavigate(href!); onNavClick?.() }
-            }}
-            className="cursor-pointer gap-2 text-sm"
-          >
-            <Icon className="h-4 w-4" />
-            {label}
-          </DropdownMenuItem>
-        ))}
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>Configurações</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          {settingsItems.map(({ label, icon: Icon, href, action }) => (
+            <DropdownMenuItem
+              key={label}
+              onClick={() => {
+                if (action) action()
+                else { onNavigate(href!); onNavClick?.() }
+              }}
+              className="cursor-pointer gap-2 text-sm"
+            >
+              <Icon className="h-4 w-4" />
+              {label}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
   )
